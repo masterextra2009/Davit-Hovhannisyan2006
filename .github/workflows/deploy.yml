@@ -1,0 +1,30 @@
+name: Deploy Website to Beget
+on:
+  push:
+    branches: [main]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm cache clean --force
+          npm install
+          npm install @tailwindcss/oxide-linux-x64-gnu --no-save
+      - name: Build
+        run: npm run build
+      - name: Deploy via SFTP (SSH key)
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          username: mastesu6
+          server: ${{ secrets.FTP_HOST }}
+          port: 22
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          local_path: './dist/*'
+          remote_path: 'sever-18.ru/public_html'
+          sftpArgs: '-o ConnectTimeout=30'

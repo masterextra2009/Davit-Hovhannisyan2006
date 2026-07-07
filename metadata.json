@@ -1,0 +1,6 @@
+{
+  "name": "Print Shop Client Portal",
+  "description": "A secure client portal for uploading and sharing files for local printing, integrated with chat, order status updates, simulated automated billing/payments, and a robust admin dashboard with analytics.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

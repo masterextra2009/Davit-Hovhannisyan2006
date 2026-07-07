@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile containing roles and identification details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique user identifier (from Auth)" },
+        "email": { "type": "string", "description": "Validated email address" },
+        "fullName": { "type": "string", "description": "User display name" },
+        "role": { "type": "string", "enum": ["client", "admin"], "description": "User role level" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Profile generation ISO timestamp" },
+        "phone": { "type": "string", "description": "Optional contact phone number" },
+        "avatarUrl": { "type": "string", "description": "Optional profile photo reference" }
+      },
+      "required": ["id", "email", "fullName", "role", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Client printing orders containing lists of files, printing properties and state statuses",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique order ID" },
+        "userId": { "type": "string", "description": "Target client ID" },
+        "userName": { "type": "string", "description": "Target client full name" },
+        "userEmail": { "type": "string", "description": "Target client email" },
+        "orderDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["pending", "approved", "printing", "ready", "printed"] },
+        "totalCost": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["unpaid", "paid", "failed"] },
+        "files": {
+          "type": "array",
+          "description": "List of original files to print"
+        },
+        "paymentMethod": { "type": "string" },
+        "transactionId": { "type": "string" },
+        "notes": { "type": "string" },
+        "paperType": { "type": "string", "enum": ["standard", "glossy", "matte", "kraft"] },
+        "printColor": { "type": "string", "enum": ["bw", "color"] },
+        "copies": { "type": "number" },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "userName", "userEmail", "orderDate", "status", "totalCost", "paymentStatus", "paperType", "printColor", "copies"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Interactive messages between clients and site administrator",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string", "description": "Owner client ID of this chat channel" },
+        "senderId": { "type": "string" },
+        "senderRole": { "type": "string", "enum": ["client", "admin"] },
+        "senderName": { "type": "string" },
+        "message": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "readByAdmin": { "type": "boolean" },
+        "readByClient": { "type": "boolean" }
+      },
+      "required": ["id", "userId", "senderId", "senderRole", "senderName", "message", "timestamp", "readByAdmin", "readByClient"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Broadcasts or user targeted notifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string", "description": "Recipient client user ID" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" },
+        "type": { "type": "string", "enum": ["order_status", "chat", "payment", "profile"] }
+      },
+      "required": ["id", "userId", "title", "body", "timestamp", "read", "type"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles indexed by authentication UID"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Printing orders collection"
+    },
+    "/chatMessages/{chatId}": {
+      "schema": "ChatMessage",
+      "description": "Interactive client-support messages"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "System-to-client notification history messages"
+    }
+  }
+}

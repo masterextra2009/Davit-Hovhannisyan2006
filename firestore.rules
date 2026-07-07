@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Essential security helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && 
+             (request.auth.uid == 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' ||
+              request.auth.uid == 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23' ||
+              request.auth.token.email == 'admin@print.ru' ||
+              request.auth.token.email == 'photo-sever@yandex.ru' ||
+              (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+               getUserRole() == 'admin'));
+    }
+
+    // Profile accounts path rules
+    match /users/{userId} {
+      allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow create: if isSignedIn() && isOwner(userId) && 
+                    (request.resource.data.role == 'client' || 
+                     (request.resource.data.role == 'admin' && 
+                      (request.resource.data.email == 'admin@print.ru' || request.resource.data.email == 'photo-sever@yandex.ru' || userId == 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' || userId == 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23') &&
+                      (request.auth.token.email == 'admin@print.ru' || request.auth.token.email == 'photo-sever@yandex.ru' || userId == 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' || userId == 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23' || !('email' in request.auth.token) || request.auth.token.email == null)));
+      allow update: if isSignedIn() && (isOwner(userId) || isAdmin()) && 
+                    (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) || isAdmin());
+      allow delete: if isSignedIn() && (isOwner(userId) || isAdmin());
+    }
+
+    // Print orders path rules
+    match /orders/{orderId} {
+      allow create: if isSignedIn() && (request.resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // Live chat log channels path rules
+    match /chatMessages/{chatId} {
+      allow create: if isSignedIn() && (request.resource.data.userId == request.auth.uid || request.resource.data.senderId == request.auth.uid || isAdmin());
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // Live alerts target path rules
+    match /notifications/{notificationId} {
+      allow create: if isSignedIn() && (request.resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Публичный счётчик посещений сайта — единственный документ, куда
+    // разрешена запись БЕЗ входа в аккаунт (чтобы считать анонимных посетителей).
+    // Читать статистику может только администратор.
+    match /stats/visits {
+      allow read: if isAdmin();
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+  }
+}

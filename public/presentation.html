@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Фото-Север — Автономный Рекламный Промо-Экран</title>
+  
+  <!-- Premium Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Premium background mesh custom overlay */
+    .bg-mesh {
+      background-image: 
+        radial-gradient(at 20% 20%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 80% 80%, rgba(168, 85, 247, 0.1) 0px, transparent 50%),
+        radial-gradient(at 50% 10%, rgba(244, 63, 94, 0.05) 0px, transparent 50%);
+    }
+
+    /* Keyframe animations for continuous glowing elements */
+    @keyframes slow-pulse {
+      0%, 100% { opacity: 0.8; transform: scale(1); filter: blur(120px); }
+      50% { opacity: 0.4; transform: scale(1.1); filter: blur(150px); }
+    }
+    .neon-pulse-1 {
+      animation: slow-pulse 12s infinite ease-in-out;
+    }
+    .neon-pulse-2 {
+      animation: slow-pulse 16s infinite ease-in-out -4s;
+    }
+
+    /* Custom Webkit scrollbar styles */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.3);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.5);
+    }
+
+    /* Standard slide styles */
+    .slide-entry {
+      opacity: 0;
+      transform: translateY(12px) scale(0.99);
+      transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      display: none;
+    }
+    .slide-entry.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      display: grid;
+    }
+  </style>
+</head>
+<body class="bg-[#030712] text-slate-100 min-h-screen flex flex-col justify-between p-6 sm:p-10 select-none overflow-hidden bg-mesh relative font-sans">
+
+  <!-- Glowing atmospheric neon background orbs -->
+  <div class="absolute top-[10%] left-[20%] w-[500px] h-[500px] rounded-full bg-indigo-600/10 pointer-events-none neon-pulse-1"></div>
+  <div class="absolute bottom-[10%] right-[20%] w-[600px] h-[600px] rounded-full bg-purple-600/8 pointer-events-none neon-pulse-2"></div>
+
+  <!-- Header block with Brand Title & Control station -->
+  <header class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4 border-b border-white/5 pb-5 w-full max-w-7xl mx-auto shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-600/15">
+        <!-- Embedded glowing logo icon -->
+        <svg class="w-5.5 h-5.5 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-base font-black uppercase tracking-widest text-white font-display">ФОТО-СЕВЕР</h1>
+          <span class="px-2 py-0.5 bg-indigo-500/10 text-indigo-300 text-[8px] font-extrabold uppercase rounded border border-indigo-500/20 tracking-wider">АВТОНОМНЫЙ РЕЖИМ</span>
+        </div>
+        <p class="text-[10px] text-slate-450 block font-medium mt-0.5">Рекламный промо-экран для монитора &middot; Северное шоссе, 18</p>
+      </div>
+    </div>
+
+    <!-- Active interactive utility buttons (Download, Mutate audio, Control Slides) -->
+    <div class="flex flex-wrap items-center justify-end gap-3">
+      <!-- Direct Download Guide Trigger -->
+      <button onclick="triggerDownloadGuide()" class="px-3.5 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 rounded-xl transition-all duration-300 hover:scale-[1.03] text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+        </svg>
+        Скачать файлом
+      </button>
+
+      <!-- Autoplay station controller badge -->
+      <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-2xl pr-3 shadow-md">
+        <button id="playPauseBtn" onclick="togglePlayPause()" class="p-1.5 bg-indigo-650 text-white rounded-lg transition hover:bg-indigo-550 flex items-center justify-center" title="Пауза / Проигрывание">
+          <svg id="playPauseIcon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+          </svg>
+        </button>
+        <span class="text-[9px] font-mono tracking-wider font-bold text-slate-400 uppercase">СЛАЙД-ШОУ</span>
+      </div>
+
+      <!-- Silent mode dynamic sound manager -->
+      <button id="muteBtn" onclick="toggleAudioMute()" class="p-2 bg-slate-900 border border-slate-800 rounded-xl transition text-indigo-400 hover:text-white hover:bg-slate-800 flex items-center justify-center">
+        <svg id="soundIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+        </svg>
+      </button>
+
+      <button onclick="toggleFullScreen()" class="p-2 bg-slate-900 border border-slate-800 rounded-xl transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center" title="На весь экран">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 0h-4m4 0l-5-5"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Core Content slides frame container wrapper -->
+  <main class="relative z-10 flex-1 flex flex-col justify-center items-stretch max-w-7xl mx-auto w-full my-6 px-4 md:px-0">
+
+    <!-- SLIDE 1: Welcome Slide -->
+    <div class="slide-entry active grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full">
+      <div class="lg:col-span-6 space-y-5 text-left">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 text-indigo-300 font-extrabold uppercase rounded-full text-[10px] border border-indigo-500/20 font-mono">
+          <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
+          ИТ-ЭКОСИСТЕМА ДЛЯ ПЕЧАТИ
+        </span>
+        <h2 class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-none">
+          Мастерская Цифровой Печати <span class="bg-gradient-to-r from-indigo-450 to-pink-400 bg-clip-text text-transparent">Фото-Север</span>
+        </h2>
+        <h3 class="text-sm sm:text-base font-bold text-slate-300 leading-relaxed font-display">
+          Интеллектуальная автоматизация широких и малых форматов
+        </h3>
+        <p class="text-xs sm:text-sm text-slate-350 leading-relaxed max-w-xl">
+          Добро пожаловать в будущее полиграфии на Северном шоссе, 18! Мы переработали процесс заказа: 
+          никакой бумажной волокиты, бесконечных писем и созвонов. Заказы рассчитываются автоматически, 
+          направляются прямиком на каретку принтера и синхронно контролируются пользователем.
+        </p>
+        <div class="pt-2 flex flex-wrap gap-3">
+          <span class="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 font-mono px-3 py-1.5 rounded-xl">
+            📍 Северное шоссе, 18
+          </span>
+          <span class="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-mono px-3 py-1.5 rounded-xl font-bold">
+            ⚡️ Скидка рефералам до -20%
+          </span>
+        </div>
+      </div>
+      <div class="lg:col-span-6 flex justify-center py-4">
+        <!-- Giant artistic radar animation graphic -->
+        <div class="relative w-72 h-72 flex items-center justify-center">
+          <div class="absolute inset-0 rounded-full border border-dashed border-indigo-500/10 animate-spin" style="animation-duration: 40s;"></div>
+          <div class="absolute w-[220px] h-[220px] rounded-full border border-indigo-500/15 animate-pulse"></div>
+          <div class="absolute w-[120px] h-[120px] rounded-full bg-indigo-650/10 border border-indigo-400/20 flex items-center justify-center shadow-3xl shadow-indigo-500/10">
+            <svg class="w-12 h-12 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: Automatic Pricing Core Simulation -->
+    <div class="slide-entry grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full">
+      <div class="lg:col-span-6 space-y-5 text-left">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 text-indigo-300 font-extrabold uppercase rounded-full text-[10px] border border-indigo-500/20 font-mono">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+          МОДЕМ СТОИМОСТИ PRINT_PRICE_CORE
+        </span>
+        <h2 class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-none">
+          Мгновенный Анализ и Сетка Прайса
+        </h2>
+        <h3 class="text-sm sm:text-base font-bold text-slate-300 leading-relaxed font-display">
+          Мгновенный расчет перетаскиванием файлов
+        </h3>
+        <p class="text-xs sm:text-sm text-slate-350 leading-relaxed max-w-xl">
+          Программа без задержек сканирует структуру документов. Система отличает форматы 
+          <strong class="text-white">PDF</strong>, <strong class="text-white">DOCX</strong> и 
+          <strong class="text-white">PNG/JPG</strong>, распознает количество страниц и производит 
+          дифференциальную тарификацию в зависимости от плотности бумаги и объема.
+        </p>
+        <div class="flex gap-2">
+          <span class="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-mono px-3 py-1.5 rounded-xl font-bold">
+            ✓ Распознавание страниц
+          </span>
+          <span class="text-[10px] bg-slate-900 border border-slate-800 text-slate-450 font-mono px-3 py-1.5 rounded-xl">
+            Тарифы: от 12 ₽ Ч/Б
+          </span>
+        </div>
+      </div>
+      <div class="lg:col-span-6 flex justify-center py-4 w-full">
+        <!-- Live Autotuning Calculator Sim -->
+        <div class="bg-slate-900/60 p-5 rounded-3xl border border-white/5 space-y-4 w-full max-w-sm shadow-2xl relative overflow-hidden">
+          <div class="absolute top-2.5 right-3 text-[7.5px] font-mono text-indigo-400 font-bold uppercase tracking-widest">АКТИВНАЯ ЭМУЛЯЦИЯ</div>
+          <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest">Симулятор сканирования:</h4>
+          
+          <div class="p-3.5 bg-slate-950 rounded-2xl space-y-2.5 text-xs">
+            <div class="flex justify-between items-center text-slate-400">
+              <span>Парсинг файла:</span>
+              <span id="calc-filename" class="text-indigo-300 font-mono font-bold">Спецификация_Чертеж.pdf</span>
+            </div>
+            <div class="flex justify-between items-center text-slate-400">
+              <span>Количество листов:</span>
+              <span id="calc-pages" class="text-white font-mono font-black">18 стр.</span>
+            </div>
+            <div class="flex justify-between items-center text-slate-400">
+              <span>Бумага полиграфии:</span>
+              <span id="calc-paper" class="text-[#5fc490] font-bold">Дизайнерский Крафт</span>
+            </div>
+            <div class="flex justify-between items-center text-slate-400">
+              <span>Цветность печати:</span>
+              <span id="calc-color" class="px-2 py-0.5 bg-amber-500/10 text-amber-500 text-[10px] font-bold rounded uppercase">Цветная</span>
+            </div>
+          </div>
+
+          <div class="bg-slate-950/50 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
+            <div>
+              <span class="text-[8.5px] text-slate-500 uppercase font-black block">ПАСПОРТНАЯ СТОИМОСТЬ:</span>
+              <span id="calc-price" class="text-2xl font-mono font-black text-[#5fc490]">740 ₽</span>
+            </div>
+            <span class="text-[9px] bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded-lg border border-emerald-500/20 font-bold font-mono">
+              Скидка применена
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: Secure Server Cloud Base & Zero Larping -->
+    <div class="slide-entry grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full">
+      <div class="lg:col-span-6 space-y-5 text-left">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 text-indigo-300 font-extrabold uppercase rounded-full text-[10px] border border-indigo-500/20 font-mono">
+          <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+          БЕЗОПАСНОСТЬ CLOUD FIRESTORE
+        </span>
+        <h2 class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-none">
+          Реальные Данные и Безопасность
+        </h2>
+        <h3 class="text-sm sm:text-base font-bold text-slate-300 leading-relaxed font-display">
+          Отказ от имитаций в пользу полной синхронизации
+        </h3>
+        <p class="text-xs sm:text-sm text-slate-350 leading-relaxed max-w-xl">
+          Никаких ложных логов! Личный кабинет и админ-пульт синхронизируются по защищенным 
+          каналам с базой данных <strong class="text-white">Firestore</strong>. Балансы пользователей, 
+          реферальные ссылки, чаты с оператором и коэффициенты цен счетов надежно заблокированы от вмешательства третьих лиц.
+        </p>
+        <div class="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-[11px] text-rose-350 font-bold flex items-center gap-2">
+          <!-- Shield icon -->
+          <svg class="w-4.5 h-4.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+          </svg>
+          Строгий SSL-протокол шифрования и хэширование транзакций
+        </div>
+      </div>
+      <div class="lg:col-span-6 flex justify-center py-4 w-full">
+        <!-- Interactive Database Node visual component -->
+        <div class="bg-slate-900/40 p-5 rounded-3xl border border-white/5 w-full max-w-sm space-y-4 shadow-2xl relative">
+          <div class="flex items-center justify-between">
+            <span class="text-[9px] font-mono text-slate-500 uppercase font-black">СТАТУС ИНФРАСТРУКТУРЫ</span>
+            <span class="flex items-center gap-1 text-[9px] text-[#5fc490] font-bold">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#5fc490] animate-ping"></span>
+              CONNECTED
+            </span>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-white/5 flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+                <span class="text-slate-350">Учетные записи:</span>
+              </div>
+              <span class="font-mono text-slate-200">W-Auth Secure</span>
+            </div>
+
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-white/5 flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span class="text-slate-350">Реферальная база:</span>
+              </div>
+              <span class="font-mono text-slate-200 font-bold">Firestore DB</span>
+            </div>
+
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-white/5 flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-pink-400"></span>
+                <span class="text-slate-350">Сквозное шифрование:</span>
+              </div>
+              <span class="font-mono text-[#5fc490]">AES-256 Active</span>
+            </div>
+          </div>
+
+          <div class="p-2.5 bg-slate-950/70 border border-white/5 rounded-2xl text-[10px] text-slate-500 leading-relaxed text-center">
+            Разделение уровней привилегий гарантирует, что обычный пользователь никогда не получит доступ к тарифам и финансовым отчетам.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: Live Real-Time Chat & Communications -->
+    <div class="slide-entry grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full">
+      <div class="lg:col-span-6 space-y-5 text-left">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 text-indigo-300 font-extrabold uppercase rounded-full text-[10px] border border-indigo-500/20 font-mono">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+          КАБИНЕТ ПЕЧАТНИКА // DIRECT_CHAT
+        </span>
+        <h2 class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-none">
+          Связь с Мастером и Чат
+        </h2>
+        <h3 class="text-sm sm:text-base font-bold text-slate-300 leading-relaxed font-display">
+          Прямое согласование деталей выпуска
+        </h3>
+        <p class="text-xs sm:text-sm text-slate-350 leading-relaxed max-w-xl">
+          Больше не нужно спорить в мессенджерах. Удобная чат-панель позволяет клиенту 
+          общаться напрямую с оператором на Северном шоссе, 18. Любые правки макетов, 
+          накатка пленок и требования ГОСТов вносятся за доли секунд.
+        </p>
+        <div class="flex gap-2">
+          <span class="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 px-3 py-1.5 rounded-xl font-bold font-mono">
+            Автоответчик: Активен
+          </span>
+        </div>
+      </div>
+      <div class="lg:col-span-6 flex justify-center py-4 w-full">
+        <!-- Live Chat Simulator widget -->
+        <div class="bg-slate-900/60 p-4 rounded-3xl border border-white/5 w-full max-w-sm h-56 flex flex-col justify-between shadow-2xl text-xs">
+          <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+            <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
+            <span class="font-extrabold text-slate-300">Оператор («Фото-Север»)</span>
+          </div>
+
+          <div class="flex-1 py-2.5 space-y-2 overflow-y-auto" id="chat-scroller">
+            <div class="flex flex-col items-start">
+              <div class="bg-slate-950 p-2 rounded-xl rounded-tl-none border border-white/5 text-slate-300 text-[11px] leading-relaxed max-w-[90%]">
+                Добрый день! Печатаем спецификации ГОСТ в масштабе 1:1 или подгоняем под края?
+              </div>
+            </div>
+            <div class="flex flex-col items-end">
+              <div class="bg-indigo-600 p-2 rounded-xl rounded-tr-none text-white text-[11px] leading-relaxed max-w-[90%]">
+                Здравствуйте! Пожалуйста, оставьте 1:1, мы будем складывать вручную под папку.
+              </div>
+            </div>
+          </div>
+
+          <p class="text-[8.5px] text-slate-500 font-mono tracking-wider font-bold">СИНХРОНИЗАЦИЯ ЧЕРЕЗ WEBSOCKETS // АКТИВНО</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: Status Tracking Pipeline with Web Audio Synth Chimes -->
+    <div class="slide-entry grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full">
+      <div class="lg:col-span-6 space-y-5 text-left">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 text-indigo-300 font-extrabold uppercase rounded-full text-[10px] border border-indigo-500/20 font-mono">
+          <span class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-ping"></span>
+          TRACEABLE PRODUCTION STEPS
+        </span>
+        <h2 class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-none">
+          Звуковой Статус-Пайплайн
+        </h2>
+        <h3 class="text-sm sm:text-base font-bold text-slate-300 leading-relaxed font-display">
+          Полный разбор пути Вашего заказа
+        </h3>
+        <p class="text-xs sm:text-sm text-slate-350 leading-relaxed max-w-xl">
+          Степени готовности прозрачны как на ладони. При смене статуса заказа от 
+          проверки до печати и укомплектовки, система воспроизводит благородный аналоговый 
+          звуковой чим через встроенный <strong class="text-white">Web Audio API</strong>, 
+          гарантируя превосходный пользовательский опыт на любых типах устройств.
+        </p>
+        <div class="flex gap-2">
+          <button onclick="synthesizeChime('success')" class="px-3.5 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 rounded-xl transition text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+            </svg>
+            Проверить звук
+          </button>
+        </div>
+      </div>
+      <div class="lg:col-span-6 flex justify-center py-4 w-full">
+        <!-- Status indicator widget -->
+        <div class="w-full max-w-sm space-y-3">
+          <div class="grid grid-cols-4 gap-2">
+            <div class="status-box p-2 rounded-xl bg-slate-950 border border-white/5 text-center transition-all duration-300" id="step-0">
+              <div class="w-5.5 h-5.5 rounded-full mx-auto bg-slate-800 text-slate-400 font-bold text-[9px] flex items-center justify-center">1</div>
+              <span class="text-[8.5px] mt-1.5 font-bold block text-slate-400 leading-tight">Проверка</span>
+            </div>
+            <div class="status-box p-2 rounded-xl bg-slate-950 border border-white/5 text-center transition-all duration-300" id="step-1">
+              <div class="w-5.5 h-5.5 rounded-full mx-auto bg-slate-800 text-slate-400 font-bold text-[9px] flex items-center justify-center">2</div>
+              <span class="text-[8.5px] mt-1.5 font-bold block text-slate-400 leading-tight">Одобрен</span>
+            </div>
+            <div class="status-box p-2 rounded-xl bg-slate-950 border border-white/5 text-center transition-all duration-300" id="step-2">
+              <div class="w-5.5 h-5.5 rounded-full mx-auto bg-slate-800 text-slate-400 font-bold text-[9px] flex items-center justify-center">3</div>
+              <span class="text-[8.5px] mt-1.5 font-bold block text-slate-400 leading-tight">Печать</span>
+            </div>
+            <div class="status-box p-2 rounded-xl bg-slate-950 border border-white/5 text-center transition-all duration-300" id="step-3">
+              <div class="w-5.5 h-5.5 rounded-full mx-auto bg-slate-800 text-slate-400 font-bold text-[9px] flex items-center justify-center">4</div>
+              <span class="text-[8.5px] mt-1.5 font-bold block text-slate-400 leading-tight">Готов</span>
+            </div>
+          </div>
+
+          <div class="bg-indigo-600/10 p-3 rounded-2xl border border-indigo-500/20 text-center space-y-1">
+            <span class="text-[7.5px] font-mono font-bold tracking-widest text-indigo-400 uppercase block">ТЕКУЩОЕ ДЕЙСТВИЕ НА ПУЛЬТЕ:</span>
+            <p id="curr-status-name" class="text-xs text-white font-extrabold">Запуск вала...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: Admin Dashboard analytics overview -->
+    <div class="slide-entry grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full">
+      <div class="lg:col-span-6 space-y-5 text-left">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 text-indigo-300 font-extrabold uppercase rounded-full text-[10px] border border-indigo-500/20 font-mono">
+          <span class="w-1.5 h-1.5 rounded-full bg-pink-400 animate-ping"></span>
+          REAL-TIME TELEMETRY HUB
+        </span>
+        <h2 class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-none">
+          Умная Панель Администратора
+        </h2>
+        <h3 class="text-sm sm:text-base font-bold text-slate-300 leading-relaxed font-display">
+          Управление стоимостью листов, рефералами и графиками
+        </h3>
+        <p class="text-xs sm:text-sm text-slate-350 leading-relaxed max-w-xl">
+          Владелец снабжен удобной Dashboard-панелью. Выгружайте отчеты, регулируйте 
+          расценки крафт-бумаги, матовых и глянцевых пленок, выдавайте индивидуальные 
+          промокоды со скидками и наглядно следите за масштабированием своей прибыли.
+        </p>
+        <div class="flex gap-2">
+          <span class="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 px-3 py-1.5 rounded-xl font-bold font-mono">
+            Экспорт: CSV &amp; Excel
+          </span>
+        </div>
+      </div>
+      <div class="lg:col-span-6 flex justify-center py-4 w-full">
+        <!-- Admin telemetry metrics card -->
+        <div class="bg-slate-900/60 p-5 rounded-3xl border border-white/5 w-full max-w-sm space-y-3.5 shadow-2xl">
+          <div class="flex justify-between items-center text-[8.5px] font-bold text-slate-400 uppercase tracking-widest border-b border-white/5 pb-2">
+            <span>Объемы выработки за июнь:</span>
+            <span class="text-[#5fc490]">+32% прирост</span>
+          </div>
+
+          <div class="space-y-2.5 text-xs">
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-white/5">
+              <div class="flex justify-between font-bold text-[10px] text-slate-400 uppercase">
+                <span>Общая выручка:</span>
+                <span id="stat-revenue" class="text-[#5fc490] font-mono">148,250 ₽</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-1 mt-2 overflow-hidden">
+                <div class="bg-[#5fc490] h-full" style="width: 78%;"></div>
+              </div>
+            </div>
+
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-white/5">
+              <div class="flex justify-between font-bold text-[10px] text-slate-400 uppercase">
+                <span>Средний чек сделки:</span>
+                <span id="stat-avg" class="text-indigo-400 font-mono">1,410 ₽</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-1 mt-2 overflow-hidden">
+                <div class="bg-indigo-500 h-full" style="width: 53%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Download Local standalone HTML presentation guide popup MODAL -->
+  <div id="downloadGuideModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden justify-center items-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full relative space-y-4">
+      <h3 class="text-lg font-black text-white tracking-wide">Как запустить презентацию на телевизоре?</h3>
+      <p class="text-xs text-slate-350 leading-relaxed">
+        Данная страница спроектирована абсолютно готовой к автономному использованию! Нажмите клавиши 
+        <strong class="text-white">CTRL + S (или CMD + S на Mac)</strong>, чтобы полностью сохранить этот HTML-файл к себе на флешку или компьютер.
+      </p>
+      <div class="p-3 bg-slate-950 text-[11px] text-indigo-300 font-mono border border-indigo-500/10 rounded-xl space-y-1.5 leading-relaxed">
+        <div>1. Сохраните как «Веб-страница, только HTML».</div>
+        <div>2. Перекиньте файл на любой ноутбук или телевизор.</div>
+        <div>3. Кликните дважды — файл откроется в любом браузере!</div>
+        <div>4. Нажмите кнопку «Во весь экран» для витринного режима.</div>
+      </div>
+      <button onclick="closeDownloadGuide()" class="w-full py-2.5 bg-indigo-650 hover:bg-indigo-550 transition-all font-bold text-xs text-white rounded-xl">
+        Понятно, спасибо!
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer slide progress navigation & dot pills -->
+  <footer class="relative z-10 border-t border-white/5 pt-5 max-w-7xl mx-auto w-full flex flex-col sm:flex-row items-center justify-between gap-5 text-slate-400 shrink-0">
+    <!-- Sliding bullet indicators -->
+    <div class="flex items-center gap-2" id="slides-dots">
+      <!-- Dots injected dynamically -->
+    </div>
+
+    <!-- Active dynamic ticker line -->
+    <span class="text-[9.5px] font-mono uppercase tracking-widest text-slate-500 font-bold text-center">
+      РЕКЛАМНО-ИНФОРМАЦИОННЫЙ СТЕНД &middot; ШИРОКОФОРМАТНАЯ ПЕЧАТЬ «ФОТО-СЕВЕР»
+    </span>
+
+    <!-- Carousel arrows next/prev -->
+    <div class="flex items-center gap-2.5">
+      <button onclick="handlePrev()" class="p-2.5 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 text-slate-300 transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+      <button onclick="handleNext()" class="p-2.5 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 text-slate-300 transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+        </svg>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Script for core autonomous dynamic processes with zero dependencies -->
+  <script>
+    const slides = document.querySelectorAll('.slide-entry');
+    let currentIdx = 0;
+    let isAutoplayActive = true;
+    let isMutedStatus = false;
+    let autoplayTimer = null;
+    const SLIDE_INTERVAL_TIME = 9000; // 9 seconds per slide
+
+    // Initialize dots on footer
+    const dotsContainer = document.getElementById('slides-dots');
+    slides.forEach((_, idx) => {
+      const dot = document.createElement('button');
+      dot.className = `w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer ${idx === 0 ? 'w-10 bg-indigo-650' : 'bg-slate-800 hover:bg-slate-750'}`;
+      dot.title = `Слайд ${idx + 1}`;
+      dot.onclick = () => {
+        playInteractChime('chime');
+        gotoSlide(idx);
+      };
+      dotsContainer.appendChild(dot);
+    });
+
+    function updateFooterDots() {
+      const dotEls = dotsContainer.querySelectorAll('button');
+      dotEls.forEach((dot, idx) => {
+        if (idx === currentIdx) {
+          dot.className = 'w-10 h-2.5 rounded-full bg-indigo-600 transition-all duration-300';
+        } else {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-800 hover:bg-slate-750 transition-all duration-300';
+        }
+      });
+    }
+
+    // Slide transition controller
+    function gotoSlide(idx) {
+      if (idx === currentIdx) return;
+      slides[currentIdx].classList.remove('active');
+      currentIdx = idx;
+      slides[currentIdx].classList.add('active');
+      updateFooterDots();
+      resetAutoplayTimer();
+    }
+
+    function handleNext() {
+      playInteractChime('swipe');
+      const nextVal = (currentIdx + 1) % slides.length;
+      gotoSlide(nextVal);
+    }
+
+    function handlePrev() {
+      playInteractChime('swipe');
+      const prevVal = (currentIdx - 1 + slides.length) % slides.length;
+      gotoSlide(prevVal);
+    }
+
+    // Reset loop
+    function resetAutoplayTimer() {
+      if (autoplayTimer) clearInterval(autoplayTimer);
+      if (isAutoplayActive) {
+        autoplayTimer = setInterval(() => {
+          handleNext();
+        }, SLIDE_INTERVAL_TIME);
+      }
+    }
+
+    // Playback state toggle
+    function togglePlayPause() {
+      isAutoplayActive = !isAutoplayActive;
+      const icon = document.getElementById('playPauseIcon');
+      if (isAutoplayActive) {
+        icon.innerHTML = `<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>`;
+        resetAutoplayTimer();
+      } else {
+        icon.innerHTML = `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>`;
+        if (autoplayTimer) clearInterval(autoplayTimer);
+      }
+      playInteractChime('chime');
+    }
+
+    // Audio synthesizer Web Audio API helpers for stand-alone fidelity
+    function playInteractChime(type) {
+      if (isMutedStatus) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+
+        if (type === 'swipe') {
+          // Soft laser swiper synth
+          const osc = ctx.createOscillator();
+          const filter = ctx.createBiquadFilter();
+          const gain = ctx.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+
+          gain.gain.setValueAtTime(0.03, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        } else if (type === 'chime') {
+          // Sharp click sound
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(600, now);
+          gain.gain.setValueAtTime(0.03, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.1);
+        } else if (type === 'success') {
+          // Premium chime
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gain = ctx.createGain();
+          
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(523.25, now); // C5
+          osc1.frequency.exponentialRampToValueAtTime(1046.50, now + 0.35); // C6
+          
+          osc2.type = 'sine';
+          osc2.frequency.setValueAtTime(659.25, now); // E5
+          osc2.frequency.exponentialRampToValueAtTime(1318.51, now + 0.35); // E6
+
+          gain.gain.setValueAtTime(0.05, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + 0.4);
+          osc2.stop(now + 0.4);
+        }
+      } catch (err) {
+        console.warn('Sound synthesis skipped', err);
+      }
+    }
+
+    function synthesizeChime(type) {
+      playInteractChime(type);
+    }
+
+    function toggleAudioMute() {
+      isMutedStatus = !isMutedStatus;
+      const muteBtn = document.getElementById('muteBtn');
+      const soundIcon = document.getElementById('soundIcon');
+      if (isMutedStatus) {
+        muteBtn.style.opacity = '0.5';
+        soundIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>`;
+      } else {
+        muteBtn.style.opacity = '1';
+        soundIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>`;
+        playInteractChime('chime');
+      }
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn('Can not enter fullscreen', err);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+      playInteractChime('chime');
+    }
+
+    // Modal helpers
+    function triggerDownloadGuide() {
+      document.getElementById('downloadGuideModal').style.display = 'flex';
+      playInteractChime('chime');
+    }
+
+    function closeDownloadGuide() {
+      document.getElementById('downloadGuideModal').style.display = 'none';
+      playInteractChime('chime');
+    }
+
+    // Dynamic Live Widget simulations
+    setInterval(() => {
+      // Loop simulator values for Slide 2 (Pricing)
+      const names = ['Проект_Дома_А0.pdf', 'Презентация_Рекламы.docx', 'Каталог_Мат.png', 'Смета_Север.xlsx'];
+      const papers = ['Офсетная А4 (80г)', 'Глянцевая плотная', 'Матовая чертежная', 'Дизайнерский Крафт'];
+      const randomName = names[Math.floor(Math.random() * names.length)];
+      const randomPaper = papers[Math.floor(Math.random() * papers.length)];
+      const randomPages = Math.floor(Math.random() * 32) + 1;
+      const isCol = Math.random() > 0.4;
+      const calculatedVal = Math.max(randomPages * (isCol ? 35 : 12) + 50, 20);
+
+      const fn = document.getElementById('calc-filename');
+      const pg = document.getElementById('calc-pages');
+      const pp = document.getElementById('calc-paper');
+      const cl = document.getElementById('calc-color');
+      const pr = document.getElementById('calc-price');
+
+      if (fn && pg && pp && cl && pr) {
+        fn.textContent = randomName;
+        pg.textContent = `${randomPages} стр.`;
+        pp.textContent = randomPaper;
+        if (isCol) {
+          cl.textContent = 'Цветная';
+          cl.className = 'px-2 py-0.5 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold rounded uppercase';
+        } else {
+          cl.textContent = 'Черно-белая';
+          cl.className = 'px-2 py-0.5 bg-slate-850 text-slate-400 text-[10px] font-bold rounded uppercase';
+        }
+        pr.textContent = `${calculatedVal} ₽`;
+      }
+    }, 3805);
+
+    // Loop simulator statuses for Slide 5 (Pipeline)
+    let pipeIndex = 0;
+    const statusTitles = ['Загрузка файлов...', 'Одобрено к печати', 'Нанесение пигмента...', 'Укомплектовано и ждет!'];
+    setInterval(() => {
+      // Reset statuses boxes
+      document.querySelectorAll('.status-box').forEach((box, idx) => {
+        if (idx === pipeIndex) {
+          box.querySelector('div').className = 'w-5.5 h-5.5 rounded-full mx-auto bg-indigo-600 text-white font-bold text-[9px] flex items-center justify-center animate-pulse';
+          box.style.opacity = '1';
+        } else if (idx < pipeIndex) {
+          box.querySelector('div').className = 'w-5.5 h-5.5 rounded-full mx-auto bg-emerald-500 text-slate-950 font-bold text-[9px] flex items-center justify-center';
+          box.style.opacity = '0.7';
+        } else {
+          box.querySelector('div').className = 'w-5.5 h-5.5 rounded-full mx-auto bg-slate-800 text-slate-450 font-bold text-[9px] flex items-center justify-center';
+          box.style.opacity = '0.5';
+        }
+      });
+
+      const currStr = document.getElementById('curr-status-name');
+      if (currStr) currStr.textContent = statusTitles[pipeIndex];
+
+      if (pipeIndex === statusTitles.length - 1) {
+        playInteractChime('success');
+      }
+
+      pipeIndex = (pipeIndex + 1) % statusTitles.length;
+    }, 4500);
+
+    // Initial load
+    resetAutoplayTimer();
+  </script>
+</body>
+</html>
