@@ -1186,23 +1186,28 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               
               {/* Order Lists Filter and bulk actions bar */}
               <div className="glass-panel p-4 rounded-2xl space-y-3">
-                <div className="relative">
-                  <Search className="w-4 h-4 text-white/65 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={orderSearchQuery}
-                    onChange={(e) => setOrderSearchQuery(e.target.value)}
-                    placeholder="Поиск по номеру заказа, имени клиента или email..."
-                    className="glass-input w-full pl-9 pr-9 py-2.5 text-sm text-white placeholder:text-white/40 rounded-xl focus:outline-none transition-all"
-                  />
-                  {orderSearchQuery && (
-                    <button
-                      onClick={() => setOrderSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/65 hover:text-white"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
+                <div className="search-glow-wrap">
+                  <div className="search-glow-halo"><div className="search-glow-halo-ring"></div></div>
+                  <div className="search-glow-frame">
+                    <div className="search-glow-bar relative">
+                      <Search className="w-4 h-4 text-white/65 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={orderSearchQuery}
+                        onChange={(e) => setOrderSearchQuery(e.target.value)}
+                        placeholder="Поиск по номеру заказа, имени клиента или email..."
+                        className="w-full bg-transparent pl-10 pr-9 py-2.5 text-sm text-white placeholder:text-white/40 rounded-full focus:outline-none transition-all"
+                      />
+                      {orderSearchQuery && (
+                        <button
+                          onClick={() => setOrderSearchQuery('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/65 hover:text-white"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
@@ -1701,23 +1706,28 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     <h3 className="text-sm font-black text-white uppercase tracking-wider">База зарегистрированных пользователей</h3>
                     <p className="text-[10px] text-white/50 mt-1">Нажмите на строку любого пользователя для просмотра реестра всех его загруженных файлов.</p>
                   </div>
-                  <div className="relative w-full sm:w-72">
-                    <Search className="w-4 h-4 text-white/65 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={clientSearchQuery}
-                      onChange={(e) => setClientSearchQuery(e.target.value)}
-                      placeholder="Поиск по имени, email или телефону..."
-                      className="glass-input w-full pl-9 pr-9 py-2 text-xs text-white placeholder:text-white/40 rounded-xl focus:outline-none transition-all"
-                    />
-                    {clientSearchQuery && (
-                      <button
-                        onClick={() => setClientSearchQuery('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/65 hover:text-white"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                  <div className="search-glow-wrap w-full sm:w-72">
+                    <div className="search-glow-halo"><div className="search-glow-halo-ring"></div></div>
+                    <div className="search-glow-frame">
+                      <div className="search-glow-bar relative">
+                        <Search className="w-4 h-4 text-white/65 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={clientSearchQuery}
+                          onChange={(e) => setClientSearchQuery(e.target.value)}
+                          placeholder="Поиск по имени, email или телефону..."
+                          className="w-full bg-transparent pl-10 pr-9 py-2 text-xs text-white placeholder:text-white/40 rounded-full focus:outline-none transition-all"
+                        />
+                        {clientSearchQuery && (
+                          <button
+                            onClick={() => setClientSearchQuery('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/65 hover:text-white"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1870,7 +1880,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {/* USER FILES DIALOG MODAL */}
               {selectedUserForFiles && (
                 <div id="user-files-popup-modal" className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-                  <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-155 dark:border-slate-800 shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+                  <div className="glass-window max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
                     {/* Modal Header */}
                     <div className="p-6 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/20">
                       <div className="flex items-center gap-3">
@@ -1984,7 +1994,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {/* GIFT PROMO CUSTOM DIALOG MODAL */}
               {promoGiftUser && (
                 <div id="user-promo-gift-modal" className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-                  <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-155 dark:border-slate-800 shadow-xl max-w-md w-full flex flex-col overflow-hidden">
+                  <div className="glass-window max-w-md w-full flex flex-col overflow-hidden">
                     {/* Header */}
                     <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/20">
                       <div className="flex items-center gap-2">
@@ -2520,106 +2530,112 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   </div>
                   <button
                     onClick={handleAddService}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition cursor-pointer shrink-0"
+                    className="btn-holo-glass flex items-center gap-1.5 px-3.5 py-2 text-slate-900 text-xs font-black rounded-xl transition cursor-pointer shrink-0"
                   >
                     <span className="text-base leading-none">+</span> Добавить
                   </button>
                 </div>
 
-                <div className="space-y-3">
+                <div>
                   {(database.services || []).length === 0 && (
                     <div className="flex flex-col items-center justify-center py-10 text-slate-400 text-xs gap-3">
                       <Printer className="w-10 h-10 opacity-20" />
                       <p className="font-bold text-center">Витрина пуста — нажми «+ Добавить» чтобы создать первую карточку</p>
                     </div>
                   )}
-                  {(database.services || []).map((svc) => (
-                    <div key={svc.id} className="flex items-start gap-3 p-4 bg-white/5 border border-white/10 rounded-2xl">
-                      {/* Фото услуги */}
-                      <label className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 cursor-pointer group">
-                        {svc.imageUrl ? (
-                          <img src={svc.imageUrl} alt={svc.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center gap-1">
-                            <span className="text-2xl">{svc.emoji}</span>
-                            <span className="text-[9px] text-white/30 font-bold text-center leading-tight">загрузить<br/>фото</span>
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">📷</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {(database.services || []).map((svc) => (
+                      <div key={svc.id} className="service-glass-row rounded-2xl flex flex-col overflow-hidden">
+                        {/* Статус + удалить */}
+                        <div className="flex items-center justify-end gap-1.5 p-1.5 pb-0">
+                          <button
+                            onClick={() => handleUpdateService(svc.id, 'isActive', !svc.isActive)}
+                            title={svc.isActive ? 'Скрыть от клиентов' : 'Показать клиентам'}
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition cursor-pointer ${svc.isActive ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-white/5 text-white/30 hover:bg-white/10'}`}
+                          >
+                            {svc.isActive ? '👁' : '🙈'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteService(svc.id, svc.title)}
+                            className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 flex items-center justify-center transition cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
                         </div>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            const formData = new FormData();
-                            formData.append('photo', file);
-                            try {
-                              const res = await fetch('https://sever-18.ru/api/service-upload.php', {
-                                method: 'POST',
-                                body: formData,
-                              });
-                              const data = await res.json();
-                              if (data.url) {
-                                handleUpdateService(svc.id, 'imageUrl', data.url);
-                              }
-                            } catch {
-                              alert('Ошибка загрузки фото');
-                            }
-                          }}
-                        />
-                      </label>
 
-                      <input
-                        type="text"
-                        defaultValue={svc.emoji}
-                        onBlur={(e) => handleUpdateService(svc.id, 'emoji', e.target.value)}
-                        className="w-10 text-center text-xl bg-transparent border border-white/10 rounded-lg p-1 focus:outline-none focus:border-indigo-400"
-                        maxLength={2}
-                      />
-                      <div className="flex-1 space-y-2">
-                        <input
-                          type="text"
-                          defaultValue={svc.title}
-                          onBlur={(e) => handleUpdateService(svc.id, 'title', e.target.value)}
-                          className="w-full bg-transparent border-b border-white/10 text-sm font-bold text-white pb-1 focus:outline-none focus:border-indigo-400"
-                          placeholder="Название услуги"
-                        />
-                        <input
-                          type="text"
-                          defaultValue={svc.description}
-                          onBlur={(e) => handleUpdateService(svc.id, 'description', e.target.value)}
-                          className="w-full bg-transparent text-xs text-white/60 focus:outline-none focus:text-white/80"
-                          placeholder="Краткое описание"
-                        />
-                        <input
-                          type="text"
-                          defaultValue={svc.price}
-                          onBlur={(e) => handleUpdateService(svc.id, 'price', e.target.value)}
-                          className="w-full bg-transparent text-xs font-black text-emerald-400 focus:outline-none"
-                          placeholder="Цена, например: 20 ₽ / стр"
-                        />
+                        {/* Фото услуги */}
+                        <label className="service-glass-card-media relative h-28 mx-2.5 mt-1 rounded-xl overflow-hidden shrink-0 cursor-pointer group block">
+                          {svc.imageUrl ? (
+                            <img src={svc.imageUrl} alt={svc.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-1">
+                              <span className="text-3xl">{svc.emoji}</span>
+                              <span className="text-[9px] text-white/30 font-bold text-center leading-tight">загрузить фото</span>
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">📷 Заменить</span>
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const formData = new FormData();
+                              formData.append('photo', file);
+                              try {
+                                const res = await fetch('https://sever-18.ru/api/service-upload.php', {
+                                  method: 'POST',
+                                  body: formData,
+                                });
+                                const data = await res.json();
+                                if (data.url) {
+                                  handleUpdateService(svc.id, 'imageUrl', data.url);
+                                }
+                              } catch {
+                                alert('Ошибка загрузки фото');
+                              }
+                            }}
+                          />
+                        </label>
+
+                        <div className="p-2.5 pt-2 space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              defaultValue={svc.emoji}
+                              onBlur={(e) => handleUpdateService(svc.id, 'emoji', e.target.value)}
+                              className="w-8 shrink-0 text-center text-base bg-transparent border border-white/10 rounded-lg p-1 focus:outline-none focus:border-indigo-400"
+                              maxLength={2}
+                            />
+                            <input
+                              type="text"
+                              defaultValue={svc.title}
+                              onBlur={(e) => handleUpdateService(svc.id, 'title', e.target.value)}
+                              className="w-full min-w-0 bg-transparent border-b border-white/10 text-xs font-bold text-white pb-1 focus:outline-none focus:border-indigo-400"
+                              placeholder="Название услуги"
+                            />
+                          </div>
+                          <input
+                            type="text"
+                            defaultValue={svc.description}
+                            onBlur={(e) => handleUpdateService(svc.id, 'description', e.target.value)}
+                            className="w-full bg-transparent text-[11px] text-white/60 focus:outline-none focus:text-white/80"
+                            placeholder="Краткое описание"
+                          />
+                          <input
+                            type="text"
+                            defaultValue={svc.price}
+                            onBlur={(e) => handleUpdateService(svc.id, 'price', e.target.value)}
+                            className="w-full bg-transparent text-xs font-black text-emerald-400 focus:outline-none"
+                            placeholder="Цена, например: 20 ₽ / стр"
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => handleUpdateService(svc.id, 'isActive', !svc.isActive)}
-                          title={svc.isActive ? 'Скрыть от клиентов' : 'Показать клиентам'}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition cursor-pointer ${svc.isActive ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-white/5 text-white/30 hover:bg-white/10'}`}
-                        >
-                          {svc.isActive ? '👁' : '🙈'}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteService(svc.id, svc.title)}
-                          className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 flex items-center justify-center transition cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -2640,10 +2656,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   <button
                     onClick={handleSaveSettings}
                     disabled={savingSettings}
-                    className={`px-6 py-3 rounded-2xl font-black text-xs text-white transition-all shadow-md flex items-center gap-2 w-full sm:w-auto justify-center ${
+                    className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 w-full sm:w-auto justify-center ${
                       savingSettings
-                        ? 'bg-indigo-400 cursor-not-allowed shadow-none'
-                        : 'bg-indigo-650 hover:bg-indigo-700 cursor-pointer shadow-indigo-600/10'
+                        ? 'bg-indigo-400 text-white cursor-not-allowed shadow-none'
+                        : 'btn-holo-glass text-slate-900 cursor-pointer'
                     }`}
                   >
                     {savingSettings ? (
@@ -2666,8 +2682,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           {/* CUSTOM DELETE CONFIRMATION MODAL */}
           {userToDelete && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fade-in">
-              <div 
-                className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-150 dark:border-slate-850 shadow-2xl max-w-md w-full p-6"
+              <div
+                className="glass-window max-w-md w-full p-6"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center gap-3 text-rose-600 dark:text-rose-450 mb-4">

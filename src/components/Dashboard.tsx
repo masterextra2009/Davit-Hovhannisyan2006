@@ -3589,7 +3589,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           onClick={() => setPreviewFile(null)}
         >
           <div 
-            className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col max-h-[85vh]"
+            className="glass-window w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -3658,7 +3658,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           onClick={() => setShow3DMockupModal(false)}
         >
           <div 
-            className="bg-white dark:bg-[#080d24] w-full max-w-5xl rounded-3xl shadow-2xl border border-slate-150 dark:border-indigo-950/50 overflow-hidden flex flex-col max-h-[92vh]"
+            className="glass-window w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -4053,7 +4053,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       )}
       {payingOrder && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden text-left transform transition-all relative">
+          <div className="glass-window w-full max-w-md overflow-hidden text-left transform transition-all relative">
             
             {/* Header */}
             <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/30">
@@ -4123,8 +4123,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       {/* CUSTOM SELF DELETE CONFIRMATION MODAL */}
       {showSelfDeleteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fade-in">
-          <div 
-            className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-150 dark:border-slate-850 shadow-2xl max-w-md w-full p-6"
+          <div
+            className="glass-window max-w-md w-full p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 text-rose-500 dark:text-rose-400 mb-4">
@@ -4285,7 +4285,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
             transition={{ type: 'spring', damping: 25, stiffness: 180 }}
-            className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-3xl overflow-hidden max-w-md w-full shadow-2xl relative flex flex-col"
+            className="glass-window overflow-hidden max-w-md w-full relative flex flex-col"
           >
             {/* Christmas/Gift Ribbon Visual Banner */}
             <div className="h-44 relative overflow-hidden bg-slate-100 dark:bg-slate-950">
@@ -4488,7 +4488,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       {/* Interactive Compliance Documents Modal */}
       {activeLegalDoc && (
         <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl p-6 md:p-8 flex flex-col max-h-[85vh] border border-slate-150 dark:border-slate-800 shadow-2xl relative">
+          <div className="glass-window w-full max-w-2xl p-6 md:p-8 flex flex-col max-h-[85vh] relative">
             <button 
               onClick={() => setActiveLegalDoc(null)} 
               className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-450 dark:text-slate-400 cursor-pointer"
@@ -4747,67 +4747,32 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   return (
                     <div
                       key={svc.id}
-                      className="group relative overflow-hidden cursor-pointer select-none"
-                      style={{
-                        background: '#fff',
-                        borderRadius: '20px',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                        transition: 'transform 0.3s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.3s',
-                        display: 'flex',
-                        flexDirection: 'column',
-                      }}
-                      onMouseEnter={e => {
-                        (e.currentTarget as HTMLElement).style.transform = 'translateY(-6px) scale(1.02)';
-                        (e.currentTarget as HTMLElement).style.boxShadow = '0 20px 50px rgba(0,0,0,0.15)';
-                      }}
-                      onMouseLeave={e => {
-                        (e.currentTarget as HTMLElement).style.transform = '';
-                        (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
-                      }}
+                      className="service-glass-card group relative overflow-hidden cursor-pointer select-none flex flex-col"
                     >
                       {/* Картинка сверху */}
-                      <div style={{
-                        height: 160,
-                        overflow: 'hidden',
-                        borderRadius: '20px 20px 0 0',
-                        background: 'linear-gradient(135deg,#f0f4ff,#e8eeff)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
+                      <div className="service-glass-card-media h-40 shrink-0 overflow-hidden flex items-center justify-center">
                         {svc.imageUrl ? (
                           <img src={svc.imageUrl} alt={svc.title}
-                            style={{width:'100%',height:'100%',objectFit:'cover'}}
+                            className="w-full h-full object-cover"
                             onError={e => { (e.currentTarget as HTMLImageElement).style.display='none'; }}
                           />
                         ) : (
-                          <div style={{transform:'scale(1.1)'}}>{get3DIcon(svc.emoji, svc.title)}</div>
+                          <div>{get3DIcon(svc.emoji, svc.title)}</div>
                         )}
                       </div>
 
                       {/* Название и описание */}
-                      <div style={{padding:'12px 14px 8px',background:'#fff'}}>
-                        <p style={{fontWeight:800,fontSize:13,color:'#1e293b',margin:'0 0 3px',lineHeight:1.2}}>{svc.title}</p>
-                        <p style={{fontSize:11,color:'#94a3b8',margin:0,lineHeight:1.4}}>
+                      <div className="px-3.5 pt-3 pb-2">
+                        <p className="font-extrabold text-[13px] text-slate-800 dark:text-white mb-0.5 leading-tight">{svc.title}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
                           {svc.description?.slice(0,50)}{(svc.description?.length||0) > 50 ? '...' : ''}
                         </p>
                       </div>
 
                       {/* Hover drawer — выезжает снизу */}
-                      <div
-                        style={{
-                          overflow: 'hidden',
-                          maxHeight: 0,
-                          transition: 'max-height 0.35s cubic-bezier(0.34,1.2,0.64,1)',
-                          background: '#fff',
-                          borderRadius: '0 0 20px 20px',
-                          borderTop: '1px solid #f1f5f9',
-                        }}
-                        className="service-card-drawer"
-                      >
-                        <div style={{padding:'8px 14px 14px'}}>
-                          <p style={{fontWeight:900,fontSize:20,color:'#6366f1',margin:'0 0 8px'}}>{svc.price}</p>
+                      <div className="service-card-drawer">
+                        <div className="px-3.5 pt-2 pb-3.5">
+                          <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mb-2">{svc.price}</p>
                           <button
                             onClick={() => {
                               const priceNum = parseInt(svc.price.replace(/[^0-9]/g, ''), 10) || 0;
@@ -4815,12 +4780,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               setNotes(`Услуга: ${svc.title} — ${svc.price}`);
                               setActiveTab('upload');
                             }}
-                            style={{
-                              width:'100%', padding:'9px',
-                              background:'linear-gradient(135deg,#6366f1,#8b5cf6)',
-                              border:'none', borderRadius:'10px',
-                              color:'#fff', fontWeight:700, fontSize:12, cursor:'pointer',
-                            }}
+                            className="w-full py-2.5 rounded-[10px] text-white font-bold text-xs cursor-pointer"
+                            style={{background:'linear-gradient(135deg,#6366f1,#8b5cf6)'}}
                           >Заказать →</button>
                         </div>
                       </div>
