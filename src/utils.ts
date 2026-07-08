@@ -543,6 +543,17 @@ export function exportToCSV(orders: Order[], title = 'Отчет_Заказов'
   document.body.removeChild(link);
 }
 
+// Escapes HTML-significant characters so untrusted strings (names, notes, filenames)
+// can't break out of markup when interpolated into a document.write() template.
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // EXPORT TO PDF (Generates a clean HTML print window layout representing a system report/invoice)
 export function printInvoiceHTML(order: Order) {
   const printWindow = window.open('', '_blank');
@@ -553,7 +564,7 @@ export function printInvoiceHTML(order: Order) {
 
   const filesHtml = order.files.map(f => `
     <tr>
-      <td style="padding: 8px; border-bottom: 1px solid #ddd;">${f.name}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #ddd;">${escapeHtml(f.name)}</td>
       <td style="padding: 8px; border-bottom: 1px solid #ddd;">${getFileFormatGroupLabel(f.formatGroup)}</td>
       <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${formatFileSize(f.size)}</td>
     </tr>
@@ -597,10 +608,10 @@ export function printInvoiceHTML(order: Order) {
         <div class="details">
           <div class="details-col">
             <div class="details-label">Получатель услуги (Клиент)</div>
-            <div class="details-val" style="font-size: 16px; font-weight: bold; color: #0f172a;">${order.userName}</div>
-            <div class="details-val">${order.userEmail}</div>
-            <div class="details-val">${order.paymentMethod ? 'Способ оплаты: ' + order.paymentMethod : 'Не оплачено'}</div>
-            <div class="details-val" style="margin-top: 8px; color: #475569;">Приоритет/Заметки: ${order.notes || 'Нет'}</div>
+            <div class="details-val" style="font-size: 16px; font-weight: bold; color: #0f172a;">${escapeHtml(order.userName)}</div>
+            <div class="details-val">${escapeHtml(order.userEmail)}</div>
+            <div class="details-val">${order.paymentMethod ? 'Способ оплаты: ' + escapeHtml(order.paymentMethod) : 'Не оплачено'}</div>
+            <div class="details-val" style="margin-top: 8px; color: #475569;">Приоритет/Заметки: ${order.notes ? escapeHtml(order.notes) : 'Нет'}</div>
           </div>
           <div class="details-col" style="text-align: right;">
             <div class="details-label">Параметры Печати</div>

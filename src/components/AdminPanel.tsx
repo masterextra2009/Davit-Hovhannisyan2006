@@ -1585,7 +1585,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                         onClick={() => {
                                           const imgWin = window.open('', '_blank');
                                           if (imgWin) {
-                                            imgWin.document.write(`<img src="${msg.message.substring(8)}" style="max-width:100%; max-height:100vh; display:block; margin:auto;"/>`);
+                                            const fullImg = imgWin.document.createElement('img');
+                                            fullImg.src = msg.message.substring(8);
+                                            fullImg.style.maxWidth = '100%';
+                                            fullImg.style.maxHeight = '100vh';
+                                            fullImg.style.display = 'block';
+                                            fullImg.style.margin = 'auto';
+                                            imgWin.document.body.appendChild(fullImg);
                                           }
                                         }}
                                       />

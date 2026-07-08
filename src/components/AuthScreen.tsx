@@ -128,7 +128,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     }
 
     setSuccessMsg('Регистрация в Firebase...');
-    const role = (email.trim().toLowerCase() === 'admin@print.ru' || email.trim().toLowerCase() === 'photo-sever@yandex.ru') ? 'admin' : 'client';
+    const role = email.trim().toLowerCase() === 'photo-sever@yandex.ru' ? 'admin' : 'client';
 
     registerUserWithFirebase(email.trim(), password, fullName, phone, role)
       .then((firebaseUser) => {
@@ -200,52 +200,6 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
       console.error('Social mock auth failed with Firebase:', err);
       setErrorMsg('Не удалось зарегистрировать социальный демо-профиль в Firebase Authentication. Проверьте сеть.');
       setSocialLoading(null);
-    }
-  };
-
-  // Quick administrator entry helper
-  const handleQuickAdmin = async () => {
-    resetMessages();
-    const adminEmail = 'admin@print.ru';
-    const adminPassword = 'adminpassword123';
-    
-    setSuccessMsg('Вход под демо-администратором...');
-    try {
-      const u = await signInUserWithFirebase(adminEmail, adminPassword);
-      setSuccessMsg('Вы успешно вошли как Администратор!');
-      setTimeout(() => onAuthSuccess(u), 800);
-    } catch (err: any) {
-      // If user not found, register it
-      try {
-        const u = await registerUserWithFirebase(adminEmail, adminPassword, 'Дмитрий (Администратор)', '+7 (900) 123-45-67', 'admin');
-        setSuccessMsg('Зарегистрирован и выполнен вход как Администратор!');
-        setTimeout(() => onAuthSuccess(u), 1000);
-      } catch (regErr: any) {
-        setErrorMsg('Не удалось войти через демонстрационного администратора: ' + regErr.message);
-        setSuccessMsg('');
-      }
-    }
-  };
-
-  const handleQuickIvan = async () => {
-    resetMessages();
-    const ivanEmail = 'ivan@mail.ru';
-    const ivanPassword = 'ivanpassword123';
-    
-    setSuccessMsg('Вход под демо-клиентом Иваном...');
-    try {
-      const u = await signInUserWithFirebase(ivanEmail, ivanPassword);
-      setSuccessMsg('Вы успешно вошли как Иван Иванов!');
-      setTimeout(() => onAuthSuccess(u), 800);
-    } catch (err: any) {
-      try {
-        const u = await registerUserWithFirebase(ivanEmail, ivanPassword, 'Иван Иванов', '+7 (911) 222-33-44', 'client');
-        setSuccessMsg('Зарегистрирован и выполнен вход как Иван Иванов!');
-        setTimeout(() => onAuthSuccess(u), 1000);
-      } catch (regErr: any) {
-        setErrorMsg('Не удалось войти через демонстрационного клиента: ' + regErr.message);
-        setSuccessMsg('');
-      }
     }
   };
 

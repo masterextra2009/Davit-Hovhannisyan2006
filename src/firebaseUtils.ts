@@ -88,9 +88,8 @@ export async function registerUserWithFirebase(email: string, password: string,f
     await updateProfile(fbUser, { displayName: fullName });
 
     const normalizedEmail = trimmedEmail.toLowerCase();
-    const isExplicitAdmin = fbUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' || 
+    const isExplicitAdmin = fbUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' ||
                             fbUser.uid === 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23' ||
-                            normalizedEmail === 'admin@print.ru' || 
                             normalizedEmail === 'photo-sever@yandex.ru';
 
     const newUser: User = {
@@ -138,9 +137,8 @@ export async function signInUserWithFirebase(email: string, password: string): P
 
     if (userDoc && userDoc.exists()) {
       const userData = userDoc.data() as User;
-      const isExplicitAdmin = fbUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' || 
+      const isExplicitAdmin = fbUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' ||
                               fbUser.uid === 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23' ||
-                              trimmedEmail.toLowerCase() === 'admin@print.ru' || 
                               trimmedEmail.toLowerCase() === 'photo-sever@yandex.ru';
       if (isExplicitAdmin && userData.role !== 'admin') {
         userData.role = 'admin';
@@ -154,8 +152,7 @@ export async function signInUserWithFirebase(email: string, password: string): P
     } else {
       // Automatic profile repair if auth exists but firestore is empty
       // We seed them as client by default (except special pattern)
-      const isInitialAdmin = trimmedEmail.toLowerCase().includes('admin') || 
-                             trimmedEmail.toLowerCase() === 'photo-sever@yandex.ru' ||
+      const isInitialAdmin = trimmedEmail.toLowerCase() === 'photo-sever@yandex.ru' ||
                              fbUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' ||
                              fbUser.uid === 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23';
       const recoveredUser: User = {
@@ -456,7 +453,7 @@ export async function seedInitialDataIfRequired(): Promise<void> {
   }
 
   const email = currentUser.email?.toLowerCase();
-  const isAdmin = email === 'admin@print.ru' || currentUser.uid === 'u-admin-seed' || currentUser.uid === 'u1_admin_seed' || currentUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' || currentUser.uid === 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23';
+  const isAdmin = email === 'photo-sever@yandex.ru' || currentUser.uid === 'u-admin-seed' || currentUser.uid === 'u1_admin_seed' || currentUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' || currentUser.uid === 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23';
   if (!isAdmin) {
     console.log('Skipping Firestore seeding: user is not an administrator.');
     return;
