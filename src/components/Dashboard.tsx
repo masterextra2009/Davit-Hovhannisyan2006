@@ -1801,6 +1801,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     multiple
                     onChange={handleFileInput}
                     className="hidden"
+                    aria-label="Загрузить файлы для печати"
                     accept=".zip,.rar,.7z,.doc,.docx,.pdf,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.heic,.heif,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   />
                   
@@ -2270,11 +2271,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                   {/* Промокод */}
                   <div>
-                    <label className="block text-[10px] font-black text-white/50 uppercase tracking-widest mb-2">
+                    <label htmlFor="promo-code" className="block text-[10px] font-black text-white/50 uppercase tracking-widest mb-2">
                       Промокод
                     </label>
                     <div className="flex gap-2">
                       <input
+                        id="promo-code"
                         type="text"
                         value={promoCode}
                         onChange={e => setPromoCode(e.target.value.toUpperCase())}
@@ -2299,10 +2301,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                   {/* Заметки */}
                   <div>
-                    <label className="block text-[10px] font-black text-white/50 uppercase tracking-widest mb-2">
+                    <label htmlFor="order-notes" className="block text-[10px] font-black text-white/50 uppercase tracking-widest mb-2">
                       Заметки печатнику
                     </label>
                     <textarea
+                      id="order-notes"
                       value={notes}
                       onChange={e => setNotes(e.target.value)}
                       placeholder="Например: двухсторонняя, скрепка в углу, первая страница — обложка..."
@@ -2869,6 +2872,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
                   placeholder="Задайте ваш вопрос оператору..."
+                  aria-label="Сообщение оператору"
                   className="flex-1 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <button
@@ -2944,6 +2948,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               step="0.02"
                               value={editAvatarScale}
                               onChange={(e) => setEditAvatarScale(parseFloat(e.target.value))}
+                              aria-label="Масштаб аватара"
                               className="w-full accent-indigo-600 h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
                             />
                           </div>
@@ -2961,6 +2966,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               step="1"
                               value={editAvatarX}
                               onChange={(e) => setEditAvatarX(parseInt(e.target.value))}
+                              aria-label="Смещение аватара по горизонтали"
                               className="w-full accent-indigo-600 h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
                             />
                           </div>
@@ -2978,6 +2984,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               step="1"
                               value={editAvatarY}
                               onChange={(e) => setEditAvatarY(parseInt(e.target.value))}
+                              aria-label="Смещение аватара по вертикали"
                               className="w-full accent-indigo-600 h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
                             />
                           </div>
@@ -3013,8 +3020,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         </div>
 
                         <div className="space-y-1 text-left">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Или укажите свою ссылку на изображение:</label>
+                          <label htmlFor="edit-avatar-url" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Или укажите свою ссылку на изображение:</label>
                           <input
+                            id="edit-avatar-url"
                             type="text"
                             value={editAvatarUrl}
                             onChange={(e) => {
@@ -3032,8 +3040,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                       <div className="space-y-3">
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Ваше Имя и Фамилия:</label>
+                          <label htmlFor="edit-full-name" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Ваше Имя и Фамилия:</label>
                           <input
+                            id="edit-full-name"
                             type="text"
                             required
                             value={editFullName}
@@ -3044,8 +3053,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Контактный телефон:</label>
+                          <label htmlFor="edit-phone" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Контактный телефон:</label>
                           <input
+                            id="edit-phone"
                             type="text"
                             value={editPhone}
                             onChange={(e) => setEditPhone(e.target.value)}
@@ -3100,12 +3110,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             )}
                           </div>
                           
-                          <input 
-                            type="file" 
-                            ref={avatarInputRef} 
-                            onChange={handleAvatarFileChange} 
-                            accept="image/*" 
-                            className="hidden" 
+                          <input
+                            type="file"
+                            ref={avatarInputRef}
+                            onChange={handleAvatarFileChange}
+                            accept="image/*"
+                            aria-label="Загрузить фото аватара"
+                            className="hidden"
                           />
 
                           {/* Visual loyalty rank float indicator */}
@@ -3963,6 +3974,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       max="75"
                       value={mockRotateY}
                       onChange={(e) => setMockRotateY(parseInt(e.target.value))}
+                      aria-label="Вращение манекена по горизонтали"
                       className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                     />
                     <div className="flex justify-between text-[9px] text-slate-400 font-bold">
@@ -3984,6 +3996,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       max="75"
                       value={mockRotateX}
                       onChange={(e) => setMockRotateX(parseInt(e.target.value))}
+                      aria-label="Наклон манекена по вертикали"
                       className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                     />
                     <div className="flex justify-between text-[9px] text-slate-400 font-bold">
@@ -4006,6 +4019,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       step="0.05"
                       value={mockScale}
                       onChange={(e) => setMockScale(parseFloat(e.target.value))}
+                      aria-label="Масштабирование манекена"
                       className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                     />
                     <div className="flex justify-between text-[9px] text-slate-400 font-bold">

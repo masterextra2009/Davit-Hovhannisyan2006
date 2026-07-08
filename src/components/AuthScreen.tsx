@@ -300,12 +300,13 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
             {mode === 'login' && (
               <form className="space-y-4" onSubmit={handleLogin}>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Электронная почта</label>
+                  <label htmlFor="login-email" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Электронная почта</label>
                   <div className="relative rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <Mail className="h-4.5 w-4.5" />
                     </div>
                     <input
+                      id="login-email"
                       type="email"
                       required
                       value={email}
@@ -318,7 +319,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
 
                 <div>
                   <div className="flex justify-between items-center mb-1.5 pl-1">
-                    <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Пароль</label>
+                    <label htmlFor="login-password" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Пароль</label>
                     <button
                       type="button"
                       onClick={() => { setMode('forgot'); resetMessages(); }}
@@ -332,6 +333,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                       <Lock className="h-4.5 w-4.5" />
                     </div>
                     <input
+                      id="login-password"
                       type="password"
                       required
                       value={password}
@@ -364,12 +366,13 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
             {mode === 'signup' && (
               <form className="space-y-3.5" onSubmit={handleRegister}>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">ФИО (Полное имя)</label>
+                  <label htmlFor="signup-fullname" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">ФИО (Полное имя)</label>
                   <div className="relative rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <UserIcon className="h-4.5 w-4.5" />
                     </div>
                     <input
+                      id="signup-fullname"
                       type="text"
                       required
                       value={fullName}
@@ -381,12 +384,13 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Номер мобильного телефона</label>
+                  <label htmlFor="signup-phone" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Номер мобильного телефона</label>
                   <div className="relative rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <Phone className="h-4.5 w-4.5" />
                     </div>
                     <input
+                      id="signup-phone"
                       type="tel"
                       required
                       value={phone}
@@ -398,12 +402,13 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Электронная почта</label>
+                  <label htmlFor="signup-email" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Электронная почта</label>
                   <div className="relative rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <Mail className="h-4.5 w-4.5" />
                     </div>
                     <input
+                      id="signup-email"
                       type="email"
                       required
                       value={email}
@@ -415,12 +420,13 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Придумайте пароль</label>
+                  <label htmlFor="signup-password" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Придумайте пароль</label>
                   <div className="relative rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <Lock className="h-4.5 w-4.5" />
                     </div>
                     <input
+                      id="signup-password"
                       type="password"
                       required
                       value={password}
@@ -443,12 +449,13 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
             {mode === 'forgot' && (
               <form className="space-y-4" onSubmit={handleForgotPasswordSubmit}>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Электронная почта</label>
+                  <label htmlFor="forgot-email" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Электронная почта</label>
                   <div className="relative rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <Mail className="h-4.5 w-4.5" />
                     </div>
                     <input
+                      id="forgot-email"
                       type="email"
                       required
                       value={email}

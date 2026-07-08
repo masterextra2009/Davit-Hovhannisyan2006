@@ -1196,12 +1196,14 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         value={orderSearchQuery}
                         onChange={(e) => setOrderSearchQuery(e.target.value)}
                         placeholder="Поиск по номеру заказа, имени клиента или email..."
-                        className="w-full bg-transparent pl-10 pr-9 py-2.5 text-sm text-white placeholder:text-white/40 rounded-full focus:outline-none transition-all"
+                        aria-label="Поиск по заказам"
+                        className="w-full bg-transparent pl-10 pr-9 py-2.5 text-sm text-white placeholder:text-white/40 rounded-full focus:outline-none focus:ring-2 focus:ring-white/40 transition-all"
                       />
                       {orderSearchQuery && (
                         <button
                           onClick={() => setOrderSearchQuery('')}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/65 hover:text-white"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/65 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/40 rounded-full"
+                          aria-label="Очистить поиск"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -1624,6 +1626,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <input
                         type="file"
                         id="admin-chat-attachment"
+                        aria-label="Отправить пример товара с водяным знаком"
                         accept="image/*"
                         onChange={(e) => {
                           const f = e.target.files?.[0];
@@ -1661,6 +1664,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         value={adminChatInput}
                         onChange={e => setAdminChatInput(e.target.value)}
                         placeholder="Напишите ответ клиенту (файлы приняты, печатаю...)"
+                        aria-label="Ответ клиенту"
                         className="grok-composer-input"
                       />
                       <button type="submit" disabled={!adminChatInput.trim()} aria-label="Отправить">
@@ -1722,12 +1726,14 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           value={clientSearchQuery}
                           onChange={(e) => setClientSearchQuery(e.target.value)}
                           placeholder="Поиск по имени, email или телефону..."
-                          className="w-full bg-transparent pl-10 pr-9 py-2 text-xs text-white placeholder:text-white/40 rounded-full focus:outline-none transition-all"
+                          aria-label="Поиск по клиентам"
+                          className="w-full bg-transparent pl-10 pr-9 py-2 text-xs text-white placeholder:text-white/40 rounded-full focus:outline-none focus:ring-2 focus:ring-white/40 transition-all"
                         />
                         {clientSearchQuery && (
                           <button
                             onClick={() => setClientSearchQuery('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/65 hover:text-white"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/65 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/40 rounded-full"
+                            aria-label="Очистить поиск"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -1785,7 +1791,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 value={editFullName}
                                 onChange={e => setEditFullName(e.target.value)}
                                 onClick={(e) => e.stopPropagation()}
-                                className="bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-800 roundedpx-2 py-1 text-xs w-full font-bold focus:outline-none"
+                                aria-label="Имя клиента"
+                                className="bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-800 rounded px-2 py-1 text-xs w-full font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               />
                             ) : (
                               <div className="flex flex-col">
@@ -1815,7 +1822,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 type="text"
                                 value={editPhone}
                                 onChange={e => setEditPhone(e.target.value)}
-                                className="bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-800 rounded px-2 py-1 text-xs w-full font-medium focus:outline-none"
+                                aria-label="Телефон клиента"
+                                className="bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-800 rounded px-2 py-1 text-xs w-full font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               />
                             ) : (
                               cli.phone || '—'
@@ -1904,7 +1912,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       </div>
                       <button
                         onClick={() => setSelectedUserForFiles(null)}
-                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-650 transition-colors"
+                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-650 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        aria-label="Закрыть"
                       >
                         <X className="w-5 h-5" />
                       </button>
@@ -2011,7 +2020,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       </div>
                       <button
                         onClick={() => setPromoGiftUser(null)}
-                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-650 transition-colors"
+                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-650 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        aria-label="Закрыть"
                       >
                         <X className="w-5 h-5" />
                       </button>
@@ -2025,10 +2035,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
                       <div className="space-y-3">
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
+                          <label htmlFor="gift-promo-code" className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
                             Текст промокода (прописными буквами)
                           </label>
                           <input
+                            id="gift-promo-code"
                             type="text"
                             placeholder="Например: COFFEE15, COPYGIFT"
                             value={givingPromoCode}
@@ -2073,6 +2084,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 const val = parseInt(e.target.value) || 10;
                                 setGivingPromoDiscount(Math.min(Math.max(val, 1), 100));
                               }}
+                              aria-label="Своя скидка в процентах"
                               className="w-16 p-1 text-center border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-xs font-bold text-slate-800 dark:text-white"
                             />
                           </div>
@@ -2368,7 +2380,19 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   </div>
 
                   <div className="flex flex-col items-center gap-5 p-5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-100 dark:border-slate-850">
-                    <div className="relative group cursor-pointer" onClick={() => avatarFileRef.current?.click()}>
+                    <div
+                      className="relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full"
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Изменить аватар"
+                      onClick={() => avatarFileRef.current?.click()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          avatarFileRef.current?.click();
+                        }
+                      }}
+                    >
                       <UserAvatar
                         user={{
                           fullName: adminFullName,
@@ -2392,6 +2416,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       ref={avatarFileRef}
                       onChange={handleAvatarFileChange}
                       accept="image/*"
+                      aria-label="Загрузить фото аватара администратора"
                       className="hidden"
                     />
 
@@ -2425,6 +2450,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           step="0.02"
                           value={adminAvatarScale}
                           onChange={(e) => setAdminAvatarScale(parseFloat(e.target.value))}
+                          aria-label="Масштаб аватара"
                           className="w-full accent-indigo-600 h-1 bg-slate-100 dark:bg-slate-850 rounded-lg appearance-none cursor-pointer"
                         />
                       </div>
@@ -2442,6 +2468,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           step="1"
                           value={adminAvatarX}
                           onChange={(e) => setAdminAvatarX(parseInt(e.target.value))}
+                          aria-label="Смещение аватара по горизонтали"
                           className="w-full accent-indigo-600 h-1 bg-slate-100 dark:bg-slate-850 rounded-lg appearance-none cursor-pointer"
                         />
                       </div>
@@ -2459,6 +2486,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           step="1"
                           value={adminAvatarY}
                           onChange={(e) => setAdminAvatarY(parseInt(e.target.value))}
+                          aria-label="Смещение аватара по вертикали"
                           className="w-full accent-indigo-600 h-1 bg-slate-100 dark:bg-slate-850 rounded-lg appearance-none cursor-pointer"
                         />
                       </div>
@@ -2500,8 +2528,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   {/* Input Fields */}
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">ФИО Администратора</label>
+                      <label htmlFor="admin-full-name" className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">ФИО Администратора</label>
                       <input
+                        id="admin-full-name"
                         type="text"
                         value={adminFullName}
                         onChange={e => setAdminFullName(e.target.value)}
@@ -2511,8 +2540,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Контактный телефон</label>
+                      <label htmlFor="admin-phone" className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Контактный телефон</label>
                       <input
+                        id="admin-phone"
                         type="text"
                         value={adminPhone}
                         onChange={e => setAdminPhone(e.target.value)}
@@ -2613,6 +2643,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               type="text"
                               defaultValue={svc.emoji}
                               onBlur={(e) => handleUpdateService(svc.id, 'emoji', e.target.value)}
+                              aria-label="Эмодзи услуги"
                               className="w-8 shrink-0 text-center text-base bg-transparent border border-white/10 rounded-lg p-1 focus:outline-none focus:border-indigo-400"
                               maxLength={2}
                             />
@@ -2620,6 +2651,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               type="text"
                               defaultValue={svc.title}
                               onBlur={(e) => handleUpdateService(svc.id, 'title', e.target.value)}
+                              aria-label="Название услуги"
                               className="w-full min-w-0 bg-transparent border-b border-white/10 text-xs font-bold text-white pb-1 focus:outline-none focus:border-indigo-400"
                               placeholder="Название услуги"
                             />
@@ -2628,14 +2660,16 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             type="text"
                             defaultValue={svc.description}
                             onBlur={(e) => handleUpdateService(svc.id, 'description', e.target.value)}
-                            className="w-full bg-transparent text-[11px] text-white/60 focus:outline-none focus:text-white/80"
+                            aria-label="Описание услуги"
+                            className="w-full bg-transparent text-[11px] text-white/60 focus:outline-none focus:text-white/80 focus:ring-2 focus:ring-white/30 rounded"
                             placeholder="Краткое описание"
                           />
                           <input
                             type="text"
                             defaultValue={svc.price}
                             onBlur={(e) => handleUpdateService(svc.id, 'price', e.target.value)}
-                            className="w-full bg-transparent text-xs font-black text-emerald-400 focus:outline-none"
+                            aria-label="Цена услуги"
+                            className="w-full bg-transparent text-xs font-black text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 rounded"
                             placeholder="Цена, например: 20 ₽ / стр"
                           />
                         </div>

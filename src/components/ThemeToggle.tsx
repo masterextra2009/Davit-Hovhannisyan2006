@@ -49,7 +49,9 @@ export function ThemeToggle() {
     <button
       id="theme-toggle-btn"
       onClick={toggleTheme}
-      aria-label="Переключение темы"
+      role="switch"
+      aria-checked={isDark}
+      aria-label={isDark ? 'Тёмная тема включена' : 'Светлая тема включена'}
       title={isDark ? 'Переключить на светлую тему' : 'Переключить на темную тему'}
       style={{
         position: 'relative',
