@@ -34,8 +34,8 @@ const STEPS = [
 
 const PRICES = [
   { label: 'А4, чёрно-белая', price: 'от 20 ₽', unit: '/ стр.' },
-  { label: 'А4, цветная', price: 'от 40 ₽', unit: '/ стр.' },
-  { label: 'А3, любой цвет', price: 'от 45 ₽', unit: '/ стр.' },
+  { label: 'А4, цветная', price: 'от 25 ₽', unit: '/ стр.' },
+  { label: 'А3', price: 'от 100 ₽', unit: '/ стр.' },
   { label: 'Срочная печать', price: '+50%', unit: 'к стоимости' },
 ];
 
@@ -168,7 +168,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
               <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-950/30 flex items-center justify-center mb-4">
                 <step.icon className="w-6 h-6 text-orange-500" />
               </div>
-              <h3 className="text-sm font-black mb-1.5">{step.title}</h3>
+              <h3 className="landing-h3 text-sm font-black mb-1.5">{step.title}</h3>
               <p className="text-xs text-slate-500 dark:text-white/50 leading-relaxed">{step.desc}</p>
             </motion.div>
           ))}
@@ -212,7 +212,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
         <div className="glass-card rounded-3xl overflow-hidden">
           <iframe
             title="Карта — Фото-Север, Северное шоссе 18, Раменское"
-            src="https://yandex.ru/map-widget/v1/?text=Раменское%20Северное%20шоссе%2018&z=16"
+            src="https://yandex.ru/map-widget/v1/?ll=38.215369%2C55.580156&z=17&pt=38.215369,55.580156"
             width="100%"
             height="360"
             style={{ border: 0 }}
@@ -221,10 +221,13 @@ export function LandingPage({ onEnter }: LandingPageProps) {
           <div className="p-5 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-orange-500" />
-              <span className="text-sm font-bold">Северное шоссе, 18, Раменское</span>
+              <div>
+                <span className="text-sm font-bold block">Северное шоссе, 18, Раменское</span>
+                <span className="text-xs text-slate-500 dark:text-white/50">Вход с торца дома</span>
+              </div>
             </div>
             <a
-              href="https://yandex.ru/maps/?text=Раменское%20Северное%20шоссе%2018&rtext=~Раменское%20Северное%20шоссе%2018"
+              href="https://yandex.ru/maps/?rtext=~55.580156,38.215369"
               target="_blank" rel="noopener noreferrer"
               className="landing-cta-btn btn-holo-glass flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold cursor-pointer"
             >
@@ -261,8 +264,8 @@ export function LandingPage({ onEnter }: LandingPageProps) {
             <div>ИП, ИНН 501110120673</div>
             <div>ОГРНИП 324774600314137</div>
             <div className="pt-2 flex flex-col gap-1">
-              <button onClick={onEnter} className="text-left hover:text-orange-500 transition-colors underline decoration-dotted">Публичная оферта</button>
-              <button onClick={onEnter} className="text-left hover:text-orange-500 transition-colors underline decoration-dotted">Политика обработки персональных данных</button>
+              <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted">Публичная оферта</a>
+              <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted">Политика обработки персональных данных</a>
             </div>
           </div>
         </div>

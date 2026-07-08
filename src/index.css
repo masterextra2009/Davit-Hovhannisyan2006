@@ -2681,6 +2681,10 @@ p.landing-p {
   color: #cbd5e1 !important;
   opacity: 1 !important;
 }
+h3.landing-h3 {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
 a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-cta-btn * {
   color: #0f172a !important;
   background: #ffffff !important;
