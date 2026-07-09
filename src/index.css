@@ -3039,6 +3039,80 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
 }
 
 /* ============================================
+   ЗОНА ЗАГРУЗКИ ФАЙЛОВ — стеклянная карточка с покачивающимися
+   слоями и свечением позади (по мотивам CodePen "Glass Cards")
+   ============================================ */
+.upload-glass-zone {
+  position: relative;
+  z-index: 1;
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, rgba(41, 41, 41, 0.88) 0%, rgba(18, 18, 18, 0.92) 100%) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: inset 0 2px 2px 0 rgba(231, 196, 160, 0.3), inset 0 -2px 2px 0 rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.upload-glass-zone.is-active {
+  box-shadow: inset 0 2px 2px 0 rgba(129, 140, 248, 0.55), inset 0 -2px 2px 0 rgba(0, 0, 0, 0.35), 0 0 0 2px rgba(99, 102, 241, 0.55) !important;
+}
+.upload-glass-accents {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+.upload-acc-card {
+  position: absolute;
+  inset: 4px;
+  border-radius: 22px;
+  background: rgba(238, 238, 238, 0.05);
+  box-shadow: inset 0 2px 2px 0 rgba(224, 201, 178, 0.2), inset 0 -2px 2px 0 rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(3px);
+  transform-origin: 20% 80%;
+}
+.upload-acc-card:nth-child(1) { animation: upload-wobble 18s ease-in-out infinite; }
+.upload-acc-card:nth-child(2) { animation: upload-wobble 22s ease-in-out -6s infinite reverse; }
+.upload-acc-card:nth-child(3) { animation: upload-wobble 26s ease-in-out -18s infinite; }
+.upload-glow-ring {
+  position: absolute;
+  left: -24px; top: 35%;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.4) 0%, rgba(129, 140, 248, 0) 70%);
+  filter: blur(4px);
+  animation: upload-rotate 20s linear infinite;
+}
+.upload-glow-ring.sm {
+  left: auto; right: -16px; top: 12%;
+  width: 74px; height: 74px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.35) 0%, rgba(168, 85, 247, 0) 70%);
+  animation-duration: 16s;
+}
+.upload-top-light {
+  position: absolute;
+  left: 0; right: 0; top: -2px;
+  margin: auto;
+  width: 46%;
+  height: 4px;
+  border-radius: 10px;
+  background: #fffef9;
+  box-shadow:
+    0 0 1px 1px rgba(255, 199, 142, 0.9),
+    0 1px 2px 1px rgba(255, 148, 41, 0.45),
+    0 2px 8px 2px rgba(233, 139, 45, 0.35),
+    0 6px 16px 4px rgba(255, 158, 61, 0.28);
+}
+@keyframes upload-wobble {
+  0%   { transform: translateX(3px) translateY(5px) rotate(-1.2deg) scale(1); }
+  20%  { transform: translateX(-8px) translateY(-3px) rotate(1.8deg) scale(1.008); }
+  60%  { transform: translateX(6px) translateY(4px) rotate(-2deg) scale(1); }
+  80%  { transform: translateX(-7px) translateY(-5px) rotate(2.4deg) scale(0.992); }
+  100% { transform: translateX(3px) translateY(5px) rotate(-1.2deg) scale(1); }
+}
+@keyframes upload-rotate { to { transform: rotate(360deg); } }
+
+/* ============================================
    ПОИСК — стекло с бегущей радужной подсветкой
    (glass-glow-input.html), уменьшено под размер строки поиска
    ============================================ */

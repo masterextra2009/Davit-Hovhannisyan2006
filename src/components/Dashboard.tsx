@@ -1800,48 +1800,58 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </div>
                 )}
 
-                {/* Drag zone Area */}
-                <div
-                  onDragEnter={!isWorkingHours() ? undefined : handleDrag}
-                  onDragOver={!isWorkingHours() ? undefined : handleDrag}
-                  onDragLeave={!isWorkingHours() ? undefined : handleDrag}
-                  onDrop={!isWorkingHours() ? undefined : handleDrop}
-                  onClick={!isWorkingHours() ? undefined : () => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-3xl p-8 md:p-12 text-center transition-all ${
-                    !isWorkingHours()
-                      ? 'border-rose-250 bg-rose-50/10 dark:bg-rose-950/5 cursor-not-allowed opacity-60'
-                      : dragActive 
-                      ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 scale-98 cursor-pointer' 
-                      : 'border-slate-200 dark:border-slate-800 hover:border-indigo-500/60 dark:hover:border-indigo-500/40 bg-slate-50/50 dark:bg-slate-950/20 cursor-pointer'
-                  }`}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    onChange={handleFileInput}
-                    className="hidden"
-                    aria-label="Загрузить файлы для печати"
-                    accept=".zip,.rar,.7z,.doc,.docx,.pdf,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.heic,.heif,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                  />
-                  
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                    !isWorkingHours()
-                      ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-505 dark:text-rose-400'
-                      : 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400'
-                  }`}>
-                    {!isWorkingHours() ? <Clock className="w-8 h-8 animate-pulse text-rose-600" /> : <Upload className="w-8 h-8" />}
+                {/* Drag zone Area — стеклянная карточка со свечением позади */}
+                <div className="relative py-2">
+                  <div className="upload-glass-accents">
+                    <div className="upload-acc-card" />
+                    <div className="upload-acc-card" />
+                    <div className="upload-acc-card" />
+                    <div className="upload-glow-ring" />
+                    <div className="upload-glow-ring sm" />
+                    <div className="upload-top-light" />
                   </div>
-                  
-                  <p className={`text-sm font-bold ${!isWorkingHours() ? 'text-rose-650 dark:text-rose-450' : 'text-slate-800 dark:text-white'}`}>
-                    {!isWorkingHours() ? 'Прием файлов приостановлен (Центр Закрыт)' : 'Выберите файлы или перетащите их сюда'}
-                  </p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-                    {!isWorkingHours() 
-                      ? 'Мы принимаем файлы только в рабочие часы Пн-Пт 09:00 - 19:00, Сб-Вс 10:00 - 19:00. Приходите к нам завтра!' 
-                      : 'Поддерживаются любые типы форматов: архивы (zip, rar), изображения (jpg, png) и документы (pdf, docx, xlsx, txt) до 100 МБ.'
-                    }
-                  </p>
+                  <div
+                    onDragEnter={!isWorkingHours() ? undefined : handleDrag}
+                    onDragOver={!isWorkingHours() ? undefined : handleDrag}
+                    onDragLeave={!isWorkingHours() ? undefined : handleDrag}
+                    onDrop={!isWorkingHours() ? undefined : handleDrop}
+                    onClick={!isWorkingHours() ? undefined : () => fileInputRef.current?.click()}
+                    className={`upload-glass-zone p-8 md:p-12 text-center transition-all ${
+                      !isWorkingHours()
+                        ? 'cursor-not-allowed opacity-60'
+                        : dragActive
+                        ? 'is-active scale-98 cursor-pointer'
+                        : 'cursor-pointer'
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      onChange={handleFileInput}
+                      className="hidden"
+                      aria-label="Загрузить файлы для печати"
+                      accept=".zip,.rar,.7z,.doc,.docx,.pdf,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.heic,.heif,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    />
+
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                      !isWorkingHours()
+                        ? 'bg-rose-950/30 text-rose-400'
+                        : 'bg-indigo-950/40 text-indigo-400'
+                    }`}>
+                      {!isWorkingHours() ? <Clock className="w-8 h-8 animate-pulse text-rose-400" /> : <Upload className="w-8 h-8" />}
+                    </div>
+
+                    <p className={`text-sm font-bold ${!isWorkingHours() ? 'text-rose-400' : 'text-white'}`}>
+                      {!isWorkingHours() ? 'Прием файлов приостановлен (Центр Закрыт)' : 'Выберите файлы или перетащите их сюда'}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-2">
+                      {!isWorkingHours()
+                        ? 'Мы принимаем файлы только в рабочие часы Пн-Пт 09:00 - 19:00, Сб-Вс 10:00 - 19:00. Приходите к нам завтра!'
+                        : 'Поддерживаются любые типы форматов: архивы (zip, rar), изображения (jpg, png) и документы (pdf, docx, xlsx, txt) до 100 МБ.'
+                      }
+                    </p>
+                  </div>
                 </div>
 
                 {/* Uploaded Queue Items */}
