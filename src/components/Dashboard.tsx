@@ -180,6 +180,20 @@ async function analyzeColorFill(imageUrl: string): Promise<number> {
 function colorFillPrice(pct: number) { return pct <= 20 ? 25 : pct <= 60 ? 40 : 65; }
 function colorFillLabel(pct: number) { return pct <= 20 ? 'Мелкий цвет' : pct <= 60 ? '~50% заливка' : '100% заливка'; }
 
+// Черновик незавершённой загрузки — переживает обновление страницы (F5)
+const UPLOAD_DRAFT_KEY = 'print_shop_upload_draft';
+function loadUploadDraft(): PrintFile[] {
+  try {
+    const saved = sessionStorage.getItem(UPLOAD_DRAFT_KEY);
+    if (!saved) return [];
+    const parsed: PrintFile[] = JSON.parse(saved);
+    // blob-ссылки на превью не переживают перезагрузку — используем ссылку из облака вместо них
+    return parsed.map(f => ({ ...f, previewUrl: f.url || undefined }));
+  } catch {
+    return [];
+  }
+}
+
 interface DashboardProps {
   user: User;
   onLogout: () => void;
@@ -442,7 +456,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   };
   
   // File upload state
-  const [uploadedFiles, setUploadedFiles] = useState<PrintFile[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<PrintFile[]>(loadUploadDraft);
+
+  // Сохраняем черновик загрузки при каждом изменении — обновление страницы больше не стирает файлы
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(UPLOAD_DRAFT_KEY, JSON.stringify(uploadedFiles));
+    } catch {}
+  }, [uploadedFiles]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [fillPricePopup, setFillPricePopup] = useState<{ fileName: string; pct: number; price: number } | null>(null);
