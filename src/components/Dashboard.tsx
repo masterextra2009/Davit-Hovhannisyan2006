@@ -319,10 +319,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // Profile edit states
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-  // Онбординг — показываем только новым клиентам (не видевшим раньше)
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    return !localStorage.getItem('onboarding_seen');
-  });
+  // Приветственный онбординг отключён по просьбе клиента
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeLegalDoc, setActiveLegalDoc] = useState<'privacy' | 'terms' | 'delivery' | null>(null);
   const [editFullName, setEditFullName] = useState(user.fullName);
   const [editPhone, setEditPhone] = useState(user.phone || '');
@@ -3532,6 +3530,253 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
               </motion.div>
             )}
+
+          {/* ── CONTACTS TAB ── */}
+          {activeTab === 'contacts' && (
+          <motion.div
+            key="contacts"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-5 pb-8 md:overflow-y-auto md:flex-1 min-h-0 pr-1 w-full overflow-x-hidden"
+          >
+            <div className="mb-6 max-w-2xl mx-auto text-center">
+              <h2 className="text-xl font-black text-white mb-1">Контакты студии</h2>
+              <p className="text-sm text-slate-400">Мы всегда рады помочь вам!</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl mx-auto">
+            <div className="glass-panel rounded-2xl p-5 flex gap-4 items-start">
+              <div className="w-11 h-11 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+                <MapPin className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Адрес</p>
+                <p className="text-white font-bold text-base">Северное шоссе, 18</p>
+                <p className="text-slate-400 text-sm">Раменское, Московская область</p>
+                <a href="https://yandex.ru/maps/?text=Раменское+Северное+шоссе+18" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-2 text-xs text-indigo-400 hover:text-indigo-300 font-semibold">
+                  Открыть на карте →
+                </a>
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-2xl p-5 flex gap-4 items-start">
+              <div className="w-11 h-11 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+                <Phone className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Телефон</p>
+                <a href="tel:+79680508800" className="text-white font-bold text-base hover:text-emerald-400 transition-colors">
+                  +7 (968) 050-88-00
+                </a>
+                <p className="text-slate-400 text-sm mt-0.5">Звонки и WhatsApp</p>
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-2xl p-5 flex gap-4 items-start">
+              <div className="w-11 h-11 rounded-xl bg-sky-500/20 flex items-center justify-center shrink-0">
+                <MessageSquare className="w-5 h-5 text-sky-400" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Telegram</p>
+                <a href="https://t.me/photosever18" target="_blank" rel="noopener noreferrer" className="text-white font-bold text-base hover:text-sky-400 transition-colors">
+                  @photosever18
+                </a>
+                <p className="text-slate-400 text-sm mt-0.5">Пишите в любое время</p>
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-2xl p-5 flex gap-4 items-start">
+              <div className="w-11 h-11 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 text-amber-400" />
+              </div>
+              <div className="w-full">
+                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-3">Часы работы</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 text-sm">Понедельник — Пятница</span>
+                    <span className="text-white font-bold text-sm">9:00 — 19:00</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 text-sm">Суббота</span>
+                    <span className="text-white font-bold text-sm">10:00 — 19:00</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300 text-sm">Воскресенье</span>
+                    <span className="text-white font-bold text-sm">10:00 — 19:00</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+
+            <a href="tel:+79680508800" className="flex items-center justify-center gap-2 w-full max-w-2xl mx-auto py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-sm hover:opacity-90 transition-opacity">
+              <Phone className="w-4 h-4" />
+              Позвонить нам
+            </a>
+
+          </motion.div>
+          )}
+
+          {/* ── SERVICES TAB ── */}
+          {activeTab === 'services' && (
+          <motion.div
+            key="services"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-5 pb-8 md:overflow-y-auto md:flex-1 min-h-0 pr-1 w-full overflow-x-hidden"
+          >
+            <div className="mb-6 max-w-4xl mx-auto text-center">
+              <h2 className="text-xl font-black text-white mb-1">Наши услуги</h2>
+              <p className="text-sm text-slate-400">Всё что мы делаем в Фото-Север на Северном шоссе, 18</p>
+            </div>
+
+            {(!database.services || database.services.filter(s => s.isActive).length === 0) && (
+              <div className="text-center py-16 text-slate-400">
+                <Printer className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="font-bold">Витрина услуг пока пуста</p>
+                <p className="text-sm mt-1">Скоро здесь появятся все наши услуги</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
+              {(database.services || [])
+                .filter(s => s.isActive)
+                .map(svc => {
+                  // Генерируем 3D SVG иконку по эмодзи/названию
+                  const get3DIcon = (emoji: string, title: string) => {
+                    const t = title.toLowerCase();
+                    const e = emoji;
+                    // Фото на документы
+                    if ((t.includes('фото') && (t.includes('докум') || t.includes('документ'))) || e === '🪪' || e === '📷') return (
+                      <svg width="72" height="72" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style={{filter:'drop-shadow(0 8px 16px rgba(168,85,247,0.35))'}}>
+                        <defs>
+                          <linearGradient id={`g2-${svc.id}`} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#c084fc"/><stop offset="100%" stopColor="#a855f7"/></linearGradient>
+                          <linearGradient id={`g2t-${svc.id}`} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#e9d5ff"/><stop offset="100%" stopColor="#c084fc"/></linearGradient>
+                        </defs>
+                        <ellipse cx="40" cy="74" rx="20" ry="4" fill="rgba(168,85,247,0.2)"/>
+                        <rect x="10" y="38" width="60" height="24" rx="10" fill="#7c3aed"/>
+                        <rect x="10" y="26" width="60" height="20" rx="10" fill={`url(#g2-${svc.id})`}/>
+                        <rect x="28" y="20" width="20" height="10" rx="5" fill={`url(#g2t-${svc.id})`}/>
+                        <circle cx="40" cy="38" r="14" fill="#1e1b4b"/>
+                        <circle cx="40" cy="38" r="10" fill="#0f0a2e"/>
+                        <circle cx="40" cy="38" r="6" fill="#312e81"/>
+                        <circle cx="37" cy="35" r="2.5" fill="rgba(255,255,255,0.45)"/>
+                        <rect x="54" y="29" width="8" height="5" rx="2.5" fill="rgba(255,255,255,0.5)"/>
+                        <rect x="14" y="28" width="28" height="5" rx="3" fill="rgba(255,255,255,0.22)"/>
+                      </svg>
+                    );
+                    if (t.includes('переплёт') || t.includes('переплет') || t.includes('binding') || e === '📎' || e === '📚') return (
+                      <svg width="72" height="72" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style={{filter:'drop-shadow(0 8px 16px rgba(249,115,22,0.35))'}}>
+                        <defs>
+                          <linearGradient id={`g3-${svc.id}`} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#fb923c"/><stop offset="100%" stopColor="#f97316"/></linearGradient>
+                        </defs>
+                        <ellipse cx="40" cy="74" rx="20" ry="4" fill="rgba(249,115,22,0.2)"/>
+                        <rect x="22" y="16" width="44" height="52" rx="4" fill="#fef3c7"/>
+                        <rect x="14" y="12" width="52" height="54" rx="6" fill={`url(#g3-${svc.id})`}/>
+                        <rect x="56" y="16" width="6" height="46" rx="2" fill="#fef9c3"/>
+                        <rect x="24" y="24" width="24" height="3" rx="1.5" fill="rgba(255,255,255,0.5)"/>
+                        <rect x="24" y="31" width="18" height="2" rx="1" fill="rgba(255,255,255,0.35)"/>
+                        <rect x="24" y="37" width="22" height="2" rx="1" fill="rgba(255,255,255,0.25)"/>
+                        <circle cx="20" cy="26" r="4" fill="none" stroke="#94a3b8" strokeWidth="2.5"/>
+                        <circle cx="20" cy="36" r="4" fill="none" stroke="#94a3b8" strokeWidth="2.5"/>
+                        <circle cx="20" cy="46" r="4" fill="none" stroke="#94a3b8" strokeWidth="2.5"/>
+                        <circle cx="20" cy="56" r="4" fill="none" stroke="#94a3b8" strokeWidth="2.5"/>
+                        <rect x="18" y="14" width="28" height="7" rx="3.5" fill="rgba(255,255,255,0.28)"/>
+                      </svg>
+                    );
+                    if (t.includes('скан') || e === '🔍' || e === '📠') return (
+                      <svg width="72" height="72" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style={{filter:'drop-shadow(0 8px 16px rgba(16,185,129,0.35))'}}>
+                        <defs>
+                          <linearGradient id={`g4-${svc.id}`} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#34d399"/><stop offset="100%" stopColor="#10b981"/></linearGradient>
+                          <linearGradient id={`g4scan-${svc.id}`} x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="rgba(52,211,153,0)"/><stop offset="50%" stopColor="rgba(52,211,153,0.7)"/><stop offset="100%" stopColor="rgba(52,211,153,0)"/></linearGradient>
+                        </defs>
+                        <ellipse cx="40" cy="74" rx="20" ry="4" fill="rgba(16,185,129,0.2)"/>
+                        <rect x="12" y="50" width="56" height="14" rx="7" fill="#065f46"/>
+                        <rect x="12" y="44" width="56" height="12" rx="7" fill={`url(#g4-${svc.id})`}/>
+                        <rect x="16" y="16" width="48" height="34" rx="5" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.25)" strokeWidth="1"/>
+                        <rect x="22" y="20" width="36" height="26" rx="3" fill="white" opacity="0.9"/>
+                        <rect x="26" y="24" width="20" height="2" rx="1" fill="#bfdbfe"/>
+                        <rect x="26" y="28" width="24" height="2" rx="1" fill="#bfdbfe"/>
+                        <rect x="26" y="32" width="16" height="2" rx="1" fill="#bfdbfe"/>
+                        <rect x="16" y="30" width="48" height="3" rx="1.5" fill={`url(#g4scan-${svc.id})`}><animate attributeName="y" values="20;44;20" dur="2s" repeatCount="indefinite"/></rect>
+                        <circle cx="62" cy="50" r="4" fill="#34d399"/>
+                        <rect x="16" y="44" width="26" height="5" rx="2.5" fill="rgba(255,255,255,0.28)"/>
+                      </svg>
+                    );
+                    // Default — принтер синий
+                    return (
+                      <svg width="72" height="72" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style={{filter:'drop-shadow(0 8px 16px rgba(59,130,246,0.35))'}}>
+                        <defs>
+                          <linearGradient id={`g1-${svc.id}`} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#60a5fa"/><stop offset="100%" stopColor="#3b82f6"/></linearGradient>
+                          <linearGradient id={`g1t-${svc.id}`} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#93c5fd"/><stop offset="100%" stopColor="#60a5fa"/></linearGradient>
+                        </defs>
+                        <ellipse cx="40" cy="74" rx="20" ry="4" fill="rgba(59,130,246,0.2)"/>
+                        <rect x="14" y="36" width="52" height="26" rx="8" fill="#1d4ed8"/>
+                        <rect x="14" y="28" width="52" height="16" rx="8" fill={`url(#g1-${svc.id})`}/>
+                        <rect x="16" y="26" width="48" height="10" rx="6" fill={`url(#g1t-${svc.id})`}/>
+                        <rect x="30" y="10" width="20" height="24" rx="3" fill="white" opacity="0.95"/>
+                        <rect x="34" y="14" width="12" height="2" rx="1" fill="#bfdbfe"/>
+                        <rect x="34" y="18" width="9" height="2" rx="1" fill="#bfdbfe"/>
+                        <rect x="34" y="22" width="11" height="2" rx="1" fill="#bfdbfe"/>
+                        <rect x="24" y="38" width="32" height="4" rx="2" fill="rgba(0,0,0,0.2)"/>
+                        <circle cx="54" cy="32" r="3" fill="#34d399"/>
+                        <circle cx="62" cy="32" r="3" fill="rgba(255,255,255,0.3)"/>
+                        <rect x="18" y="28" width="26" height="5" rx="3" fill="rgba(255,255,255,0.28)"/>
+                      </svg>
+                    );
+                  };
+
+                  return (
+                    <div
+                      key={svc.id}
+                      className="service-glass-card group relative overflow-hidden cursor-pointer select-none flex flex-col"
+                    >
+                      {/* Картинка сверху */}
+                      <div className="service-glass-card-media h-40 shrink-0 overflow-hidden flex items-center justify-center">
+                        {svc.imageUrl ? (
+                          <img src={svc.imageUrl} alt={svc.title}
+                            className="w-full h-full object-cover"
+                            onError={e => { (e.currentTarget as HTMLImageElement).style.display='none'; }}
+                          />
+                        ) : (
+                          <div>{get3DIcon(svc.emoji, svc.title)}</div>
+                        )}
+                      </div>
+
+                      {/* Название и описание */}
+                      <div className="px-3.5 pt-3 pb-2">
+                        <p className="font-extrabold text-[13px] text-slate-800 dark:text-white mb-0.5 leading-tight">{svc.title}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                          {svc.description?.slice(0,50)}{(svc.description?.length||0) > 50 ? '...' : ''}
+                        </p>
+                      </div>
+
+                      {/* Hover drawer — выезжает снизу */}
+                      <div className="service-card-drawer">
+                        <div className="px-3.5 pt-2 pb-3.5">
+                          <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mb-2">{svc.price}</p>
+                          <button
+                            onClick={() => {
+                              const priceNum = parseInt(svc.price.replace(/[^0-9]/g, ''), 10) || 0;
+                              setSelectedService({ title: svc.title, price: priceNum });
+                              setNotes(`Услуга: ${svc.title} — ${svc.price}`);
+                              setActiveTab('upload');
+                            }}
+                            className="w-full py-2.5 rounded-[10px] text-white font-bold text-xs cursor-pointer"
+                            style={{background:'linear-gradient(135deg,#6366f1,#8b5cf6)'}}
+                          >Заказать →</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </motion.div>
+          )}
           </AnimatePresence>
 
         </div>
@@ -4545,254 +4790,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </div>
         </div>
       )}
-
-          {/* ── CONTACTS TAB ── */}
-          {activeTab === 'contacts' && (
-          <motion.div
-            key="contacts"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.22 }}
-            className="space-y-5 pb-8 md:overflow-y-auto md:flex-1 min-h-0 pr-1 w-full overflow-x-hidden"
-          >
-            <div className="mb-6 max-w-2xl mx-auto text-center">
-              <h2 className="text-xl font-black text-white mb-1">Контакты студии</h2>
-              <p className="text-sm text-slate-400">Мы всегда рады помочь вам!</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl mx-auto">
-            <div className="glass-panel rounded-2xl p-5 flex gap-4 items-start">
-              <div className="w-11 h-11 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
-                <MapPin className="w-5 h-5 text-indigo-400" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Адрес</p>
-                <p className="text-white font-bold text-base">Северное шоссе, 18</p>
-                <p className="text-slate-400 text-sm">Раменское, Московская область</p>
-                <a href="https://yandex.ru/maps/?text=Раменское+Северное+шоссе+18" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-2 text-xs text-indigo-400 hover:text-indigo-300 font-semibold">
-                  Открыть на карте →
-                </a>
-              </div>
-            </div>
-
-            <div className="glass-panel rounded-2xl p-5 flex gap-4 items-start">
-              <div className="w-11 h-11 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
-                <Phone className="w-5 h-5 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Телефон</p>
-                <a href="tel:+79680508800" className="text-white font-bold text-base hover:text-emerald-400 transition-colors">
-                  +7 (968) 050-88-00
-                </a>
-                <p className="text-slate-400 text-sm mt-0.5">Звонки и WhatsApp</p>
-              </div>
-            </div>
-
-            <div className="glass-panel rounded-2xl p-5 flex gap-4 items-start">
-              <div className="w-11 h-11 rounded-xl bg-sky-500/20 flex items-center justify-center shrink-0">
-                <MessageSquare className="w-5 h-5 text-sky-400" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Telegram</p>
-                <a href="https://t.me/photosever18" target="_blank" rel="noopener noreferrer" className="text-white font-bold text-base hover:text-sky-400 transition-colors">
-                  @photosever18
-                </a>
-                <p className="text-slate-400 text-sm mt-0.5">Пишите в любое время</p>
-              </div>
-            </div>
-
-            <div className="glass-panel rounded-2xl p-5 flex gap-4 items-start">
-              <div className="w-11 h-11 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
-                <Clock className="w-5 h-5 text-amber-400" />
-              </div>
-              <div className="w-full">
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-3">Часы работы</p>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-300 text-sm">Понедельник — Пятница</span>
-                    <span className="text-white font-bold text-sm">9:00 — 19:00</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-300 text-sm">Суббота</span>
-                    <span className="text-white font-bold text-sm">10:00 — 19:00</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-300 text-sm">Воскресенье</span>
-                    <span className="text-white font-bold text-sm">10:00 — 19:00</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            </div>
-
-            <a href="tel:+79680508800" className="flex items-center justify-center gap-2 w-full max-w-2xl mx-auto py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-sm hover:opacity-90 transition-opacity">
-              <Phone className="w-4 h-4" />
-              Позвонить нам
-            </a>
-
-          </motion.div>
-          )}
-
-          {/* ── SERVICES TAB ── */}
-          {activeTab === 'services' && (
-          <motion.div
-            key="services"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.22 }}
-            className="space-y-5 pb-8 md:overflow-y-auto md:flex-1 min-h-0 pr-1 w-full overflow-x-hidden"
-          >
-            <div className="mb-6 max-w-4xl mx-auto text-center">
-              <h2 className="text-xl font-black text-white mb-1">Наши услуги</h2>
-              <p className="text-sm text-slate-400">Всё что мы делаем в Фото-Север на Северном шоссе, 18</p>
-            </div>
-
-            {(!database.services || database.services.filter(s => s.isActive).length === 0) && (
-              <div className="text-center py-16 text-slate-400">
-                <Printer className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p className="font-bold">Витрина услуг пока пуста</p>
-                <p className="text-sm mt-1">Скоро здесь появятся все наши услуги</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
-              {(database.services || [])
-                .filter(s => s.isActive)
-                .map(svc => {
-                  // Генерируем 3D SVG иконку по эмодзи/названию
-                  const get3DIcon = (emoji: string, title: string) => {
-                    const t = title.toLowerCase();
-                    const e = emoji;
-                    // Фото на документы
-                    if ((t.includes('фото') && (t.includes('докум') || t.includes('документ'))) || e === '🪪' || e === '📷') return (
-                      <svg width="72" height="72" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style={{filter:'drop-shadow(0 8px 16px rgba(168,85,247,0.35))'}}>
-                        <defs>
-                          <linearGradient id={`g2-${svc.id}`} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#c084fc"/><stop offset="100%" stopColor="#a855f7"/></linearGradient>
-                          <linearGradient id={`g2t-${svc.id}`} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#e9d5ff"/><stop offset="100%" stopColor="#c084fc"/></linearGradient>
-                        </defs>
-                        <ellipse cx="40" cy="74" rx="20" ry="4" fill="rgba(168,85,247,0.2)"/>
-                        <rect x="10" y="38" width="60" height="24" rx="10" fill="#7c3aed"/>
-                        <rect x="10" y="26" width="60" height="20" rx="10" fill={`url(#g2-${svc.id})`}/>
-                        <rect x="28" y="20" width="20" height="10" rx="5" fill={`url(#g2t-${svc.id})`}/>
-                        <circle cx="40" cy="38" r="14" fill="#1e1b4b"/>
-                        <circle cx="40" cy="38" r="10" fill="#0f0a2e"/>
-                        <circle cx="40" cy="38" r="6" fill="#312e81"/>
-                        <circle cx="37" cy="35" r="2.5" fill="rgba(255,255,255,0.45)"/>
-                        <rect x="54" y="29" width="8" height="5" rx="2.5" fill="rgba(255,255,255,0.5)"/>
-                        <rect x="14" y="28" width="28" height="5" rx="3" fill="rgba(255,255,255,0.22)"/>
-                      </svg>
-                    );
-                    if (t.includes('переплёт') || t.includes('переплет') || t.includes('binding') || e === '📎' || e === '📚') return (
-                      <svg width="72" height="72" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style={{filter:'drop-shadow(0 8px 16px rgba(249,115,22,0.35))'}}>
-                        <defs>
-                          <linearGradient id={`g3-${svc.id}`} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#fb923c"/><stop offset="100%" stopColor="#f97316"/></linearGradient>
-                        </defs>
-                        <ellipse cx="40" cy="74" rx="20" ry="4" fill="rgba(249,115,22,0.2)"/>
-                        <rect x="22" y="16" width="44" height="52" rx="4" fill="#fef3c7"/>
-                        <rect x="14" y="12" width="52" height="54" rx="6" fill={`url(#g3-${svc.id})`}/>
-                        <rect x="56" y="16" width="6" height="46" rx="2" fill="#fef9c3"/>
-                        <rect x="24" y="24" width="24" height="3" rx="1.5" fill="rgba(255,255,255,0.5)"/>
-                        <rect x="24" y="31" width="18" height="2" rx="1" fill="rgba(255,255,255,0.35)"/>
-                        <rect x="24" y="37" width="22" height="2" rx="1" fill="rgba(255,255,255,0.25)"/>
-                        <circle cx="20" cy="26" r="4" fill="none" stroke="#94a3b8" strokeWidth="2.5"/>
-                        <circle cx="20" cy="36" r="4" fill="none" stroke="#94a3b8" strokeWidth="2.5"/>
-                        <circle cx="20" cy="46" r="4" fill="none" stroke="#94a3b8" strokeWidth="2.5"/>
-                        <circle cx="20" cy="56" r="4" fill="none" stroke="#94a3b8" strokeWidth="2.5"/>
-                        <rect x="18" y="14" width="28" height="7" rx="3.5" fill="rgba(255,255,255,0.28)"/>
-                      </svg>
-                    );
-                    if (t.includes('скан') || e === '🔍' || e === '📠') return (
-                      <svg width="72" height="72" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style={{filter:'drop-shadow(0 8px 16px rgba(16,185,129,0.35))'}}>
-                        <defs>
-                          <linearGradient id={`g4-${svc.id}`} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#34d399"/><stop offset="100%" stopColor="#10b981"/></linearGradient>
-                          <linearGradient id={`g4scan-${svc.id}`} x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="rgba(52,211,153,0)"/><stop offset="50%" stopColor="rgba(52,211,153,0.7)"/><stop offset="100%" stopColor="rgba(52,211,153,0)"/></linearGradient>
-                        </defs>
-                        <ellipse cx="40" cy="74" rx="20" ry="4" fill="rgba(16,185,129,0.2)"/>
-                        <rect x="12" y="50" width="56" height="14" rx="7" fill="#065f46"/>
-                        <rect x="12" y="44" width="56" height="12" rx="7" fill={`url(#g4-${svc.id})`}/>
-                        <rect x="16" y="16" width="48" height="34" rx="5" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.25)" strokeWidth="1"/>
-                        <rect x="22" y="20" width="36" height="26" rx="3" fill="white" opacity="0.9"/>
-                        <rect x="26" y="24" width="20" height="2" rx="1" fill="#bfdbfe"/>
-                        <rect x="26" y="28" width="24" height="2" rx="1" fill="#bfdbfe"/>
-                        <rect x="26" y="32" width="16" height="2" rx="1" fill="#bfdbfe"/>
-                        <rect x="16" y="30" width="48" height="3" rx="1.5" fill={`url(#g4scan-${svc.id})`}><animate attributeName="y" values="20;44;20" dur="2s" repeatCount="indefinite"/></rect>
-                        <circle cx="62" cy="50" r="4" fill="#34d399"/>
-                        <rect x="16" y="44" width="26" height="5" rx="2.5" fill="rgba(255,255,255,0.28)"/>
-                      </svg>
-                    );
-                    // Default — принтер синий
-                    return (
-                      <svg width="72" height="72" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style={{filter:'drop-shadow(0 8px 16px rgba(59,130,246,0.35))'}}>
-                        <defs>
-                          <linearGradient id={`g1-${svc.id}`} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#60a5fa"/><stop offset="100%" stopColor="#3b82f6"/></linearGradient>
-                          <linearGradient id={`g1t-${svc.id}`} x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#93c5fd"/><stop offset="100%" stopColor="#60a5fa"/></linearGradient>
-                        </defs>
-                        <ellipse cx="40" cy="74" rx="20" ry="4" fill="rgba(59,130,246,0.2)"/>
-                        <rect x="14" y="36" width="52" height="26" rx="8" fill="#1d4ed8"/>
-                        <rect x="14" y="28" width="52" height="16" rx="8" fill={`url(#g1-${svc.id})`}/>
-                        <rect x="16" y="26" width="48" height="10" rx="6" fill={`url(#g1t-${svc.id})`}/>
-                        <rect x="30" y="10" width="20" height="24" rx="3" fill="white" opacity="0.95"/>
-                        <rect x="34" y="14" width="12" height="2" rx="1" fill="#bfdbfe"/>
-                        <rect x="34" y="18" width="9" height="2" rx="1" fill="#bfdbfe"/>
-                        <rect x="34" y="22" width="11" height="2" rx="1" fill="#bfdbfe"/>
-                        <rect x="24" y="38" width="32" height="4" rx="2" fill="rgba(0,0,0,0.2)"/>
-                        <circle cx="54" cy="32" r="3" fill="#34d399"/>
-                        <circle cx="62" cy="32" r="3" fill="rgba(255,255,255,0.3)"/>
-                        <rect x="18" y="28" width="26" height="5" rx="3" fill="rgba(255,255,255,0.28)"/>
-                      </svg>
-                    );
-                  };
-
-                  return (
-                    <div
-                      key={svc.id}
-                      className="service-glass-card group relative overflow-hidden cursor-pointer select-none flex flex-col"
-                    >
-                      {/* Картинка сверху */}
-                      <div className="service-glass-card-media h-40 shrink-0 overflow-hidden flex items-center justify-center">
-                        {svc.imageUrl ? (
-                          <img src={svc.imageUrl} alt={svc.title}
-                            className="w-full h-full object-cover"
-                            onError={e => { (e.currentTarget as HTMLImageElement).style.display='none'; }}
-                          />
-                        ) : (
-                          <div>{get3DIcon(svc.emoji, svc.title)}</div>
-                        )}
-                      </div>
-
-                      {/* Название и описание */}
-                      <div className="px-3.5 pt-3 pb-2">
-                        <p className="font-extrabold text-[13px] text-slate-800 dark:text-white mb-0.5 leading-tight">{svc.title}</p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
-                          {svc.description?.slice(0,50)}{(svc.description?.length||0) > 50 ? '...' : ''}
-                        </p>
-                      </div>
-
-                      {/* Hover drawer — выезжает снизу */}
-                      <div className="service-card-drawer">
-                        <div className="px-3.5 pt-2 pb-3.5">
-                          <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mb-2">{svc.price}</p>
-                          <button
-                            onClick={() => {
-                              const priceNum = parseInt(svc.price.replace(/[^0-9]/g, ''), 10) || 0;
-                              setSelectedService({ title: svc.title, price: priceNum });
-                              setNotes(`Услуга: ${svc.title} — ${svc.price}`);
-                              setActiveTab('upload');
-                            }}
-                            className="w-full py-2.5 rounded-[10px] text-white font-bold text-xs cursor-pointer"
-                            style={{background:'linear-gradient(135deg,#6366f1,#8b5cf6)'}}
-                          >Заказать →</button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </motion.div>
-          )}
-
 
 
     {/* Sticky кнопки звонка и Telegram — только на мобильном */}
