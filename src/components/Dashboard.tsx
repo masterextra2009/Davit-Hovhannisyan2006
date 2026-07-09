@@ -2013,7 +2013,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                             {/* Стоимость файла */}
                             <div className="px-3.5 pb-3 flex justify-between items-center text-sm text-white/60">
-                              <span>{isPhoto ? `${selSize.label} × ${selSize.price} ₽ × ${copies} шт.` : `${pages} стр. × ${filePP} ₽ × ${copies} шт.`}</span>
+                              <span>
+                                {isPhoto
+                                  ? `${selSize.label} × ${selSize.price} ₽ × ${copies} шт.`
+                                  : `${pages} стр. × ${filePP} ₽${!isA3 && (file.printColor || 'bw') !== 'bw' ? ` (${colorFillLabel(fillPct)}, ${fillPct}% цвета)` : ''} × ${copies} шт.`}
+                              </span>
                               <strong className="text-white text-lg">{fileCost} ₽</strong>
                             </div>
                           </div>
