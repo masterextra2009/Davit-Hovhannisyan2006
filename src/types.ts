@@ -17,6 +17,7 @@ export interface User {
   isSocial?: boolean;
   isOnline?: boolean;
   lastActiveAt?: string;
+  pushSubscription?: PushSubscriptionJSON;
   promoCode?: string;
   promoDiscount?: number;
   promoGiftedSeen?: boolean;

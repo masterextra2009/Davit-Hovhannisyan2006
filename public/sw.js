@@ -17,6 +17,43 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
+// Показываем системное push-уведомление, пришедшее с сервера
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: 'Фото-Север', body: event.data ? event.data.text() : '' };
+  }
+  const title = data.title || 'Фото-Север';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || '',
+      icon: '/logo-192.png',
+      badge: '/logo-192.png',
+      data: { url: data.url || '/' },
+    })
+  );
+});
+
+// Клик по уведомлению — открываем (или фокусируем) сайт
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsArr) => {
+      for (const client of clientsArr) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {

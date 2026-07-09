@@ -1,0 +1,14 @@
+{
+  "name": "functions",
+  "description": "Cloud Functions for sever-18 — sends web push notifications on order status changes",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^5.1.1",
+    "web-push": "^3.6.7"
+  },
+  "private": true
+}

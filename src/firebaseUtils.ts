@@ -652,3 +652,38 @@ export async function syncLocalUpdatesToFirebase(updates: Partial<DatabaseState>
   }
 }
 
+// Публичный VAPID-ключ (не секрет, безопасно хранить в клиентском коде) —
+// в паре с приватным ключом на сервере (Cloud Functions) для отправки push.
+const VAPID_PUBLIC_KEY = 'BHpcBBIXLUxqklTcwkQreC_6c9usIN3SHlRSZHzlQEgJMkfVTvrlbl1jsCHF8lckjCIXA2xYEWbL5wHXatdSaUI';
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+/**
+ * Подписывает браузер на push-уведомления и сохраняет подписку в профиле
+ * пользователя — дальше Cloud Function сама шлёт push при смене статуса
+ * заказа или новом сообщении в чате.
+ */
+export async function subscribeToPushNotifications(userId: string): Promise<void> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    throw new Error('Push-уведомления не поддерживаются этим браузером');
+  }
+  const registration = await navigator.serviceWorker.ready;
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+  }
+  await setDoc(doc(db, 'users', userId), { pushSubscription: subscription.toJSON() }, { merge: true });
+}
+

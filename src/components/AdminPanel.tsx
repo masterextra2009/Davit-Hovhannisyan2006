@@ -597,6 +597,16 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       notifications: [newNotification, ...database.notifications],
       chatMessages: [...database.chatMessages, systemChat]
     });
+
+    // Уведомляем клиента в Telegram, если он его подключил — доходит, даже если сайт закрыт
+    fetch('https://www.sever-18.ru/api/telegram_notify.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: targetOrder.userId,
+        text: `🖨 <b>Фото-Север</b>\n\nСтатус заказа ${orderId} изменён: <b>${getStatusLabel(newStatus)}</b>`
+      })
+    }).catch(() => {});
   };
 
   // Payment status overriding manually if cash received

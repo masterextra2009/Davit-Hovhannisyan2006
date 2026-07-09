@@ -25,6 +25,7 @@ import {
   getClientTierForUser, isWorkingHours, showBrowserNotification
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
+import { subscribeToPushNotifications } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Synthesized high-quality feedback sound chimes using Web Audio API
@@ -1301,6 +1302,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       chatMessages: [...database.chatMessages, newMsg]
     });
 
+    // Уведомляем администратора в Telegram о новом сообщении от клиента
+    fetch('https://www.sever-18.ru/api/telegram_admin_notify.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: `💬 <b>Новое сообщение от ${user.fullName}</b>\n\n${chatInput.trim()}`
+      })
+    }).catch(() => {});
+
     setChatInput('');
   };
 
@@ -1326,9 +1336,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   const handleRequestPushPermission = () => {
     if ('Notification' in window) {
-      window.Notification.requestPermission().then(status => {
+      window.Notification.requestPermission().then(async (status) => {
         setPushConsent(status);
         localStorage.setItem('print_shop_push_consent', status);
+        if (status === 'granted') {
+          try {
+            await subscribeToPushNotifications(user.id);
+          } catch (err) {
+            console.error('Push subscription failed:', err);
+          }
+        }
       });
     } else {
       setPushConsent('denied');
