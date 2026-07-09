@@ -1387,12 +1387,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </div>
         </div>
 
-        {/* Sync Indicator */}
-        <div className="hidden md:flex items-center gap-2 mb-6 px-3 py-2 bg-slate-900/40 dark:bg-black/30 border border-slate-800 dark:border-slate-850 rounded-xl text-[11px] text-[#cbd5e1]">
-          <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400 icon-3d-svg" />
-          <span className="font-medium">Синхронизация данных</span>
-        </div>
-
         {/* Nav Links */}
         <nav className="flex md:flex-col flex-1 gap-1 md:gap-1 justify-around md:justify-start w-full relative">
           <button
@@ -3274,20 +3268,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   
                   <div className="space-y-4">
                     
-                    {/* Device Sync State Panel */}
-                    <div className="p-4 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/30 dark:border-indigo-900/30 rounded-2xl flex items-start gap-3">
-                      <RefreshCw className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5 animate-spin" />
-                      <div>
-                        <h4 className="font-bold text-xs text-slate-800 dark:text-white flex items-center gap-1.5">
-                          Авто-синхронизания активна 
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
-                        </h4>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                          Кабинет автоматически синхронизируется между вашими устройствами и вкладками браузера в реальном времени. Изменения на ПК моментально отобразятся на смартфоне.
-                        </p>
-                      </div>
-                    </div>
-
                     {/* Social connection options */}
                     <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl space-y-3 border border-slate-100 dark:border-slate-850">
                       <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Связанные соцсети</span>
@@ -3385,99 +3365,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
-
-                {/* Theme Customizer Card */}
-                <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-5 flex flex-col justify-between">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4.5 h-4.5 text-indigo-650" />
-                      <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">Индивидуальный Стиль и Тема</h3>
-                    </div>
-                    
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
-                      Выберите эксклюзивное оформление для вашего кабинета. Все три варианта полностью совместимы с дневным и ночным режимами. Нажмите для мгновенного превью:
-                    </p>
-
-                    <div className="space-y-2.5 pt-1">
-                      {/* Theme: Blue */}
-                      <button
-                        type="button"
-                        onClick={() => setDesignTheme('blue')}
-                        className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                          designTheme === 'blue'
-                            ? 'bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-500 shadow-md ring-2 ring-indigo-500/20'
-                            : 'bg-slate-50/50 dark:bg-slate-950/30 border-slate-150 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-950'
-                        }`}
-                      >
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shrink-0 shadow-inner font-extrabold text-[10px]">
-                          🔵
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-black text-slate-800 dark:text-white leading-tight">Бизнес-Портал (Синий)</h4>
-                          <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 truncate uppercase font-bold tracking-wider">Классический строгий интерфейс</p>
-                        </div>
-                        {designTheme === 'blue' && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
-                        )}
-                      </button>
-
-                      {/* Theme: Kraft */}
-                      <button
-                        type="button"
-                        onClick={() => setDesignTheme('kraft')}
-                        className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                          designTheme === 'kraft'
-                            ? 'bg-emerald-50/20 dark:bg-emerald-950/20 border-emerald-500 shadow-md ring-2 ring-emerald-500/20'
-                            : 'bg-slate-50/50 dark:bg-slate-950/30 border-slate-150 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-950'
-                        }`}
-                      >
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white shrink-0 shadow-inner font-extrabold text-[10px]">
-                          🌿
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-black text-slate-800 dark:text-white leading-tight">Эко-Крафт / Уютная Типография (Зеленый)</h4>
-                          <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 truncate uppercase font-bold tracking-wider">Теплый кремовый фон и лесной изумруд</p>
-                        </div>
-                        {designTheme === 'kraft' && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                        )}
-                      </button>
-
-                      {/* Theme: Cyber */}
-                      <button
-                        type="button"
-                        onClick={() => setDesignTheme('cyber')}
-                        className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                          designTheme === 'cyber'
-                            ? 'bg-purple-50/20 dark:bg-purple-950/20 border-purple-500 shadow-md ring-2 ring-purple-500/20'
-                            : 'bg-slate-50/50 dark:bg-slate-950/30 border-slate-150 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-950'
-                        }`}
-                      >
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fuchsia-600 to-purple-800 flex items-center justify-center text-white shrink-0 shadow-inner font-extrabold text-[10px]">
-                          🔮
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-black text-slate-800 dark:text-white leading-tight">Киберпанк / Неоновый Космос (Фиолетовый)</h4>
-                          <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 truncate uppercase font-bold tracking-wider">Глубокий темный и светящийся неон-нектар</p>
-                        </div>
-                        {designTheme === 'cyber' && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse shrink-0" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wide">
-                    <span>Текущий выбор:</span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-white text-[9px] font-black ${
-                      designTheme === 'blue' ? 'bg-indigo-600' :
-                      designTheme === 'kraft' ? 'bg-emerald-600' : 'bg-purple-600'
-                    }`}>
-                      {designTheme === 'blue' ? 'Pro Blue Active' :
-                       designTheme === 'kraft' ? 'Nordic Kraft Active' : 'Cyber Midnight Active'}
-                    </span>
                   </div>
                 </div>
 
@@ -4601,7 +4488,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <p className="font-extrabold text-slate-800 dark:text-slate-200">2. Собираемые данные</p>
                   <p>Мы обрабатываем исключительно данные, необходимые для авторизации и доставки выполненных заказов печати: ФИО, номер телефона, адрес электронной почты, отправляемые к печати файлы, детали параметров печати.</p>
                   <p className="font-extrabold text-slate-800 dark:text-slate-200">3. Цели сбора</p>
-                  <p>Персональные данные Пользователя обрабатываются для идентификации клиента, отправки оповещений о готовности через встроенный пуш-интерфейс, выполнения логистики и расчетов в соответствии с правилами Visa, MasterCard и МИР.</p>
+                  <p>Персональные данные Пользователя обрабатываются для идентификации клиента, отправки уведомлений о статусе заказа и проведения расчётов за оказанные услуги.</p>
                 </>
               )}
               {activeLegalDoc === 'terms' && (
@@ -4732,7 +4619,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             transition={{ duration: 0.22 }}
             className="space-y-5 pb-8 md:overflow-y-auto md:flex-1 min-h-0 pr-1 w-full overflow-x-hidden"
           >
-            <div className="mb-6">
+            <div className="mb-6 max-w-4xl mx-auto text-center">
               <h2 className="text-xl font-black text-white mb-1">Наши услуги</h2>
               <p className="text-sm text-slate-400">Всё что мы делаем в Фото-Север на Северном шоссе, 18</p>
             </div>
@@ -4745,7 +4632,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
               {(database.services || [])
                 .filter(s => s.isActive)
                 .map(svc => {
