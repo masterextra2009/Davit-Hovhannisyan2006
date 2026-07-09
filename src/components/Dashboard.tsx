@@ -4531,12 +4531,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             transition={{ duration: 0.22 }}
             className="space-y-5 pb-8 md:overflow-y-auto md:flex-1 min-h-0 pr-1 w-full overflow-x-hidden"
           >
-            <div className="mb-6">
+            <div className="mb-6 max-w-2xl mx-auto text-center">
               <h2 className="text-xl font-black text-white mb-1">Контакты студии</h2>
               <p className="text-sm text-slate-400">Мы всегда рады помочь вам!</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl mx-auto">
             <div className="glass-panel rounded-2xl p-5 flex gap-4 items-start">
               <div className="w-11 h-11 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
                 <MapPin className="w-5 h-5 text-indigo-400" />
@@ -4601,7 +4601,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             </div>
             </div>
 
-            <a href="tel:+79680508800" className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-sm hover:opacity-90 transition-opacity">
+            <a href="tel:+79680508800" className="flex items-center justify-center gap-2 w-full max-w-2xl mx-auto py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-sm hover:opacity-90 transition-opacity">
               <Phone className="w-4 h-4" />
               Позвонить нам
             </a>
