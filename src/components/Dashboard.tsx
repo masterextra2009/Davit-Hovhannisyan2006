@@ -10,6 +10,7 @@ import { RatingWidget } from './RatingWidget';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import logoImg from '../assets/logo.png';
+import printerInkIcon from '../assets/printer-ink-icon.svg';
 import { 
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 
   Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, 
@@ -3682,7 +3683,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             className="glass-window w-full max-w-sm overflow-hidden text-center p-7"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-5xl mb-3">🎨</div>
+            <img src={printerInkIcon} alt="" className="w-16 h-16 mx-auto mb-3" />
             <h3 className="text-lg font-black text-slate-800 dark:text-white">
               Мы посчитали заливку чернил!
             </h3>
