@@ -1876,8 +1876,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 <FileType className="w-4 h-4" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-white truncate">{file.name}</p>
-                                <span className="text-[10px] text-white/40 block mt-0.5">
+                                <p className="text-base font-bold text-white truncate">{file.name}</p>
+                                <span className="text-sm text-white/60 block mt-1">
                                   {formatFileSize(file.size)} · {file.formatGroup.toUpperCase()}
                                   {file.pageCount !== undefined ? ` · ${file.pageCount} стр.` : ' · сканирование...'}
                                   {file.url ? ' · ✓ Загружено' : ' · Загрузка...'}
@@ -2012,9 +2012,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             </div>
 
                             {/* Стоимость файла */}
-                            <div className="px-3.5 pb-3 flex justify-between items-center text-[10px] text-white/40">
+                            <div className="px-3.5 pb-3 flex justify-between items-center text-sm text-white/60">
                               <span>{isPhoto ? `${selSize.label} × ${selSize.price} ₽ × ${copies} шт.` : `${pages} стр. × ${filePP} ₽ × ${copies} шт.`}</span>
-                              <strong className="text-white text-sm">{fileCost} ₽</strong>
+                              <strong className="text-white text-lg">{fileCost} ₽</strong>
                             </div>
                           </div>
                         );
