@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
 import { Lock, Mail, User as UserIcon, Phone, ArrowRight, ShieldAlert, CheckCircle, Printer } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
-import { signInUserWithFirebase, registerUserWithFirebase } from '../firebaseUtils';
+import { signInUserWithFirebase, registerUserWithFirebase, signInWithGoogleFirebase } from '../firebaseUtils';
 import { motion } from 'motion/react';
 
 // Яркий голубой градиент фона окна входа (наносится напрямую через inline-style,
@@ -166,14 +166,35 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     setSuccessMsg('Инструкции по восстановлению пароля успешно отправлены на ваш Email.');
   };
 
-  // Simulate Social network logins
-  const triggerSocialAuth = async (provider: 'google' | 'vk' | 'yandex' | 'telegram') => {
+  // Real Google sign-in via Firebase
+  const handleGoogleAuth = async () => {
+    resetMessages();
+    setSocialLoading('google');
+    try {
+      const firebaseUser = await signInWithGoogleFirebase();
+      setSocialLoading(null);
+      onAuthSuccess(firebaseUser);
+    } catch (err: any) {
+      console.error('Google sign-in failed:', err);
+      let msg = 'Не удалось войти через Google. Попробуйте ещё раз.';
+      if (err.code === 'auth/popup-closed-by-user') {
+        msg = '';
+      } else if (err.code === 'auth/popup-blocked') {
+        msg = 'Браузер заблокировал всплывающее окно входа. Разрешите всплывающие окна для этого сайта и попробуйте снова.';
+      }
+      if (msg) setErrorMsg(msg);
+      setSocialLoading(null);
+    }
+  };
+
+  // Simulate Social network logins (Telegram — pending real integration)
+  const triggerSocialAuth = async (provider: 'vk' | 'yandex' | 'telegram') => {
     resetMessages();
     setSocialLoading(provider);
 
     try {
-      const providerNames = { google: 'Google', vk: 'ВКонтакте', yandex: 'Яндекс', telegram: 'Telegram' };
-      const emailPrefix = provider === 'vk' ? 'vk_' : provider === 'yandex' ? 'ya_' : provider === 'telegram' ? 'tg_' : 'g_';
+      const providerNames = { vk: 'ВКонтакте', yandex: 'Яндекс', telegram: 'Telegram' };
+      const emailPrefix = provider === 'vk' ? 'vk_' : provider === 'yandex' ? 'ya_' : 'tg_';
       const mockEmail = `${emailPrefix}user_${Math.floor(Math.random() * 9000 + 1000)}@${provider}.ru`;
       
       const names = [
@@ -500,7 +521,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => triggerSocialAuth('google')}
+                  onClick={handleGoogleAuth}
                   disabled={!!socialLoading}
                   className="btn-holo-glass flex justify-center items-center gap-2 py-3 px-3 rounded-2xl text-xs font-bold text-slate-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
                   title="Google ID"

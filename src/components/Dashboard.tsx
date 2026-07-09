@@ -1095,6 +1095,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         if (data.paymentUrl && data.paymentId) {
           const updated = { ...pendingOrder, transactionId: data.paymentId };
           sessionStorage.setItem('pending_order', JSON.stringify(updated));
+          // Пишем заказ в базу ДО перехода на оплату — иначе вебхуку ЮKassa
+          // после успешной оплаты будет некуда записать статус "оплачено".
+          await setDoc(doc(db, 'orders', orderId), updated);
+          onUpdateDatabase({ orders: [{ ...newOrder, transactionId: data.paymentId }, ...database.orders], users: updatedUsers });
           setUploadedFiles([]);
           setNotes('');
           setBinding('none');

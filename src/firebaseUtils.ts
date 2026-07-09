@@ -3,14 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { 
-  auth, 
+import {
+  auth,
   db,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
   updateProfile,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
   doc,
   getDoc,
   setDoc,
@@ -177,6 +179,62 @@ export async function signInUserWithFirebase(email: string, password: string): P
     console.warn('Firebase Auth sign in attempt info:', error?.message || error);
     throw error;
   }
+}
+
+/**
+ * Sign in a user via a real Google account (Firebase GoogleAuthProvider popup)
+ */
+export async function signInWithGoogleFirebase(): Promise<User> {
+  const provider = new GoogleAuthProvider();
+  const userCredential = await signInWithPopup(auth, provider);
+  const fbUser = userCredential.user;
+
+  const userDocRef = doc(db, 'users', fbUser.uid);
+  let userDoc;
+  try {
+    userDoc = await getDoc(userDocRef);
+  } catch (e) {
+    handleFirestoreError(e, OperationType.GET, `users/${fbUser.uid}`);
+  }
+
+  const isExplicitAdmin = fbUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' ||
+                          fbUser.uid === 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23' ||
+                          (fbUser.email || '').toLowerCase() === 'photo-sever@yandex.ru';
+
+  if (userDoc && userDoc.exists()) {
+    const userData = userDoc.data() as User;
+    if (isExplicitAdmin && userData.role !== 'admin') {
+      userData.role = 'admin';
+    }
+    if (fbUser.photoURL && userData.avatarUrl !== fbUser.photoURL) {
+      userData.avatarUrl = fbUser.photoURL;
+    }
+    try {
+      await setDoc(userDocRef, userData, { merge: true });
+    } catch (e) {
+      console.warn('Failed to sync Google profile to firestore:', e);
+    }
+    return userData;
+  }
+
+  // First time this Google account signs in — create their profile
+  const newUser: User = {
+    id: fbUser.uid,
+    email: fbUser.email || '',
+    fullName: fbUser.displayName || (fbUser.email ? fbUser.email.split('@')[0] : 'Пользователь Google'),
+    phone: '',
+    role: isExplicitAdmin ? 'admin' : 'client',
+    createdAt: new Date().toISOString(),
+    avatarUrl: fbUser.photoURL || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
+    isSocial: true,
+  };
+
+  try {
+    await setDoc(userDocRef, newUser);
+  } catch (e) {
+    handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
+  }
+  return newUser;
 }
 
 /**

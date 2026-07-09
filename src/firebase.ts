@@ -4,14 +4,16 @@
  */
 
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
   updateProfile,
   onAuthStateChanged,
-  type User as FirebaseUser 
+  GoogleAuthProvider,
+  signInWithPopup,
+  type User as FirebaseUser
 } from 'firebase/auth';
 import { 
   initializeFirestore,
@@ -49,6 +51,8 @@ export {
   signOut,
   updateProfile,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
   doc,
   getDoc,
   setDoc,
