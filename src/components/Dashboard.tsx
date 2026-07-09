@@ -444,6 +444,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [uploadedFiles, setUploadedFiles] = useState<PrintFile[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [fillPricePopup, setFillPricePopup] = useState<{ fileName: string; pct: number; price: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Print properties state
@@ -872,6 +873,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       if (previewUrl) {
         analyzeColorFill(previewUrl).then(pct => {
           setUploadedFiles(prev => prev.map(f => f.id === fileId ? { ...f, colorFillPercent: pct } : f));
+          setFillPricePopup({ fileName: file.name, pct, price: colorFillPrice(pct) });
         });
       }
 
@@ -3666,6 +3668,49 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 Закрыть
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модалка с результатом автоопределения заливки чернил */}
+      {fillPricePopup && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setFillPricePopup(null)}
+        >
+          <div
+            className="glass-window w-full max-w-sm overflow-hidden text-center p-7"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-5xl mb-3">🎨</div>
+            <h3 className="text-lg font-black text-slate-800 dark:text-white">
+              Мы посчитали заливку чернил!
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 truncate">
+              {fillPricePopup.fileName}
+            </p>
+
+            <div className="mt-5 rounded-2xl bg-black/5 dark:bg-white/5 p-4">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                У вас <strong className="text-slate-800 dark:text-white">{fillPricePopup.pct}% заливка</strong> чернил на странице
+              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
+                Стоимость печати составит
+              </p>
+              <p className="text-4xl font-black text-indigo-500 dark:text-indigo-400 mt-1">
+                {fillPricePopup.price} ₽
+              </p>
+              <p className="text-[11px] text-slate-400 mt-2">
+                Наши цены за цветную страницу — от 25 до 65 ₽, в зависимости от того, сколько чернил уходит на печать
+              </p>
+            </div>
+
+            <button
+              onClick={() => setFillPricePopup(null)}
+              className="mt-5 w-full px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-colors cursor-pointer shadow-sm"
+            >
+              Понятно
+            </button>
           </div>
         </div>
       )}
