@@ -1655,9 +1655,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             )}
             
             <ThemeToggle />
-            <div className="text-indigo-600 dark:text-white bg-slate-100 dark:bg-slate-800 rounded-xl w-9 h-9 flex items-center justify-center font-bold text-sm">
-              {user.fullName[0].toUpperCase()}
-            </div>
+            <UserAvatar user={user} className="w-9 h-9 rounded-xl" />
           </div>
         </header>
 
