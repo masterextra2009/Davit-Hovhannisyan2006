@@ -1027,7 +1027,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       setUploadError("К сожалению, отправка заказов приостановлена во внерабочее время. Мы работаем: Пн-Пт 09:00-19:00, Сб-Вс 10:00-19:00.");
       return;
     }
-    if (uploadedFiles.length === 0) return;
+    if (uploadedFiles.length === 0 && !selectedService) return;
 
     const stillUploading = uploadedFiles.some(f => !f.url);
     if (stillUploading) {
@@ -2410,9 +2410,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                   <button
                     type="submit"
-                    disabled={uploadedFiles.length === 0 || !isWorkingHours() || uploadedFiles.some(f => !f.url)}
+                    disabled={(uploadedFiles.length === 0 && !selectedService) || !isWorkingHours() || uploadedFiles.some(f => !f.url)}
                     className={`w-full flex items-center justify-center gap-2 py-4 px-4 rounded-2xl font-black text-sm text-white transition-all ${
-                      uploadedFiles.length > 0 && isWorkingHours() && !uploadedFiles.some(f => !f.url)
+                      (uploadedFiles.length > 0 || selectedService) && isWorkingHours() && !uploadedFiles.some(f => !f.url)
                         ? 'bg-indigo-600 hover:bg-indigo-700 cursor-pointer'
                         : 'bg-white/10 text-white/30 cursor-not-allowed'
                     }`}
@@ -2424,7 +2424,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         ? 'Загрузка файлов...'
                         : 'Оформить заказ'}
                   </button>
-                  {uploadedFiles.length === 0 && (
+                  {uploadedFiles.length === 0 && !selectedService && (
                     <p className="text-center text-[11px] text-white/30 mt-2">
                       ↑ Сначала загрузите файл на шаге 1
                     </p>

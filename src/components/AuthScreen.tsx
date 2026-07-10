@@ -544,7 +544,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                   type="button"
                   onClick={handleGoogleAuth}
                   disabled={!!socialLoading}
-                  className="btn-holo-glass flex justify-center items-center gap-2 py-3 px-3 rounded-full text-xs font-bold text-slate-900 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
+                  className="btn-holo-glass h-[46px] flex justify-center items-center gap-2 px-3 rounded-full text-xs font-bold text-slate-900 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
                   title="Google ID"
                 >
                   {socialLoading === 'google' ? (
@@ -562,9 +562,9 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                   )}
                 </button>
 
-                <div className="relative flex justify-center items-center min-h-[42px] rounded-full overflow-hidden">
+                <div className="relative h-[46px] flex justify-center items-center rounded-full overflow-hidden">
                   {/* Видимая кнопка в стиле "Войти в кабинет" — только оформление, клики сквозь неё не ловим */}
-                  <div className="btn-holo-glass absolute inset-0 flex justify-center items-center gap-2 py-3 px-3 rounded-full text-xs font-bold text-slate-900 pointer-events-none">
+                  <div className="btn-holo-glass absolute inset-0 flex justify-center items-center gap-2 px-3 rounded-full text-xs font-bold text-slate-900 pointer-events-none">
                     {socialLoading === 'telegram' ? (
                       <span className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-blue-600 animate-spin" />
                     ) : (
