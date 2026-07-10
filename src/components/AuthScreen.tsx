@@ -168,19 +168,33 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     setSuccessMsg('Инструкции по восстановлению пароля успешно отправлены на ваш Email.');
   };
 
-  // Real Google sign-in via Firebase — full-page redirect (not a popup, which
-  // silently fails on iOS Safari/WebKit due to storage partitioning). The page
-  // navigates to Google and back; App.tsx picks up the result on return.
+  // Real Google sign-in via Firebase — a popup window (signInWithPopup), not a
+  // full-page redirect. Redirect-based sign-in requires our Firebase authDomain
+  // (gen-lang-client-0575610984.firebaseapp.com) and the domain the app is
+  // served from (sever-18.ru) to be the same, or a reverse proxy in between —
+  // otherwise every modern browser blocks the cross-origin storage relay
+  // getRedirectResult() depends on, and it silently resolves null. The popup
+  // flow instead hands back the result via window.postMessage, which isn't
+  // subject to that restriction. See firebaseUtils.ts for the full writeup.
   const handleGoogleAuth = async () => {
     resetMessages();
     setSocialLoading('google');
     try {
-      await signInWithGoogleFirebase();
-      // Page is navigating away to Google now — nothing more to do here.
+      const firebaseUser = await signInWithGoogleFirebase();
+      setSocialLoading(null);
+      onAuthSuccess(firebaseUser);
     } catch (err: any) {
       console.error('Google sign-in failed:', err);
-      const msg = 'Не удалось войти через Google. Попробуйте ещё раз.';
-      if (msg) setErrorMsg(msg);
+      if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
+        // User just dismissed the popup — not a real error, no message needed.
+        setSocialLoading(null);
+        return;
+      }
+      let msg = 'Не удалось войти через Google. Попробуйте ещё раз.';
+      if (err?.code === 'auth/popup-blocked') {
+        msg = 'Браузер заблокировал всплывающее окно входа. Разрешите всплывающие окна для этого сайта и попробуйте снова.';
+      }
+      setErrorMsg(msg);
       setSocialLoading(null);
     }
   };

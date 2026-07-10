@@ -12,8 +12,7 @@ import {
   updateProfile,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   signInWithCustomToken,
   doc,
   getDoc,
@@ -247,35 +246,32 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
 
 /**
  * Sign in a user via a real Google account.
- * Uses a full-page redirect rather than a popup — Firebase Auth popups are
- * unreliable on iOS Safari/WebKit (storage is partitioned between the popup
- * and the opener, so the flow silently fails with no visible error).
+ *
+ * Uses signInWithPopup, NOT signInWithRedirect. Root cause of the long-standing
+ * "Google sign-in never completes" bug: our Firebase project's authDomain is
+ * gen-lang-client-0575610984.firebaseapp.com, which is a different domain than
+ * the one this app is served from (sever-18.ru). signInWithRedirect's
+ * getRedirectResult() relies on a cross-origin iframe/storage relay hosted on
+ * authDomain to hand the sign-in result back to the app's origin — and every
+ * modern browser (Chrome 115+, Firefox 109+, Safari 16.1+; this is required
+ * behavior, not a bug) blocks that relay by default as third-party storage
+ * access. That is exactly why getRedirectResult() always resolved null with no
+ * error, on every browser tested. See:
+ * https://firebase.google.com/docs/auth/web/redirect-best-practices
+ *
+ * signInWithPopup sidesteps this: the popup communicates the result back to
+ * the opener via window.postMessage, which is unaffected by third-party
+ * storage partitioning (it's not a storage read at all). Firebase's own docs
+ * list signInWithPopup as the primary fallback for this exact situation.
+ *
+ * (The proper long-term fix for redirect — pointing authDomain at sever-18.ru
+ * and reverse-proxying /__/auth/* to the Firebase authDomain — needs a server
+ * change plus a matching Google Cloud OAuth "authorized redirect URI" entry,
+ * and wasn't applied here since it can't be safely tested from this repo.)
  */
-export async function signInWithGoogleFirebase(): Promise<void> {
-  sessionStorage.setItem('google_redirect_pending', '1');
+export async function signInWithGoogleFirebase(): Promise<User> {
   const provider = new GoogleAuthProvider();
-  await signInWithRedirect(auth, provider);
-}
-
-/**
- * Call once on app startup to complete a Google sign-in after the user was
- * redirected back from Google. Returns the signed-in User, or null if there
- * was no pending redirect result.
- */
-export async function completeGoogleRedirectSignIn(): Promise<User | null> {
-  const wasPending = sessionStorage.getItem('google_redirect_pending') === '1';
-  sessionStorage.removeItem('google_redirect_pending');
-
-  const result = await getRedirectResult(auth);
-  if (!result) {
-    // Диагностика: если мы точно ждали результат (только что начали редирект),
-    // а getRedirectResult вернул null без ошибки — это и есть "тихий" сброс.
-    if (wasPending) {
-      console.warn('getRedirectResult() returned null after a pending Google redirect.');
-      alert('Вход через Google не завершился (getRedirectResult вернул пусто). Сообщите об этом.');
-    }
-    return null;
-  }
+  const result = await signInWithPopup(auth, provider);
   return upsertGoogleUserProfile(result.user);
 }
 

@@ -23,8 +23,7 @@ import {
   syncLocalUpdatesToFirebase,
   deleteUserAccountWithFirebase,
   signOutUserWithFirebase,
-  trackSiteVisit,
-  completeGoogleRedirectSignIn
+  trackSiteVisit
 } from './firebaseUtils';
 
 export default function App() {
@@ -53,18 +52,10 @@ export default function App() {
   // Storage database state (defaults to offline structure before Firebase sync)
   const [database, setDatabase] = useState<DatabaseState>(() => getInitialDatabase());
 
-  // Restore and keep authentication session synced in real-time.
-  // completeGoogleRedirectSignIn() must resolve BEFORE we let onAuthStateChanged's
-  // "no user" branch clear anything — right after returning from the Google
-  // redirect, Firebase can briefly report a null auth state while it's still
-  // processing the pending credential, and that null would otherwise race with
-  // (and wipe out) the user we just signed in.
+  // Restore and keep authentication session synced in real-time
   useEffect(() => {
-    let redirectChecked = false;
-
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
       if (!fbUser) {
-        if (!redirectChecked) return;
         setUser(null);
         saveCurrentUser(null);
       } else {
@@ -78,21 +69,6 @@ export default function App() {
       }
     });
 
-    // Завершаем вход через Google, если страница только что вернулась после
-    // редиректа на accounts.google.com (см. AuthScreen — вход идёт через
-    // signInWithRedirect, а не всплывающее окно, ради надёжности на iOS Safari).
-    completeGoogleRedirectSignIn()
-      .then((googleUser) => {
-        if (googleUser) handleAuthSuccess(googleUser);
-      })
-      .catch((err) => {
-        console.error('Google redirect sign-in failed:', err);
-        // Временная диагностика: показываем точный код ошибки Firebase на экране,
-        // чтобы понять, почему вход через Google не завершается на реальном устройстве.
-        alert('Ошибка входа через Google: ' + (err?.code || err?.message || String(err)));
-      })
-      .finally(() => { redirectChecked = true; });
-
     // Session recovery from storage
     const sessionUser = getCurrentUser();
     if (sessionUser) {
@@ -100,7 +76,6 @@ export default function App() {
     }
 
     return () => unsubscribeAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync collections in real-time if a session is alive
