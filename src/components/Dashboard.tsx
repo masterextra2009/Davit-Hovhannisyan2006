@@ -1133,14 +1133,25 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     const btn = document.querySelector('button[type="submit"]') as HTMLButtonElement;
     if (btn) { btn.disabled = true; btn.textContent = 'Создаём платёж...'; }
 
-    // Создаём платёж в ЮKassa
+    // Создаём платёж в ЮKassa. На нестабильной мобильной сети запрос может
+    // зависнуть без ошибки и без ответа — обрываем его по таймауту, чтобы
+    // кнопка не застревала на "Создаём платёж..." навсегда.
+    const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
+      Promise.race([
+        promise,
+        new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+      ]);
+
     (async () => {
       try {
-        const res = await fetch('https://sever-18.ru/api/payment-create.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId, amount: finalTotalCost, email: user.email }),
-        });
+        const res = await withTimeout(
+          fetch('https://sever-18.ru/api/payment-create.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId, amount: finalTotalCost, email: user.email }),
+          }),
+          15000
+        );
         const data = await res.json();
 
         if (data.paymentUrl && data.paymentId) {
@@ -1148,7 +1159,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           sessionStorage.setItem('pending_order', JSON.stringify(updated));
           // Пишем заказ в базу ДО перехода на оплату — иначе вебхуку ЮKassa
           // после успешной оплаты будет некуда записать статус "оплачено".
-          await setDoc(doc(db, 'orders', orderId), updated);
+          await withTimeout(setDoc(doc(db, 'orders', orderId), updated), 15000);
           onUpdateDatabase({ orders: [{ ...newOrder, transactionId: data.paymentId }, ...database.orders], users: updatedUsers });
           setUploadedFiles([]);
           setNotes('');
@@ -1161,7 +1172,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           window.location.href = data.paymentUrl;
         } else {
           // ЮKassa недоступна — сохраняем заказ и показываем модалку
-          await setDoc(doc(db, 'orders', orderId), pendingOrder);
+          await withTimeout(setDoc(doc(db, 'orders', orderId), pendingOrder), 15000);
           onUpdateDatabase({ orders: [newOrder, ...database.orders], users: updatedUsers });
           setUploadedFiles([]);
           setNotes('');
@@ -1174,7 +1185,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         }
       } catch (err) {
         console.error('Payment error:', err);
-        setUploadError('Ошибка создания платежа. Попробуйте ещё раз.');
+        const isTimeout = err instanceof Error && err.message === 'timeout';
+        setUploadError(
+          isTimeout
+            ? 'Не удалось создать платёж — слишком слабое соединение. Проверьте интернет и попробуйте ещё раз.'
+            : 'Ошибка создания платежа. Попробуйте ещё раз.'
+        );
         if (btn) { btn.disabled = false; btn.textContent = 'Оформить заказ'; }
       }
     })();
