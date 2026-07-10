@@ -1086,8 +1086,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       copies: uploadedFiles[0]?.fileCopies || 1,
       notes: notes.trim(),
       binding: 'none',
-      promoCode: finalPromo || undefined,
-      promoDiscount: finalDiscount
+      ...(finalPromo ? { promoCode: finalPromo, promoDiscount: finalDiscount } : {}),
     };
 
     const isPersonalPromo = user.promoCode && finalPromo === user.promoCode.trim().toUpperCase();
