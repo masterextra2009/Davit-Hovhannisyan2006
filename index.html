@@ -200,22 +200,38 @@
           navigator.serviceWorker.register('/sw.js')
             .then(reg => {
               console.log('ServiceWorker registered with scope: ', reg.scope);
-              // Check for updates periodically
+
+              // Ограничиваем автоперезагрузку не чаще раза в 10 секунд (а не раз
+              // за всю сессию) — иначе на длинной сессии/установленном PWA вторая
+              // реальная обновлённая версия так и не подхватится.
+              const RELOAD_GUARD_KEY = 'sw-last-reload-ts';
+              const applyUpdate = () => {
+                const last = Number(sessionStorage.getItem(RELOAD_GUARD_KEY) || 0);
+                const now = Date.now();
+                if (now - last < 10000) return;
+                sessionStorage.setItem(RELOAD_GUARD_KEY, String(now));
+                console.log('New content available; reloading...');
+                window.location.reload();
+              };
+
               reg.addEventListener('updatefound', () => {
                 const installingWorker = reg.installing;
                 if (installingWorker) {
                   installingWorker.addEventListener('statechange', () => {
                     if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      // iOS Safari fix: reload AT MOST once per session to avoid an
-                      // infinite reload loop that leaves the app stuck on the splash screen.
-                      if (!sessionStorage.getItem('sw-reloaded')) {
-                        sessionStorage.setItem('sw-reloaded', '1');
-                        console.log('New content available; reloading once...');
-                        window.location.reload();
-                      }
+                      applyUpdate();
                     }
                   });
                 }
+              });
+
+              // Браузер сам проверяет обновление sw.js только при полной навигации —
+              // если сайт открыт долго (или установлен как PWA и просто "разбужен"
+              // из фона без перезагрузки), обновление иначе не заметят. Поэтому
+              // дополнительно опрашиваем сами: раз в минуту и при возврате на вкладку.
+              setInterval(() => reg.update().catch(() => {}), 60000);
+              document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') reg.update().catch(() => {});
               });
             })
             .catch(err => console.error('ServiceWorker registration failed: ', err));
