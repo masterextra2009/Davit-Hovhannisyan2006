@@ -85,7 +85,12 @@ export default function App() {
       .then((googleUser) => {
         if (googleUser) handleAuthSuccess(googleUser);
       })
-      .catch((err) => console.error('Google redirect sign-in failed:', err))
+      .catch((err) => {
+        console.error('Google redirect sign-in failed:', err);
+        // Временная диагностика: показываем точный код ошибки Firebase на экране,
+        // чтобы понять, почему вход через Google не завершается на реальном устройстве.
+        alert('Ошибка входа через Google: ' + (err?.code || err?.message || String(err)));
+      })
       .finally(() => { redirectChecked = true; });
 
     // Session recovery from storage

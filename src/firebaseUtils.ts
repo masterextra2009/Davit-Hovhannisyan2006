@@ -252,6 +252,7 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
  * and the opener, so the flow silently fails with no visible error).
  */
 export async function signInWithGoogleFirebase(): Promise<void> {
+  sessionStorage.setItem('google_redirect_pending', '1');
   const provider = new GoogleAuthProvider();
   await signInWithRedirect(auth, provider);
 }
@@ -262,8 +263,19 @@ export async function signInWithGoogleFirebase(): Promise<void> {
  * was no pending redirect result.
  */
 export async function completeGoogleRedirectSignIn(): Promise<User | null> {
+  const wasPending = sessionStorage.getItem('google_redirect_pending') === '1';
+  sessionStorage.removeItem('google_redirect_pending');
+
   const result = await getRedirectResult(auth);
-  if (!result) return null;
+  if (!result) {
+    // Диагностика: если мы точно ждали результат (только что начали редирект),
+    // а getRedirectResult вернул null без ошибки — это и есть "тихий" сброс.
+    if (wasPending) {
+      console.warn('getRedirectResult() returned null after a pending Google redirect.');
+      alert('Вход через Google не завершился (getRedirectResult вернул пусто). Сообщите об этом.');
+    }
+    return null;
+  }
   return upsertGoogleUserProfile(result.user);
 }
 
