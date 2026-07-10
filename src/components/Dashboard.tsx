@@ -24,7 +24,7 @@ import {
   getPaymentStatusLabel, getPaymentStatusColor, printInvoiceHTML,
   getClientTierForUser, isWorkingHours, showBrowserNotification
 } from '../utils';
-import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
+import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
 import { subscribeToPushNotifications } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -223,6 +223,13 @@ interface DashboardProps {
 }
 
 export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDeleteAccount }: DashboardProps) {
+  // Firestore-правила сверяют userId/senderId записей именно с request.auth.uid
+  // текущей сессии — читаем его напрямую из Firebase Auth на момент записи,
+  // а не из React-пропа user.id, на случай если тот успел устареть (например,
+  // после входа через Google без полной перезагрузки страницы) и вызвать
+  // "Missing or insufficient permissions" при создании заказа/сообщения.
+  const getLiveUserId = () => auth.currentUser?.uid || user.id;
+
   // Navigation
   const [activeTab, setActiveTab] = useState<'upload' | 'orders' | 'chat' | 'profile' | 'contacts' | 'services'>('upload');
   const [dismissedRatings, setDismissedRatings] = React.useState<Set<string>>(() => {
@@ -1091,7 +1098,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
     const newOrder: Order = {
       id: orderId,
-      userId: user.id,
+      userId: getLiveUserId(),
       userName: user.fullName,
       userEmail: user.email,
       files: uploadedFiles,
@@ -1342,8 +1349,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
     const newMsg: ChatMessage = {
       id: 'c_' + Date.now(),
-      userId: user.id,
-      senderId: user.id,
+      userId: getLiveUserId(),
+      senderId: getLiveUserId(),
       senderRole: 'client',
       senderName: user.fullName,
       message: chatInput.trim(),
@@ -1373,8 +1380,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     const fullUrl = window.location.origin + sticker.src;
     const newMsg: ChatMessage = {
       id: 'c_sticker_' + Date.now(),
-      userId: user.id,
-      senderId: user.id,
+      userId: getLiveUserId(),
+      senderId: getLiveUserId(),
       senderRole: 'client',
       senderName: user.fullName,
       message: '[STICKER]:' + fullUrl,
@@ -1459,10 +1466,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
 
         {/* Nav Links */}
-        <nav className="flex md:flex-col flex-1 gap-1 md:gap-1 justify-around md:justify-start w-full relative">
+        <nav className="flex md:flex-col flex-1 gap-1 md:gap-1.5 justify-start md:justify-start w-full relative overflow-x-auto overflow-y-hidden scrollbar-hide">
           <button
             onClick={() => setActiveTab('upload')}
-            className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial cursor-pointer ${
+            className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${
               activeTab === 'upload' 
                 ? 'font-black' 
                 : 'hover:text-white'
@@ -1486,7 +1493,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
           <button
             onClick={() => setActiveTab('orders')}
-            className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial cursor-pointer ${
+            className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${
               activeTab === 'orders' 
                 ? 'font-black' 
                 : 'hover:text-white'
@@ -1513,7 +1520,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
           <button
             onClick={() => setActiveTab('chat')}
-            className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial cursor-pointer ${
+            className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${
               activeTab === 'chat' 
                 ? 'font-black' 
                 : 'hover:text-white'
@@ -1542,7 +1549,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
           <button
             onClick={() => { setActiveTab('profile'); handleMarkNotificationsRead(); }}
-            className={`relative flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial cursor-pointer ${
+            className={`relative flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${
               activeTab === 'profile' 
                 ? 'text-white font-black' 
                 : 'text-[#cbd5e1] hover:bg-slate-800/40 hover:text-white'
@@ -1570,7 +1577,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
           <button
             onClick={() => setActiveTab('contacts')}
-            className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial cursor-pointer ${
+            className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${
               activeTab === 'contacts' 
                 ? 'font-black' 
                 : 'hover:text-white'
@@ -1594,7 +1601,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
           <button
             onClick={() => setActiveTab('services')}
-            className={`relative flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial cursor-pointer ${
+            className={`relative flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${
               activeTab === 'services'
                 ? 'text-white font-black'
                 : 'text-[#cbd5e1] hover:bg-slate-800/40 hover:text-white'
@@ -1617,7 +1624,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           {!user.telegramChatId && (
             <button
               onClick={() => setActiveTab('profile')}
-              className="relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-black rounded-2xl transition-transform hover:-translate-y-0.5 active:translate-y-0 justify-center md:justify-start flex-1 md:flex-initial cursor-pointer text-white mt-1 animate-pulse-slow"
+              className="relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-black rounded-2xl transition-transform hover:-translate-y-0.5 active:translate-y-0 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer text-white mt-1 animate-pulse-slow"
               style={{
                 background: 'linear-gradient(135deg, #38bdf8, #0ea5e9 60%, #0284c7)',
                 boxShadow: '0 6px 20px -6px rgba(14,165,233,0.6), inset 0 1px 0 rgba(255,255,255,0.25)',
@@ -1951,12 +1958,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       <span className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">
                         Список к отправке на печать ({uploadedFiles.length})
                       </span>
-                      <button
-                        onClick={() => setUploadedFiles([])}
-                        className="text-xs text-rose-500 hover:text-rose-605 font-bold cursor-pointer"
-                      >
-                        Очистить всё
-                      </button>
                     </div>
 
                     <div className="space-y-3 pr-1">

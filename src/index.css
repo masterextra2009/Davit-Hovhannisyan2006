@@ -1,6 +1,15 @@
 /* Системные шрифты — без Google Fonts */
 @import "tailwindcss";
 
+/* Прячем полосу прокрутки, но сама прокрутка остаётся рабочей (для мобильной панели навигации) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
