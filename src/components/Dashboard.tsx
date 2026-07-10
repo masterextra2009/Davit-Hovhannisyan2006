@@ -181,6 +181,15 @@ async function analyzeColorFill(imageUrl: string): Promise<number> {
 function colorFillPrice(pct: number) { return pct <= 20 ? 25 : pct <= 60 ? 40 : 65; }
 function colorFillLabel(pct: number) { return pct <= 20 ? 'Мелкий цвет' : pct <= 60 ? '~50% заливка' : '100% заливка'; }
 
+// На нестабильной (особенно мобильной) сети запрос может зависнуть без ошибки
+// и без ответа — обрываем его по таймауту, чтобы UI не застревал навсегда.
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ]);
+}
+
 // Черновик незавершённой загрузки — переживает обновление страницы (F5)
 const UPLOAD_DRAFT_KEY = 'print_shop_upload_draft';
 function loadUploadDraft(): PrintFile[] {
@@ -439,11 +448,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       const code = 'u_' + user.id.slice(-6) + '_' + Math.random().toString(36).slice(2, 7);
 
       // Сохраняем код на сервере
-      await fetch('https://www.sever-18.ru/api/telegram_link.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, userId: user.id })
-      });
+      await withTimeout(
+        fetch('https://www.sever-18.ru/api/telegram_link.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, userId: user.id })
+        }),
+        15000
+      );
 
       // Открываем бота с кодом — клиент просто нажмёт Отправить
       window.open(`https://t.me/photosever_bot?start=${code}`, '_blank');
@@ -616,6 +628,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   // Payment popup state
   const [payingOrder, setPayingOrder] = useState<Order | null>(null);
+  const [retryPayingOrderId, setRetryPayingOrderId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'sbp' | 'qr' | 'on_receipt'>('card');
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
@@ -856,11 +869,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       formData.append('file', file);
       formData.append('userId', user.id);
 
-      const response = await fetch('https://sever-18.ru/api/upload.php', {
-        method: 'POST',
-        body: formData,
-        redirect: 'follow'
-      });
+      const response = await withTimeout(
+        fetch('https://sever-18.ru/api/upload.php', {
+          method: 'POST',
+          body: formData,
+          redirect: 'follow'
+        }),
+        60000
+      );
 
       if (!response.ok) {
         throw new Error('Сервер вернул ошибку: ' + response.status);
@@ -874,7 +890,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       patchFileState(fileId, { url: data.url });
     } catch (error: any) {
       console.error('Server upload error for fileId ' + fileId + ':', error);
-      const errMsg = error?.message || String(error) || 'Неизвестная ошибка';
+      const isTimeout = error instanceof Error && error.message === 'timeout';
+      const errMsg = isTimeout
+        ? 'слишком слабое соединение, загрузка не завершилась за минуту'
+        : (error?.message || String(error) || 'Неизвестная ошибка');
       setUploadError(`Ошибка: ${errMsg}`);
       setPendingUploads(prev => prev.filter(f => f.id !== fileId));
       setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
@@ -1133,15 +1152,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     const btn = document.querySelector('button[type="submit"]') as HTMLButtonElement;
     if (btn) { btn.disabled = true; btn.textContent = 'Создаём платёж...'; }
 
-    // Создаём платёж в ЮKassa. На нестабильной мобильной сети запрос может
-    // зависнуть без ошибки и без ответа — обрываем его по таймауту, чтобы
-    // кнопка не застревала на "Создаём платёж..." навсегда.
-    const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
-      Promise.race([
-        promise,
-        new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
-      ]);
-
+    // Создаём платёж в ЮKassa (withTimeout не даёт кнопке зависнуть навсегда
+    // на нестабильной мобильной сети — см. объявление функции выше).
     (async () => {
       try {
         const res = await withTimeout(
@@ -2648,31 +2660,47 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             {/* ЮKassa Pay Button — показываем только если заказ не оплачен */}
                             {ord.paymentStatus === 'unpaid' && (
                               <button
+                                disabled={retryPayingOrderId === ord.id}
                                 onClick={async () => {
+                                  setRetryPayingOrderId(ord.id);
                                   try {
-                                    const res = await fetch('https://sever-18.ru/api/payment-create.php', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        orderId: ord.id,
-                                        amount: ord.totalCost,
-                                        email: user.email,
+                                    const res = await withTimeout(
+                                      fetch('https://sever-18.ru/api/payment-create.php', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          orderId: ord.id,
+                                          amount: ord.totalCost,
+                                          email: user.email,
+                                        }),
                                       }),
-                                    });
+                                      15000
+                                    );
                                     const data = await res.json();
                                     if (data.paymentUrl) {
                                       window.location.href = data.paymentUrl;
                                     } else {
                                       alert('Ошибка создания платежа. Попробуйте ещё раз.');
+                                      setRetryPayingOrderId(null);
                                     }
-                                  } catch {
-                                    alert('Ошибка соединения. Проверьте интернет и попробуйте снова.');
+                                  } catch (err) {
+                                    const isTimeout = err instanceof Error && err.message === 'timeout';
+                                    alert(
+                                      isTimeout
+                                        ? 'Не удалось создать платёж — слишком слабое соединение. Проверьте интернет и попробуйте ещё раз.'
+                                        : 'Ошибка соединения. Проверьте интернет и попробуйте снова.'
+                                    );
+                                    setRetryPayingOrderId(null);
                                   }
                                 }}
-                                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-xs font-black px-4.5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/20 transition"
+                                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-black px-4.5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/20 transition"
                               >
-                                <CreditCard className="w-3.5 h-3.5" />
-                                Оплатить онлайн
+                                {retryPayingOrderId === ord.id ? (
+                                  <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                                ) : (
+                                  <CreditCard className="w-3.5 h-3.5" />
+                                )}
+                                {retryPayingOrderId === ord.id ? 'Создаём платёж...' : 'Оплатить онлайн'}
                               </button>
                             )}
 

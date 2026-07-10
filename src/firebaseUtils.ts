@@ -12,7 +12,6 @@ import {
   updateProfile,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   signInWithCustomToken,
@@ -31,6 +30,15 @@ import {
 } from './firebase';
 import type { User as FirebaseAuthUser } from 'firebase/auth';
 import { User, Order, ChatMessage, Notification, DatabaseState } from './types';
+
+// На нестабильной (особенно мобильной) сети запрос может зависнуть без ошибки
+// и без ответа — обрываем его по таймауту, чтобы UI не застревал навсегда.
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ]);
+}
 
 // Standardized operation type matching rules
 export enum OperationType {
@@ -278,11 +286,14 @@ export interface TelegramAuthData {
  * completes the real Firebase sign-in with it.
  */
 export async function signInWithTelegram(telegramData: TelegramAuthData): Promise<User> {
-  const res = await fetch('https://sever-18.ru/api/telegram-verify.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(telegramData),
-  });
+  const res = await withTimeout(
+    fetch('https://sever-18.ru/api/telegram-verify.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(telegramData),
+    }),
+    15000
+  );
   const data = await res.json();
   if (!res.ok || !data.token) {
     throw new Error(data.error || 'Не удалось подтвердить вход через Telegram');
