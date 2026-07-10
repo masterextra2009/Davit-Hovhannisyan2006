@@ -14,6 +14,7 @@ import { AuthScreen } from './components/AuthScreen';
 import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
 import { LandingPage } from './components/LandingPage';
+import { PaymentReceiptScreen } from './components/PaymentReceiptScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, FileText } from 'lucide-react';
 import { auth, onAuthStateChanged } from './firebase';
@@ -32,6 +33,18 @@ export default function App() {
 
   // Маркетинговая главная страница — показывается гостям до формы входа
   const [showLanding, setShowLanding] = useState(true);
+
+  // Возврат со страницы оплаты ЮKassa (?payment=success&order=ORD-...) —
+  // показываем красивый чек вместо обычного кабинета.
+  const [paymentReturnOrderId, setPaymentReturnOrderId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('payment') === 'success' ? params.get('order') : null;
+  });
+  useEffect(() => {
+    if (paymentReturnOrderId) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [paymentReturnOrderId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -316,7 +329,12 @@ export default function App() {
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="min-h-screen"
           >
-            {!user && showLanding ? (
+            {paymentReturnOrderId ? (
+              <PaymentReceiptScreen
+                orderId={paymentReturnOrderId}
+                onClose={() => setPaymentReturnOrderId(null)}
+              />
+            ) : !user && showLanding ? (
               <LandingPage onEnter={() => setShowLanding(false)} />
             ) : !user ? (
               <AuthScreen

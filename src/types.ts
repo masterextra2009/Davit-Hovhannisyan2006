@@ -40,6 +40,12 @@ export interface PrintFile {
   pageCount?: number;
   url?: string; // File download URL from Firebase Storage
   previewUrl?: string;
+  paperType?: 'plain' | 'thick' | 'photo';
+  format?: 'a4' | 'a3';
+  printColor?: 'bw' | 'color';
+  fileCopies?: number;
+  photoSize?: string;
+  colorFillPercent?: number;
 }
 
 export type OrderStatus = 'pending' | 'approved' | 'printing' | 'ready' | 'printed';
