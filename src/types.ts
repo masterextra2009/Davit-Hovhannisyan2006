@@ -18,6 +18,10 @@ export interface User {
   isOnline?: boolean;
   lastActiveAt?: string;
   pushSubscription?: PushSubscriptionJSON;
+  telegramChatId?: string;
+  telegramUsername?: string;
+  telegramNotificationsEnabled?: boolean;
+  promoExpiresAt?: string;
   promoCode?: string;
   promoDiscount?: number;
   promoGiftedSeen?: boolean;

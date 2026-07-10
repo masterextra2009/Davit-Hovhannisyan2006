@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
 import { Lock, Mail, User as UserIcon, Phone, ArrowRight, ShieldAlert, CheckCircle, Printer } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
-import { signInUserWithFirebase, registerUserWithFirebase, signInWithGoogleFirebase } from '../firebaseUtils';
+import { signInUserWithFirebase, registerUserWithFirebase, signInWithGoogleFirebase, signInWithTelegram, TelegramAuthData } from '../firebaseUtils';
 import { motion } from 'motion/react';
 
 // Яркий голубой градиент фона окна входа (наносится напрямую через inline-style,
@@ -187,14 +187,48 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     }
   };
 
-  // Simulate Social network logins (Telegram — pending real integration)
-  const triggerSocialAuth = async (provider: 'vk' | 'yandex' | 'telegram') => {
+  // Real Telegram sign-in via the official Login Widget
+  const handleTelegramAuth = async (telegramData: TelegramAuthData) => {
+    resetMessages();
+    setSocialLoading('telegram');
+    try {
+      const firebaseUser = await signInWithTelegram(telegramData);
+      setSocialLoading(null);
+      onAuthSuccess(firebaseUser);
+    } catch (err: any) {
+      console.error('Telegram sign-in failed:', err);
+      setErrorMsg('Не удалось войти через Telegram. Попробуйте ещё раз.');
+      setSocialLoading(null);
+    }
+  };
+
+  // Загружаем официальный виджет Telegram Login в контейнер
+  const telegramWidgetRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    (window as any).onTelegramAuthCallback = handleTelegramAuth;
+
+    const container = telegramWidgetRef.current;
+    if (!container || container.childElementCount > 0) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+    script.async = true;
+    script.setAttribute('data-telegram-login', 'photosever_bot');
+    script.setAttribute('data-size', 'medium');
+    script.setAttribute('data-radius', '14');
+    script.setAttribute('data-onauth', 'onTelegramAuthCallback(user)');
+    script.setAttribute('data-request-access', 'write');
+    container.appendChild(script);
+  }, []);
+
+  // Simulate Social network logins (VK/Яндекс — pending real integration)
+  const triggerSocialAuth = async (provider: 'vk' | 'yandex') => {
     resetMessages();
     setSocialLoading(provider);
 
     try {
-      const providerNames = { vk: 'ВКонтакте', yandex: 'Яндекс', telegram: 'Telegram' };
-      const emailPrefix = provider === 'vk' ? 'vk_' : provider === 'yandex' ? 'ya_' : 'tg_';
+      const providerNames = { vk: 'ВКонтакте', yandex: 'Яндекс' };
+      const emailPrefix = provider === 'vk' ? 'vk_' : 'ya_';
       const mockEmail = `${emailPrefix}user_${Math.floor(Math.random() * 9000 + 1000)}@${provider}.ru`;
       
       const names = [
@@ -539,24 +573,12 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => triggerSocialAuth('telegram')}
-                  disabled={!!socialLoading}
-                  className="btn-holo-glass flex justify-center items-center gap-2 py-3 px-3 rounded-2xl text-xs font-bold text-slate-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
-                  title="Telegram Authenticator"
-                >
-                  {socialLoading === 'telegram' ? (
-                    <span className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-blue-600 animate-spin" />
-                  ) : (
-                    <>
-                      <svg className="w-4.5 h-4.5 shrink-0 text-[#24A1DE]" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.65-.35-1 .22-1.6 1.5-1.55 2.75-2.91 3.75-3.95.44-.45.89-.96.44-.96-.45 0-1.18.3-2.18.97-1 .68-1.86 1.25-3.5 2.33-.53.35-.95.53-1.34.52-.42 0-1.22-.23-1.82-.42-.74-.24-1.33-.36-1.28-.77.03-.21.32-.43.88-.67 3.44-1.5 5.74-2.49 6.89-2.98 3.29-1.37 3.98-1.61 4.43-1.62.1 0 .32.02.46.14.12.1.15.24.17.34.02.13.02.43 0 .52z" />
-                      </svg>
-                      <span>Telegram</span>
-                    </>
+                <div className="relative flex justify-center items-center min-h-[42px]">
+                  {socialLoading === 'telegram' && (
+                    <span className="absolute w-4 h-4 rounded-full border-2 border-slate-300 border-t-blue-600 animate-spin" />
                   )}
-                </button>
+                  <div ref={telegramWidgetRef} className={socialLoading === 'telegram' ? 'opacity-0' : ''} />
+                </div>
               </div>
             </div>
 

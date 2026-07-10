@@ -13,6 +13,7 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCustomToken,
   type User as FirebaseUser
 } from 'firebase/auth';
 import { 
@@ -53,6 +54,7 @@ export {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCustomToken,
   doc,
   getDoc,
   setDoc,

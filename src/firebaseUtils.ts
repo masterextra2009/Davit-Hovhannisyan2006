@@ -13,6 +13,7 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCustomToken,
   doc,
   getDoc,
   setDoc,
@@ -227,6 +228,84 @@ export async function signInWithGoogleFirebase(): Promise<User> {
     createdAt: new Date().toISOString(),
     avatarUrl: fbUser.photoURL || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
     isSocial: true,
+  };
+
+  try {
+    await setDoc(userDocRef, newUser);
+  } catch (e) {
+    handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
+  }
+  return newUser;
+}
+
+/**
+ * Данные, которые присылает виджет "Log in with Telegram" в колбэк onauth.
+ */
+export interface TelegramAuthData {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  auth_date: number;
+  hash: string;
+}
+
+/**
+ * Sign in via the Telegram Login Widget: verifies the signed payload on our
+ * server (telegram-verify.php), mints a Firebase custom token there, then
+ * completes the real Firebase sign-in with it.
+ */
+export async function signInWithTelegram(telegramData: TelegramAuthData): Promise<User> {
+  const res = await fetch('https://sever-18.ru/api/telegram-verify.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(telegramData),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.token) {
+    throw new Error(data.error || 'Не удалось подтвердить вход через Telegram');
+  }
+
+  const userCredential = await signInWithCustomToken(auth, data.token);
+  const fbUser = userCredential.user;
+
+  const userDocRef = doc(db, 'users', fbUser.uid);
+  let userDoc;
+  try {
+    userDoc = await getDoc(userDocRef);
+  } catch (e) {
+    handleFirestoreError(e, OperationType.GET, `users/${fbUser.uid}`);
+  }
+
+  const fullName = [data.firstName, data.lastName].filter(Boolean).join(' ').trim() || data.username || 'Пользователь Telegram';
+
+  if (userDoc && userDoc.exists()) {
+    const userData = userDoc.data() as User;
+    userData.telegramChatId = String(telegramData.id);
+    userData.telegramUsername = data.username || userData.telegramUsername;
+    if (data.photoUrl && userData.avatarUrl !== data.photoUrl) {
+      userData.avatarUrl = data.photoUrl;
+    }
+    try {
+      await setDoc(userDocRef, userData, { merge: true });
+    } catch (e) {
+      console.warn('Failed to sync Telegram profile to firestore:', e);
+    }
+    return userData;
+  }
+
+  const newUser: User = {
+    id: fbUser.uid,
+    email: '',
+    fullName,
+    phone: '',
+    role: 'client',
+    createdAt: new Date().toISOString(),
+    avatarUrl: data.photoUrl || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
+    isSocial: true,
+    telegramChatId: String(telegramData.id),
+    telegramUsername: data.username,
   };
 
   try {
