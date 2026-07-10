@@ -558,7 +558,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                   type="button"
                   onClick={handleGoogleAuth}
                   disabled={!!socialLoading}
-                  className="btn-holo-glass flex justify-center items-center gap-2 py-3 px-3 rounded-2xl text-xs font-bold text-slate-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
+                  className="btn-holo-glass flex justify-center items-center gap-2 py-3 px-3 rounded-2xl text-xs font-bold text-slate-700 dark:text-white transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
                   title="Google ID"
                 >
                   {socialLoading === 'google' ? (
