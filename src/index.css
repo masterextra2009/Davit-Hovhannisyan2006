@@ -714,11 +714,83 @@ body {
 .dark .glass-bg-orb {
   mix-blend-mode: screen;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 
+  box-shadow:
     inset 0 10px 20px rgba(255, 255, 255, 0.15),
     inset 0 -10px 20px rgba(0, 0, 0, 0.4),
     0 15px 35px rgba(0, 0, 0, 0.3);
 }
+
+/* ============================================
+   ЭКРАН ВХОДА — плавающие пузырьки на фоне
+   (по мотивам CodePen "css-random-bubbles-background")
+   ============================================ */
+.auth-bubble {
+  position: absolute;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+.auth-bubble-1 { opacity: 0.5; left: 12vw; top: 96vh; width: 40px; height: 40px; transform: scale(1.54); animation: auth-bubble-move-1 30s infinite; }
+.auth-bubble-2 { opacity: 0.4; left: 64vw; top: 61vh; width: 40px; height: 40px; transform: scale(1.11); animation: auth-bubble-move-2 30.5s infinite; }
+.auth-bubble-3 { opacity: 0.2; left: 64vw; top: 32vh; width: 40px; height: 40px; transform: scale(2.02); animation: auth-bubble-move-3 31s infinite; }
+.auth-bubble-4 { opacity: 0.15; left: 17vw; top: 85vh; width: 40px; height: 40px; transform: scale(0.9); animation: auth-bubble-move-4 31.5s infinite; }
+.auth-bubble-5 { opacity: 0.55; left: 15vw; top: 1vh; width: 40px; height: 40px; transform: scale(1.65); animation: auth-bubble-move-5 32s infinite; }
+.auth-bubble-6 { opacity: 0.3; left: 19vw; top: 94vh; width: 40px; height: 40px; transform: scale(1.03); animation: auth-bubble-move-6 32.5s infinite; }
+.auth-bubble-7 { opacity: 0.5; left: 43vw; top: 31vh; width: 40px; height: 40px; transform: scale(1.59); animation: auth-bubble-move-7 33s infinite; }
+.auth-bubble-8 { opacity: 0.45; left: 93vw; top: 46vh; width: 40px; height: 40px; transform: scale(0.86); animation: auth-bubble-move-8 33.5s infinite; }
+.auth-bubble-9 { opacity: 0.25; left: 26vw; top: 60vh; width: 40px; height: 40px; transform: scale(1.41); animation: auth-bubble-move-9 34s infinite; }
+.auth-bubble-10 { opacity: 0.2; left: 72vw; top: 11vh; width: 40px; height: 40px; transform: scale(0.71); animation: auth-bubble-move-10 34.5s infinite; }
+.auth-bubble-11 { opacity: 0.15; left: 59vw; top: 62vh; width: 40px; height: 40px; transform: scale(1.66); animation: auth-bubble-move-11 35s infinite; }
+.auth-bubble-12 { opacity: 0.1; left: 91vw; top: 45vh; width: 40px; height: 40px; transform: scale(0.68); animation: auth-bubble-move-12 35.5s infinite; }
+.auth-bubble-13 { opacity: 0.12; left: 65vw; top: 17vh; width: 40px; height: 40px; transform: scale(1.7); animation: auth-bubble-move-13 36s infinite; }
+.auth-bubble-14 { opacity: 0.15; left: 1vw; top: 21vh; width: 40px; height: 40px; transform: scale(0.65); animation: auth-bubble-move-14 36.5s infinite; }
+.auth-bubble-15 { opacity: 0.35; left: 84vw; top: 43vh; width: 40px; height: 40px; transform: scale(0.69); animation: auth-bubble-move-15 37s infinite; }
+.auth-bubble-16 { opacity: 0.25; left: 37vw; top: 72vh; width: 40px; height: 40px; transform: scale(1.44); animation: auth-bubble-move-16 37.5s infinite; }
+.auth-bubble-17 { opacity: 0.15; left: 52vw; top: 56vh; width: 40px; height: 40px; transform: scale(1.51); animation: auth-bubble-move-17 38s infinite; }
+.auth-bubble-18 { opacity: 0.35; left: 15vw; top: 59vh; width: 40px; height: 40px; transform: scale(1.93); animation: auth-bubble-move-18 38.5s infinite; }
+.auth-bubble-19 { opacity: 0.5; left: 41vw; top: 21vh; width: 40px; height: 40px; transform: scale(1.05); animation: auth-bubble-move-19 39s infinite; }
+.auth-bubble-20 { opacity: 0.3; left: 19vw; top: 57vh; width: 40px; height: 40px; transform: scale(0.74); animation: auth-bubble-move-20 39.5s infinite; }
+.auth-bubble-21 { opacity: 0.3; left: 29vw; top: 95vh; width: 40px; height: 40px; transform: scale(1.99); animation: auth-bubble-move-21 40s infinite; }
+.auth-bubble-22 { opacity: 0.3; left: 78vw; top: 30vh; width: 40px; height: 40px; transform: scale(0.4); animation: auth-bubble-move-22 40.5s infinite; }
+.auth-bubble-23 { opacity: 0.4; left: 32vw; top: 14vh; width: 40px; height: 40px; transform: scale(0.67); animation: auth-bubble-move-23 41s infinite; }
+.auth-bubble-24 { opacity: 0.08; left: 54vw; top: 2vh; width: 40px; height: 40px; transform: scale(1.01); animation: auth-bubble-move-24 41.5s infinite; }
+.auth-bubble-25 { opacity: 0.45; left: 85vw; top: 36vh; width: 40px; height: 40px; transform: scale(1.51); animation: auth-bubble-move-25 42s infinite; }
+.auth-bubble-26 { opacity: 0.28; left: 33vw; top: 32vh; width: 40px; height: 40px; transform: scale(1.48); animation: auth-bubble-move-26 42.5s infinite; }
+.auth-bubble-27 { opacity: 0.42; left: 45vw; top: 91vh; width: 40px; height: 40px; transform: scale(0.4); animation: auth-bubble-move-27 43s infinite; }
+.auth-bubble-28 { opacity: 0.5; left: 94vw; top: 27vh; width: 40px; height: 40px; transform: scale(1.01); animation: auth-bubble-move-28 43.5s infinite; }
+.auth-bubble-29 { opacity: 0.55; left: 69vw; top: 61vh; width: 40px; height: 40px; transform: scale(0.84); animation: auth-bubble-move-29 44s infinite; }
+.auth-bubble-30 { opacity: 0.55; left: 36vw; top: 50vh; width: 40px; height: 40px; transform: scale(0.77); animation: auth-bubble-move-30 44.5s infinite; }
+
+@keyframes auth-bubble-move-1 { 40% { transform: translate(-30vw, -28vh) scale(1.54); } }
+@keyframes auth-bubble-move-2 { 59% { transform: translate(-71vw, -54vh) scale(1.11); } }
+@keyframes auth-bubble-move-3 { 36% { transform: translate(-31vw, -79vh) scale(2.02); } }
+@keyframes auth-bubble-move-4 { 39% { transform: translate(-43vw, -65vh) scale(0.9); } }
+@keyframes auth-bubble-move-5 { 46% { transform: translate(-25vw, -91vh) scale(1.65); } }
+@keyframes auth-bubble-move-6 { 40% { transform: translate(-5vw, -88vh) scale(1.03); } }
+@keyframes auth-bubble-move-7 { 50% { transform: translate(-92vw, -69vh) scale(1.59); } }
+@keyframes auth-bubble-move-8 { 39% { transform: translate(-65vw, -11vh) scale(0.86); } }
+@keyframes auth-bubble-move-9 { 57% { transform: translate(-19vw, -44vh) scale(1.41); } }
+@keyframes auth-bubble-move-10 { 48% { transform: translate(-42vw, -56vh) scale(0.71); } }
+@keyframes auth-bubble-move-11 { 39% { transform: translate(-20vw, -15vh) scale(1.66); } }
+@keyframes auth-bubble-move-12 { 34% { transform: translate(-12vw, -37vh) scale(0.68); } }
+@keyframes auth-bubble-move-13 { 34% { transform: translate(-13vw, -71vh) scale(1.7); } }
+@keyframes auth-bubble-move-14 { 39% { transform: translate(-51vw, -83vh) scale(0.65); } }
+@keyframes auth-bubble-move-15 { 48% { transform: translate(-94vw, -56vh) scale(0.69); } }
+@keyframes auth-bubble-move-16 { 60% { transform: translate(-2vw, -83vh) scale(1.44); } }
+@keyframes auth-bubble-move-17 { 34% { transform: translate(-26vw, -99vh) scale(1.51); } }
+@keyframes auth-bubble-move-18 { 33% { transform: translate(-16vw, -21vh) scale(1.93); } }
+@keyframes auth-bubble-move-19 { 38% { transform: translate(-57vw, -80vh) scale(1.05); } }
+@keyframes auth-bubble-move-20 { 34% { transform: translate(-99vw, -18vh) scale(0.74); } }
+@keyframes auth-bubble-move-21 { 53% { transform: translate(-25vw, -13vh) scale(1.99); } }
+@keyframes auth-bubble-move-22 { 35% { transform: translate(-3vw, -8vh) scale(0.13); } }
+@keyframes auth-bubble-move-23 { 41% { transform: translate(-80vw, 0vh) scale(0.67); } }
+@keyframes auth-bubble-move-24 { 59% { transform: translate(-61vw, -47vh) scale(1.01); } }
+@keyframes auth-bubble-move-25 { 55% { transform: translate(-76vw, -20vh) scale(1.51); } }
+@keyframes auth-bubble-move-26 { 45% { transform: translate(-54vw, 0vh) scale(1.48); } }
+@keyframes auth-bubble-move-27 { 38% { transform: translate(-11vw, -38vh) scale(0.4); } }
+@keyframes auth-bubble-move-28 { 50% { transform: translate(-41vw, -94vh) scale(1.01); } }
+@keyframes auth-bubble-move-29 { 31% { transform: translate(-90vw, -84vh) scale(0.84); } }
+@keyframes auth-bubble-move-30 { 41% { transform: translate(-38vw, 0vh) scale(0.77); } }
 
 /* Highly immersive, neutral clear glass card (no color tint) */
 .glass-cozy-card {

@@ -238,11 +238,12 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
       />
       <div className="absolute inset-0 z-0" style={{ background: 'rgba(5, 8, 20, 0.62)' }} />
 
-      {/* Floating 3D Frosted Glass Orbs mirroring the uploaded design */}
-      <div className="glass-bg-orb w-[180px] h-[180px] top-[12%] left-[6%] opacity-70 animate-[float-slow_16s_infinite_ease-in-out]" style={{ backdropFilter: 'blur(12px) saturate(110%)' }} />
-      <div className="glass-bg-orb w-[220px] h-[220px] bottom-[18%] right-[4%] opacity-85 animate-[float-reverse_20s_infinite_ease-in-out]" style={{ backdropFilter: 'blur(16px) saturate(120%)' }} />
-      <div className="glass-bg-orb w-[120px] h-[120px] top-[62%] left-[4%] opacity-60 animate-[float-slow_24s_infinite_ease-in-out]" style={{ backdropFilter: 'blur(10px) saturate(100%)' }} />
-      <div className="glass-bg-orb w-[90px] h-[90px] top-[28%] right-[18%] opacity-50 animate-[float-reverse_18s_infinite_ease-in-out]" style={{ backdropFilter: 'blur(8px) saturate(100%)' }} />
+      {/* Плавающие пузырьки на фоне (по референсу клиента) */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
+          <div key={n} className={`auth-bubble auth-bubble-${n}`} />
+        ))}
+      </div>
 
       {/* Theme toggle, floating top-right corner */}
       <div className="absolute top-5 right-5 z-30">
