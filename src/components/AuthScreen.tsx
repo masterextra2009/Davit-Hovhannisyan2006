@@ -13,22 +13,24 @@ import { motion } from 'motion/react';
 // Яркий голубой градиент фона окна входа (наносится напрямую через inline-style,
 // чтобы гарантированно отображаться независимо от порядка загрузки CSS-файлов)
 const AUTH_BG_LIGHT = {
-  backgroundColor: '#1d4ed8',
+  backgroundColor: '#4c1d95',
   backgroundImage:
-    'radial-gradient(circle at 12% 6%, #fef3c7 0%, transparent 36%),' +
-    'radial-gradient(circle at 90% 10%, #bae6fd 0%, transparent 42%),' +
-    'radial-gradient(circle at 15% 60%, #38bdf8 0%, transparent 45%),' +
-    'radial-gradient(circle at 50% 100%, #1e40af 0%, #1e3a8a 55%, #0b1530 100%)',
+    'radial-gradient(circle at 14% 10%, #fda4af 0%, transparent 40%),' +
+    'radial-gradient(circle at 88% 14%, #7dd3fc 0%, transparent 46%),' +
+    'radial-gradient(circle at 18% 86%, #c4b5fd 0%, transparent 48%),' +
+    'radial-gradient(circle at 84% 92%, #67e8f9 0%, transparent 42%),' +
+    'linear-gradient(160deg, #6d28d9 0%, #1e3a8a 60%, #0b1530 100%)',
   backgroundAttachment: 'fixed' as const,
 };
 
 const AUTH_BG_DARK = {
   backgroundColor: '#0b1530',
   backgroundImage:
-    'radial-gradient(circle at 12% 6%, #1e3a5f 0%, transparent 40%),' +
-    'radial-gradient(circle at 90% 10%, #0c4a6e 0%, transparent 42%),' +
-    'radial-gradient(circle at 15% 60%, #1d4ed8 0%, transparent 45%),' +
-    'radial-gradient(circle at 50% 100%, #172554 0%, #0b1530 55%, #020617 100%)',
+    'radial-gradient(circle at 15% 8%, rgba(196,132,252,0.55) 0%, transparent 42%),' +
+    'radial-gradient(circle at 88% 12%, rgba(56,189,248,0.5) 0%, transparent 46%),' +
+    'radial-gradient(circle at 18% 88%, rgba(129,140,248,0.55) 0%, transparent 48%),' +
+    'radial-gradient(circle at 85% 92%, rgba(244,114,182,0.45) 0%, transparent 45%),' +
+    'linear-gradient(160deg, #1e1033 0%, #0b1530 55%, #020617 100%)',
   backgroundAttachment: 'fixed' as const,
 };
 
@@ -261,16 +263,8 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
   return (
     <div id="auth-screen-root" className="min-h-screen flex flex-col justify-center items-center py-14 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden select-none" style={isDark ? AUTH_BG_DARK : AUTH_BG_LIGHT}>
 
-      {/* Фоновое видео + затемнение поверх, чтобы текст и шрифты не терялись */}
-      <video
-        src="/auth-bg.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="absolute inset-0 w-full h-full object-cover z-0"
-      />
-      <div className="absolute inset-0 z-0" style={{ background: 'rgba(5, 8, 20, 0.62)' }} />
+      {/* Мягкое затемнение поверх градиентного фона, чтобы текст и карточка не терялись */}
+      <div className="absolute inset-0 z-0" style={{ background: 'radial-gradient(circle at 50% 40%, rgba(5,8,20,0.15) 0%, rgba(5,8,20,0.55) 100%)' }} />
 
       {/* Плавающие пузырьки на фоне (по референсу клиента) */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -320,15 +314,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
         <div className="glass-cozy-card w-full pt-16 pb-8 px-6 sm:px-9 rounded-[36px] shadow-2xl text-center relative">
 
           <h1 className="text-base font-black text-slate-900 dark:text-white leading-none font-display uppercase tracking-tight">Фото-Север</h1>
-          <p className="mt-1.5 text-[11px] italic text-slate-500 dark:text-slate-300 font-medium">«Печать фотографий, документов и чертежей за минуты»</p>
-
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/25 dark:bg-white/8 border border-white/40 dark:border-white/15 text-[9px] text-slate-700 dark:text-slate-200 font-black uppercase tracking-wider mt-3 mb-5 backdrop-blur-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-            </span>
-            <Printer className="w-3 h-3" />
-            Принимаем заказы онлайн
-          </div>
+          <p className="mt-1.5 mb-5 text-[11px] italic text-slate-500 dark:text-slate-300 font-medium">«Печать фотографий, документов и чертежей за минуты»</p>
 
           <div className="text-left">
             <h2 className="mb-6 text-xl font-black text-slate-900 dark:text-white leading-snug font-display tracking-tight text-center">
@@ -558,26 +544,45 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                   type="button"
                   onClick={handleGoogleAuth}
                   disabled={!!socialLoading}
-                  className="btn-holo-glass flex justify-center items-center gap-2 py-3 px-3 rounded-2xl text-xs font-bold text-slate-700 dark:text-white transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
+                  className="btn-holo-glass flex justify-center items-center gap-2 py-3 px-3 rounded-full text-xs font-bold text-slate-900 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
                   title="Google ID"
                 >
                   {socialLoading === 'google' ? (
                     <span className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-blue-600 animate-spin" />
                   ) : (
                     <>
-                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.555 0-6.445-2.89-6.445-6.445s2.89-6.445 6.445-6.445c1.583 0 3.023.574 4.143 1.517l3.153-3.153C18.813 1.83 15.71 1 12.24 1 6.136 1 1.136 6 1.136 12.115 1.136 18.23 6.136 23.23 12.24 23.23c5.96 0 11.23-4.28 11.23-11.23 0-.61-.06-1.12-.17-1.715H12.24z"/>
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/>
+                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.3v3.09C3.27 21.3 7.31 24 12 24z"/>
+                        <path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.3A11.96 11.96 0 000 12c0 1.93.46 3.76 1.3 5.38l3.97-3.09z"/>
+                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.94 1.19 15.24 0 12 0 7.31 0 3.27 2.7 1.3 6.62l3.97 3.09C6.22 6.86 8.87 4.75 12 4.75z"/>
                       </svg>
                       <span>Google</span>
                     </>
                   )}
                 </button>
 
-                <div className="relative flex justify-center items-center min-h-[42px]">
-                  {socialLoading === 'telegram' && (
-                    <span className="absolute w-4 h-4 rounded-full border-2 border-slate-300 border-t-blue-600 animate-spin" />
-                  )}
-                  <div ref={telegramWidgetRef} className={socialLoading === 'telegram' ? 'opacity-0' : ''} />
+                <div className="relative flex justify-center items-center min-h-[42px] rounded-full overflow-hidden">
+                  {/* Видимая кнопка в стиле "Войти в кабинет" — только оформление, клики сквозь неё не ловим */}
+                  <div className="btn-holo-glass absolute inset-0 flex justify-center items-center gap-2 py-3 px-3 rounded-full text-xs font-bold text-slate-900 pointer-events-none">
+                    {socialLoading === 'telegram' ? (
+                      <span className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-blue-600 animate-spin" />
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 240 240">
+                          <circle cx="120" cy="120" r="120" fill="#229ED9"/>
+                          <path fill="#fff" d="M167.5 76.5c1.9-8-2.7-11.4-8.4-9.3L54.6 108.9c-7.7 3-7.6 7.5-1.4 9.4l26.8 8.4 62.1-39.2c2.9-1.9 5.6-.8 3.4 1.3l-50.3 45.4h-.1l1.8 28.7c2.6 0 3.8-1.2 5.3-2.6l12.7-12.3 26.4 19.4c4.9 2.7 8.4 1.3 9.6-4.5l17.5-85.4Z"/>
+                        </svg>
+                        <span>Telegram</span>
+                      </>
+                    )}
+                  </div>
+                  {/* Настоящий виджет Telegram — растянут поверх невидимо, ловит клик по-настоящему */}
+                  <div
+                    id="telegram-login-slot"
+                    ref={telegramWidgetRef}
+                    className="absolute inset-0 opacity-0"
+                  />
                 </div>
               </div>
             </div>

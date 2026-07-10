@@ -13,7 +13,6 @@ import {
 import { AuthScreen } from './components/AuthScreen';
 import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
-import { OnboardingScreen } from './components/OnboardingScreen';
 import { LandingPage } from './components/LandingPage';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, FileText } from 'lucide-react';
@@ -30,11 +29,6 @@ import {
 export default function App() {
   // Premium splash state for high-end feel
   const [showSplash, setShowSplash] = useState(true);
-
-  // Onboarding — показываем только новым пользователям (один раз)
-  const [showOnboarding, setShowOnboarding] = useState(
-    () => !localStorage.getItem('sever18_onboarded')
-  );
 
   // Маркетинговая главная страница — показывается гостям до формы входа
   const [showLanding, setShowLanding] = useState(true);
@@ -324,8 +318,6 @@ export default function App() {
           >
             {!user && showLanding ? (
               <LandingPage onEnter={() => setShowLanding(false)} />
-            ) : !user && showOnboarding ? (
-              <OnboardingScreen onDone={() => setShowOnboarding(false)} />
             ) : !user ? (
               <AuthScreen
                 onAuthSuccess={handleAuthSuccess}
