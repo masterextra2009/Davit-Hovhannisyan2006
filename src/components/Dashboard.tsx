@@ -465,8 +465,37 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   }, [uploadedFiles]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [fillPricePopup, setFillPricePopup] = useState<{ fileName: string; pct: number; price: number } | null>(null);
+  // Новые файлы сначала попадают сюда — "Настройте параметры печати" открывается
+  // для каждого по очереди, и только после подтверждения файл переезжает в uploadedFiles
+  const [pendingUploads, setPendingUploads] = useState<PrintFile[]>([]);
+  const [activeConfigFileId, setActiveConfigFileId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Патчим файл там, где он сейчас лежит — в pendingUploads или уже в uploadedFiles
+  const patchFileState = (fileId: string, updates: Partial<PrintFile>) => {
+    setPendingUploads(prev => prev.map(f => (f.id === fileId ? { ...f, ...updates } : f)));
+    setUploadedFiles(prev => prev.map(f => (f.id === fileId ? { ...f, ...updates } : f)));
+  };
+
+  // Когда закрывается окно настройки одного файла — открываем следующий из очереди
+  useEffect(() => {
+    if (activeConfigFileId === null && pendingUploads.length > 0) {
+      setActiveConfigFileId(pendingUploads[0].id);
+    }
+  }, [activeConfigFileId, pendingUploads]);
+
+  const confirmFileConfig = (fileId: string) => {
+    const file = pendingUploads.find(f => f.id === fileId);
+    if (!file) return;
+    setPendingUploads(prev => prev.filter(f => f.id !== fileId));
+    setUploadedFiles(prev => [...prev, file]);
+    setActiveConfigFileId(null);
+  };
+
+  const cancelFileConfig = (fileId: string) => {
+    setPendingUploads(prev => prev.filter(f => f.id !== fileId));
+    setActiveConfigFileId(null);
+  };
 
   // Print properties state
   const [paperType, setPaperType] = useState<'standard' | 'glossy' | 'matte' | 'kraft' | 'standard_a3' | 'bw_a3'>('standard');
@@ -842,11 +871,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         throw new Error(data.error || 'Не удалось загрузить файл');
       }
 
-      setUploadedFiles(prev => prev.map(f => f.id === fileId ? { ...f, url: data.url } : f));
+      patchFileState(fileId, { url: data.url });
     } catch (error: any) {
       console.error('Server upload error for fileId ' + fileId + ':', error);
       const errMsg = error?.message || String(error) || 'Неизвестная ошибка';
       setUploadError(`Ошибка: ${errMsg}`);
+      setPendingUploads(prev => prev.filter(f => f.id !== fileId));
       setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
     }
   };
@@ -886,15 +916,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
       if (isPdf) {
         countPdfPages(file).then(pages => {
-          setUploadedFiles(prev => prev.map(f => f.id === fileId ? { ...f, pageCount: pages } : f));
+          patchFileState(fileId, { pageCount: pages });
         });
       }
 
       // Auto-detect color fill % for images and PDFs (using preview)
       if (previewUrl) {
         analyzeColorFill(previewUrl).then(pct => {
-          setUploadedFiles(prev => prev.map(f => f.id === fileId ? { ...f, colorFillPercent: pct } : f));
-          setFillPricePopup({ fileName: file.name, pct, price: colorFillPrice(pct) });
+          patchFileState(fileId, { colorFillPercent: pct });
         });
       }
 
@@ -902,7 +931,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       uploadFileToFirebaseStorage(file, fileId);
     }
 
-    setUploadedFiles(prev => [...prev, ...newFiles]);
+    setPendingUploads(prev => [...prev, ...newFiles]);
 
     // Create system notification for uploaded file
     const newNotif: Notification = {
@@ -3870,48 +3899,209 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
       )}
 
-      {/* Модалка с результатом автоопределения заливки чернил */}
-      {fillPricePopup && (
-        <div
-          className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => setFillPricePopup(null)}
-        >
-          <div
-            className="glass-window w-full max-w-sm overflow-hidden text-center p-7"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img src={printerInkIcon} alt="" className="w-16 h-16 mx-auto mb-3" />
-            <h3 className="text-lg font-black text-slate-800 dark:text-white">
-              Мы посчитали заливку чернил!
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 truncate">
-              {fillPricePopup.fileName}
-            </p>
+      {/* Модалка "Настройте параметры печати" — открывается автоматически после каждой загрузки */}
+      {activeConfigFileId && (() => {
+        const file = pendingUploads.find(f => f.id === activeConfigFileId);
+        if (!file) return null;
 
-            <div className="mt-5 rounded-2xl bg-black/5 dark:bg-white/5 p-4">
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                У вас <strong className="text-slate-800 dark:text-white">{fillPricePopup.pct}% заливка</strong> чернил на странице
-              </p>
-              <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-                Стоимость печати составит
-              </p>
-              <p className="text-4xl font-black text-indigo-500 dark:text-indigo-400 mt-1">
-                {fillPricePopup.price} ₽
-              </p>
-              <p className="text-[11px] text-slate-400 mt-2">
-                Наши цены за цветную страницу — от 25 до 65 ₽, в зависимости от того, сколько чернил уходит на печать
-              </p>
+        const isPhoto = file.paperType === 'photo';
+        const isA3 = file.format === 'a3';
+        const pages = file.pageCount || 1;
+        const copies = file.fileCopies || 1;
+        const fillPct = file.colorFillPercent;
+        const fillReady = fillPct !== undefined;
+        const bwPrice = isA3 ? 100 : 20;
+        const colorPrice = isA3 ? 150 : (fillReady ? colorFillPrice(fillPct) : undefined);
+
+        const photoSizes = [
+          { key: '10x15', label: '10×15', price: 20 },
+          { key: 'polaroid', label: 'Полароид', price: 30 },
+          { key: '13x18', label: '13×18', price: 50 },
+          { key: '15x21', label: '15×21', price: 70 },
+          { key: '20x30', label: '20×30', price: 100 },
+          { key: '30x40', label: '30×40', price: 250 },
+        ] as const;
+        const selSize = photoSizes.find(s => s.key === (file.photoSize || '10x15')) || photoSizes[0];
+
+        const filePP = isPhoto ? selSize.price : ((file.printColor || 'bw') === 'bw' ? bwPrice : (colorPrice ?? 0));
+        const fileCost = filePP * (isPhoto ? 1 : pages) * copies;
+        const canConfirm = !isPhoto || !!file.photoSize;
+
+        const patch = (updates: Partial<PrintFile>) => patchFileState(file.id, updates);
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+            <div className="glass-window w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex items-center gap-3 bg-slate-50/50 dark:bg-slate-950/30 shrink-0">
+                <img src={printerInkIcon} alt="" className="w-10 h-10 shrink-0" />
+                <div className="overflow-hidden">
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white">Настройте параметры печати</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{file.name}</p>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 space-y-4 overflow-y-auto">
+                {/* Цветность с ценами прямо на кнопках */}
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Цветность</p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      disabled={isPhoto}
+                      onClick={() => patch({ printColor: 'bw' })}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${isPhoto ? 'opacity-30 cursor-not-allowed' : ''} ${
+                        (file.printColor || 'bw') === 'bw' && !isPhoto
+                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
+                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
+                      }`}
+                    >
+                      <div className="text-lg">⚪</div>
+                      <div className="text-xs font-black text-slate-800 dark:text-white mt-0.5">Ч/Б</div>
+                      <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{bwPrice} ₽/стр.</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => patch({ printColor: 'color' })}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        (file.printColor || 'bw') === 'color' || isPhoto
+                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
+                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
+                      }`}
+                    >
+                      <div className="text-lg">🔵</div>
+                      <div className="text-xs font-black text-slate-800 dark:text-white mt-0.5">Цвет</div>
+                      <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                        {isPhoto ? `от ${photoSizes[0].price} ₽` : (colorPrice !== undefined ? `${colorPrice} ₽/стр.` : 'считаем...')}
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Сообщение про заливку чернил */}
+                {!isPhoto && (file.printColor || 'bw') === 'color' && (
+                  <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 p-3.5">
+                    {fillReady ? (
+                      <p className="text-xs text-amber-800 dark:text-amber-300">
+                        🎨 Обнаружена <b>{colorFillLabel(fillPct)}</b> ({fillPct}% чернил на странице) — поэтому цена {colorPrice} ₽/стр. Наши цены за цветную страницу — от 25 до 65 ₽, в зависимости от того, сколько чернил уходит на печать.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" /> Анализируем заливку чернил на странице...
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Бумага */}
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Бумага</p>
+                  <div className="flex gap-2">
+                    {(['plain', 'photo'] as const).map(v => (
+                      <button key={v} type="button"
+                        onClick={() => patch({
+                          paperType: v,
+                          photoSize: v === 'photo' ? (file.photoSize || '10x15') : undefined,
+                          printColor: v === 'photo' ? 'color' : file.printColor,
+                        })}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                          (file.paperType || 'plain') === v
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300'
+                            : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        {v === 'plain' ? 'Обычная' : 'Фото 🖼'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Формат */}
+                {!isPhoto && (
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Формат</p>
+                    <div className="flex gap-2">
+                      {(['a4', 'a3'] as const).map(v => (
+                        <button key={v} type="button" onClick={() => patch({ format: v })}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                            (file.format || 'a4') === v
+                              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300'
+                              : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                          }`}
+                        >
+                          {v.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Размер фото — обязателен для фотобумаги */}
+                {isPhoto && (
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Размер фотографии</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {photoSizes.map(s => (
+                        <button key={s.key} type="button" onClick={() => patch({ photoSize: s.key })}
+                          className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                            (file.photoSize || '10x15') === s.key
+                              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30'
+                              : 'border-slate-200 dark:border-slate-800'
+                          }`}
+                        >
+                          <div className="text-[11px] font-black text-slate-800 dark:text-white">{s.label}</div>
+                          <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{s.price} ₽</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Копии */}
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Копий</p>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => patch({ fileCopies: Math.max(1, copies - 1) })}
+                      className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">−</button>
+                    <span className="text-sm font-black text-slate-800 dark:text-white min-w-[20px] text-center">{copies}</span>
+                    <button type="button" onClick={() => patch({ fileCopies: copies + 1 })}
+                      className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">+</button>
+                  </div>
+                </div>
+
+                {/* Итог */}
+                <div className="flex items-center justify-between pt-3 border-t border-slate-150 dark:border-slate-800">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {isPhoto ? `${selSize.label} × ${copies} шт.` : `${pages} стр. × ${filePP} ₽ × ${copies} шт.`}
+                  </span>
+                  <strong className="text-xl font-black text-slate-800 dark:text-white">{fileCost} ₽</strong>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 space-y-2.5 shrink-0">
+                <button
+                  type="button"
+                  disabled={!canConfirm}
+                  onClick={() => confirmFileConfig(file.id)}
+                  className="w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                  style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 8px 24px -6px rgba(99,102,241,0.5)' }}
+                >
+                  Выбрать →
+                </button>
+                <button
+                  type="button"
+                  onClick={() => cancelFileConfig(file.id)}
+                  className="w-full py-2 text-xs font-bold text-rose-500 hover:text-rose-600 cursor-pointer"
+                >
+                  Убрать файл
+                </button>
+              </div>
             </div>
-
-            <button
-              onClick={() => setFillPricePopup(null)}
-              className="mt-5 w-full px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-colors cursor-pointer shadow-sm"
-            >
-              Понятно
-            </button>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* --- PREMIUM HIGH-FIDELITY INTERACTIVE 3D MOCKUP INSPECTOR MODAL --- */}
       {show3DMockupModal && (
