@@ -13,6 +13,8 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithCustomToken,
   doc,
   getDoc,
@@ -27,6 +29,7 @@ import {
   deleteDoc,
   increment
 } from './firebase';
+import type { User as FirebaseAuthUser } from 'firebase/auth';
 import { User, Order, ChatMessage, Notification, DatabaseState } from './types';
 
 // Standardized operation type matching rules
@@ -183,13 +186,9 @@ export async function signInUserWithFirebase(email: string, password: string): P
 }
 
 /**
- * Sign in a user via a real Google account (Firebase GoogleAuthProvider popup)
+ * Создаёт/обновляет профиль в Firestore на основе Google-аккаунта Firebase.
  */
-export async function signInWithGoogleFirebase(): Promise<User> {
-  const provider = new GoogleAuthProvider();
-  const userCredential = await signInWithPopup(auth, provider);
-  const fbUser = userCredential.user;
-
+async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> {
   const userDocRef = doc(db, 'users', fbUser.uid);
   let userDoc;
   try {
@@ -236,6 +235,28 @@ export async function signInWithGoogleFirebase(): Promise<User> {
     handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
   }
   return newUser;
+}
+
+/**
+ * Sign in a user via a real Google account.
+ * Uses a full-page redirect rather than a popup — Firebase Auth popups are
+ * unreliable on iOS Safari/WebKit (storage is partitioned between the popup
+ * and the opener, so the flow silently fails with no visible error).
+ */
+export async function signInWithGoogleFirebase(): Promise<void> {
+  const provider = new GoogleAuthProvider();
+  await signInWithRedirect(auth, provider);
+}
+
+/**
+ * Call once on app startup to complete a Google sign-in after the user was
+ * redirected back from Google. Returns the signed-in User, or null if there
+ * was no pending redirect result.
+ */
+export async function completeGoogleRedirectSignIn(): Promise<User | null> {
+  const result = await getRedirectResult(auth);
+  if (!result) return null;
+  return upsertGoogleUserProfile(result.user);
 }
 
 /**

@@ -17,13 +17,14 @@ import { LandingPage } from './components/LandingPage';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, FileText } from 'lucide-react';
 import { auth, onAuthStateChanged } from './firebase';
-import { 
-  subscribeToFirebaseCollections, 
-  seedInitialDataIfRequired, 
-  syncLocalUpdatesToFirebase, 
+import {
+  subscribeToFirebaseCollections,
+  seedInitialDataIfRequired,
+  syncLocalUpdatesToFirebase,
   deleteUserAccountWithFirebase,
   signOutUserWithFirebase,
-  trackSiteVisit
+  trackSiteVisit,
+  completeGoogleRedirectSignIn
 } from './firebaseUtils';
 
 export default function App() {
@@ -76,6 +77,18 @@ export default function App() {
     }
 
     return () => unsubscribeAuth();
+  }, []);
+
+  // Завершаем вход через Google, если страница только что вернулась после
+  // редиректа на accounts.google.com (см. AuthScreen — вход идёт через
+  // signInWithRedirect, а не всплывающее окно, ради надёжности на iOS Safari).
+  useEffect(() => {
+    completeGoogleRedirectSignIn()
+      .then((googleUser) => {
+        if (googleUser) handleAuthSuccess(googleUser);
+      })
+      .catch((err) => console.error('Google redirect sign-in failed:', err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync collections in real-time if a session is alive

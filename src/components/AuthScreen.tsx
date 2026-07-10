@@ -168,22 +168,18 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     setSuccessMsg('Инструкции по восстановлению пароля успешно отправлены на ваш Email.');
   };
 
-  // Real Google sign-in via Firebase
+  // Real Google sign-in via Firebase — full-page redirect (not a popup, which
+  // silently fails on iOS Safari/WebKit due to storage partitioning). The page
+  // navigates to Google and back; App.tsx picks up the result on return.
   const handleGoogleAuth = async () => {
     resetMessages();
     setSocialLoading('google');
     try {
-      const firebaseUser = await signInWithGoogleFirebase();
-      setSocialLoading(null);
-      onAuthSuccess(firebaseUser);
+      await signInWithGoogleFirebase();
+      // Page is navigating away to Google now — nothing more to do here.
     } catch (err: any) {
       console.error('Google sign-in failed:', err);
-      let msg = 'Не удалось войти через Google. Попробуйте ещё раз.';
-      if (err.code === 'auth/popup-closed-by-user') {
-        msg = '';
-      } else if (err.code === 'auth/popup-blocked') {
-        msg = 'Браузер заблокировал всплывающее окно входа. Разрешите всплывающие окна для этого сайта и попробуйте снова.';
-      }
+      const msg = 'Не удалось войти через Google. Попробуйте ещё раз.';
       if (msg) setErrorMsg(msg);
       setSocialLoading(null);
     }
