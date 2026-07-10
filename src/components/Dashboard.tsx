@@ -1586,6 +1586,23 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <span className="hidden sm:inline z-10">Услуги</span>
           </button>
 
+          {/* Заметная кнопка подключения Telegram-уведомлений — скрывается, когда уже подключено */}
+          {!user.telegramChatId && (
+            <button
+              onClick={() => setActiveTab('profile')}
+              className="relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-black rounded-2xl transition-transform hover:-translate-y-0.5 active:translate-y-0 justify-center md:justify-start flex-1 md:flex-initial cursor-pointer text-white mt-1 animate-pulse-slow"
+              style={{
+                background: 'linear-gradient(135deg, #38bdf8, #0ea5e9 60%, #0284c7)',
+                boxShadow: '0 6px 20px -6px rgba(14,165,233,0.6), inset 0 1px 0 rgba(255,255,255,0.25)',
+              }}
+              title="Подключить уведомления в Telegram о статусе заказа"
+            >
+              <div className="glass-icon-capsule shrink-0" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                <Send className="w-4.5 h-4.5 text-white icon-3d-svg" />
+              </div>
+              <span className="hidden sm:inline z-10">Уведомления в Telegram</span>
+            </button>
+          )}
 
         </nav>
 
@@ -3836,41 +3853,43 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
               {/* Body */}
               <div className="p-5 space-y-4 overflow-y-auto">
-                {/* Цветность с ценами прямо на кнопках */}
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Цветность</p>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <button
-                      type="button"
-                      disabled={isPhoto}
-                      onClick={() => patch({ printColor: 'bw', paperType: isThick ? 'plain' : file.paperType })}
-                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${isPhoto ? 'opacity-30 cursor-not-allowed' : ''} ${
-                        (file.printColor || 'bw') === 'bw' && !isPhoto && !isThick
-                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
-                      }`}
-                    >
-                      <div className="text-lg">⚪</div>
-                      <div className="text-xs font-black text-slate-800 dark:text-white mt-0.5">Ч/Б</div>
-                      <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{bwPrice} ₽/стр.</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => patch({ printColor: 'color', paperType: isThick ? 'plain' : file.paperType })}
-                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                        ((file.printColor || 'bw') === 'color' || isPhoto) && !isThick
-                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
-                      }`}
-                    >
-                      <div className="text-lg">🔵</div>
-                      <div className="text-xs font-black text-slate-800 dark:text-white mt-0.5">Цвет</div>
-                      <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                        {isPhoto ? `от ${photoSizes[0].price} ₽` : (colorPrice !== undefined ? `${colorPrice} ₽/стр.` : 'считаем...')}
-                      </div>
-                    </button>
+                {/* Цветность с ценами прямо на кнопках — для А4. Для А3 своя объединённая группа ниже, после выбора формата */}
+                {!isA3 && (
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Цветность</p>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        disabled={isPhoto}
+                        onClick={() => patch({ printColor: 'bw' })}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${isPhoto ? 'opacity-30 cursor-not-allowed' : ''} ${
+                          (file.printColor || 'bw') === 'bw' && !isPhoto
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
+                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
+                        }`}
+                      >
+                        <div className="text-lg">⚪</div>
+                        <div className="text-xs font-black text-slate-800 dark:text-white mt-0.5">Ч/Б</div>
+                        <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{bwPrice} ₽/стр.</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => patch({ printColor: 'color' })}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                          (file.printColor || 'bw') === 'color' || isPhoto
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
+                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
+                        }`}
+                      >
+                        <div className="text-lg">🔵</div>
+                        <div className="text-xs font-black text-slate-800 dark:text-white mt-0.5">Цвет</div>
+                        <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                          {isPhoto ? `от ${photoSizes[0].price} ₽` : (colorPrice !== undefined ? `${colorPrice} ₽/стр.` : 'считаем...')}
+                        </div>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Сообщение про заливку чернил — для А3 не показываем, там фиксированные цены без учёта заливки */}
                 {!isPhoto && !isA3 && (file.printColor || 'bw') === 'color' && (
@@ -3930,19 +3949,49 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </div>
                 )}
 
-                {/* Плотная бумага — отдельная фиксированная цена, только для А3 */}
+                {/* А3 — единая группа: три фиксированные цены, заливка тут не учитывается */}
                 {!isPhoto && isA3 && (
-                  <button type="button"
-                    onClick={() => patch({ paperType: isThick ? 'plain' : 'thick', printColor: 'color' })}
-                    className={`w-full p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${
-                      isThick
-                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
-                    }`}
-                  >
-                    <span className="text-xs font-black text-slate-800 dark:text-white">📦 Плотная бумага (фотобумага)</span>
-                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{thickPrice} ₽/стр.</span>
-                  </button>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">А3 — цветность и бумага</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button type="button"
+                        onClick={() => patch({ printColor: 'bw', paperType: 'plain' })}
+                        className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
+                          (file.printColor || 'bw') === 'bw' && !isThick
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
+                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
+                        }`}
+                      >
+                        <div className="text-base">⚪</div>
+                        <div className="text-[11px] font-black text-slate-800 dark:text-white mt-0.5">Ч/Б</div>
+                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{bwPrice} ₽</div>
+                      </button>
+                      <button type="button"
+                        onClick={() => patch({ printColor: 'color', paperType: 'plain' })}
+                        className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
+                          (file.printColor || 'bw') === 'color' && !isThick
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
+                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
+                        }`}
+                      >
+                        <div className="text-base">🔵</div>
+                        <div className="text-[11px] font-black text-slate-800 dark:text-white mt-0.5">Цвет</div>
+                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{colorPrice} ₽</div>
+                      </button>
+                      <button type="button"
+                        onClick={() => patch({ paperType: 'thick', printColor: 'color' })}
+                        className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
+                          isThick
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
+                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
+                        }`}
+                      >
+                        <div className="text-base">📦</div>
+                        <div className="text-[11px] font-black text-slate-800 dark:text-white mt-0.5">Плотная</div>
+                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{thickPrice} ₽</div>
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 {/* Размер фото — обязателен для фотобумаги */}
