@@ -1186,7 +1186,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           // Пишем заказ в базу ДО перехода на оплату — иначе вебхуку ЮKassa
           // после успешной оплаты будет некуда записать статус "оплачено".
           await withTimeout(setDoc(doc(db, 'orders', orderId), updated), 15000);
-          onUpdateDatabase({ orders: [{ ...newOrder, transactionId: data.paymentId }, ...database.orders], users: updatedUsers });
+          onUpdateDatabase({ orders: [updated, ...database.orders], users: updatedUsers });
           setUploadedFiles([]);
           setNotes('');
           setBinding('none');
@@ -1199,7 +1199,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         } else {
           // ЮKassa недоступна — сохраняем заказ и показываем модалку
           await withTimeout(setDoc(doc(db, 'orders', orderId), pendingOrder), 15000);
-          onUpdateDatabase({ orders: [newOrder, ...database.orders], users: updatedUsers });
+          onUpdateDatabase({ orders: [pendingOrder, ...database.orders], users: updatedUsers });
           setUploadedFiles([]);
           setNotes('');
           setBinding('none');
@@ -1207,7 +1207,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           setPromoCode('');
           setPromoError(null);
           setActiveTab('orders');
-          setPayingOrder(newOrder);
+          setPayingOrder(pendingOrder);
         }
       } catch (err) {
         console.error('Payment error:', err);
