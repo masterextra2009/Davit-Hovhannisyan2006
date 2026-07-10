@@ -1967,7 +1967,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         const fillPct = file.colorFillPercent ?? 50;
                         const isA3 = file.format === 'a3';
                         const filePP = isPhoto ? selSize.price
-                          : (file.printColor === 'bw'
+                          : ((file.printColor || 'bw') === 'bw'
                             ? (isA3 ? 100 : 20)
                             : (isA3 ? 150 : colorFillPrice(fillPct)));
                         const fileCost = filePP * (isPhoto ? 1 : pages) * copies;
