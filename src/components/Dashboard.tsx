@@ -3322,15 +3322,30 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 </div>
 
                 {/* 📋 Telegram Notifications Panel */}
-                <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-5">
+                <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-5" style={{ boxShadow: '0 0 0 1px rgba(56,189,248,0.15), 0 20px 60px -20px rgba(14,165,233,0.35)' }}>
                   <div className="flex items-center gap-2">
                     <Send className="w-4.5 h-4.5 text-sky-500" />
                     <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">Telegram-уведомления</h3>
                   </div>
 
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
-                    Получайте моментальные сообщения от нашего бота-ассистента в Telegram, когда меняется статус вашего заказа (Принят, В печати, Готов к выдаче) или поступают важные сообщения от оператора в чате.
+                    Подключите бота один раз — и больше не придётся заходить на сайт, чтобы узнать новости о заказе:
                   </p>
+
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-200">
+                      <span className="w-6 h-6 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">🖨</span>
+                      Узнаете, когда заказ <b>взяли в печать</b>
+                    </li>
+                    <li className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-200">
+                      <span className="w-6 h-6 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">✅</span>
+                      Узнаете, когда заказ <b>готов к выдаче</b>
+                    </li>
+                    <li className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-200">
+                      <span className="w-6 h-6 rounded-lg bg-sky-500/15 flex items-center justify-center shrink-0">💬</span>
+                      Сразу увидите, если <b>вам ответили</b> в чате
+                    </li>
+                  </ul>
 
                   <div className="space-y-4 pt-1">
                     {/* Status Toggle option */}
@@ -3374,7 +3389,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             type="button"
                             onClick={handleConnectTelegram}
                             disabled={telegramLinking}
-                            className="w-full py-3 px-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-black text-sm rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer"
+                            className="w-full py-3.5 px-4 disabled:opacity-50 text-white font-black text-sm rounded-2xl transition-transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
+                            style={{
+                              background: 'linear-gradient(135deg, #38bdf8, #0ea5e9 60%, #0284c7)',
+                              boxShadow: '0 8px 24px -6px rgba(14,165,233,0.55), inset 0 1px 0 rgba(255,255,255,0.25)',
+                            }}
                           >
                             {telegramLinking ? (
                               <><RefreshCw className="w-4 h-4 animate-spin" /> Открываем бота...</>
