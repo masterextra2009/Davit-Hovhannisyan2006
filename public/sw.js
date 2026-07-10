@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pechat-24-v3';
+const CACHE_NAME = 'pechat-24-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -142,6 +142,14 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.includes('firestore.googleapis.com') || url.hostname.includes('identitytoolkit.googleapis.com')) {
     return; // Pass directly to network
   }
+
+  // Никогда не перехватываем навигацию (полную загрузку страницы) — именно так
+  // браузер возвращается на сайт после входа через Google (signInWithRedirect),
+  // и обёртка Service Worker вокруг этого запроса мешала Firebase корректно
+  // дочитать результат входа (getRedirectResult() возвращал пусто). Пусть
+  // навигация всегда идёт напрямую в сеть; сервер и так отдаёт index.html
+  // с no-cache, так что свежесть не страдает.
+  if (event.request.mode === 'navigate') return;
 
   // Network-first falling back to cache strategy
   event.respondWith(
