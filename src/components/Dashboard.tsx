@@ -1528,10 +1528,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 transition={{ type: 'spring', stiffness: 380, damping: 30 }}
               />
             )}
-            <div className={`glass-icon-capsule capsule-glow-rainbow shrink-0 relative ${activeTab === 'profile' ? 'scale-105' : 'opacity-90'}`}>
-              <UserCheck className="w-4.5 h-4.5 text-white icon-3d-svg" />
+            <div className="relative shrink-0">
+              <div className={`glass-icon-capsule capsule-glow-rainbow ${activeTab === 'profile' ? 'scale-105' : 'opacity-90'}`}>
+                <UserCheck className="w-4.5 h-4.5 text-white icon-3d-svg" />
+              </div>
               {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 border border-white shadow-md">
+                <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-20 border border-white shadow-md">
                   {unreadNotificationsCount}
                 </span>
               )}
@@ -1963,122 +1965,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               </button>
                             </div>
 
-                            {/* Настройки печати */}
-                            <div className="border-t border-white/8 p-3.5 space-y-3">
-                              <div className="grid grid-cols-2 gap-2.5">
-                                {/* Цветность */}
-                                <div>
-                                  <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1.5">Цветность</p>
-                                  <div className="flex gap-1.5">
-                                    {(['bw','color'] as const).map(v => {
-                                      const isPhoto = file.paperType === 'photo';
-                                      const isDisabled = v === 'bw' && isPhoto;
-                                      return (
-                                        <button key={v}
-                                          onClick={() => {
-                                            if (isDisabled) return;
-                                            updateFile({ printColor: v });
-                                          }}
-                                          disabled={isDisabled}
-                                          title={isDisabled ? 'Для фотобумаги доступна только цветная печать' : ''}
-                                          className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black border transition-all ${
-                                            isDisabled
-                                              ? 'bg-white/3 border-white/8 text-white/20 cursor-not-allowed opacity-40'
-                                              : (file.printColor || 'bw') === v
-                                              ? 'option-pill-active cursor-pointer'
-                                              : 'option-pill-inactive cursor-pointer'
-                                          }`}>
-                                          {v === 'bw' ? 'Ч/Б' : 'Цвет'}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                                {/* Бумага */}
-                                <div>
-                                  <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1.5">Бумага</p>
-                                  <div className="flex gap-1.5">
-                                    {(['plain','photo'] as const).map(v => (
-                                      <button key={v} onClick={() => updateFile({ 
-                                        paperType: v, 
-                                        photoSize: v === 'photo' ? (file.photoSize || '10x15') : undefined,
-                                        printColor: v === 'photo' ? 'color' : file.printColor, // фото = только цвет
-                                      })}
-                                        className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black border transition-all cursor-pointer ${
-                                          (file.paperType || 'plain') === v
-                                            ? 'option-pill-active'
-                                            : 'option-pill-inactive'}`}>
-                                        {v === 'plain' ? 'Обычная' : 'Фото 🖼'}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                                {/* Формат — только для обычной бумаги */}
-                                {!isPhoto && (
-                                  <div>
-                                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1.5">Формат</p>
-                                    <div className="flex gap-1.5">
-                                      {(['a4','a3'] as const).map(v => (
-                                        <button key={v} onClick={() => updateFile({ format: v })}
-                                          className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black border transition-all cursor-pointer ${
-                                            (file.format || 'a4') === v
-                                              ? 'option-pill-active'
-                                              : 'option-pill-inactive'}`}>
-                                          {v.toUpperCase()}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                                {/* Копии */}
-                                <div>
-                                  <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1.5">Копий</p>
-                                  <div className="flex items-center gap-2">
-                                    <button onClick={() => updateFile({ fileCopies: Math.max(1, copies - 1) })}
-                                      className="w-6 h-6 rounded-lg bg-white/8 border border-white/15 text-white text-sm font-black cursor-pointer hover:bg-white/18 flex items-center justify-center">−</button>
-                                    <span className="text-sm font-black text-white min-w-[18px] text-center">{copies}</span>
-                                    <button onClick={() => updateFile({ fileCopies: copies + 1 })}
-                                      className="w-6 h-6 rounded-lg bg-white/8 border border-white/15 text-white text-sm font-black cursor-pointer hover:bg-white/18 flex items-center justify-center">+</button>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Блок размеров фото */}
-                              {isPhoto && (
-                                <div className="pt-2 border-t border-white/8 space-y-2.5">
-                                  <p className="text-[9px] font-black text-rose-400/90 uppercase tracking-widest">📸 Размер фотографии</p>
-                                  <div className="grid grid-cols-3 gap-1.5">
-                                    {photoSizes.map(s => (
-                                      <button key={s.key} onClick={() => updateFile({ photoSize: s.key })}
-                                        className={`photo-size-pill ${
-                                          (file.photoSize || '10x15') === s.key
-                                            ? 'photo-size-pill-active'
-                                            : 'photo-size-pill-inactive'}`}>
-                                        <div className="text-xs font-black">{s.label}</div>
-                                        <div className="text-[9px] opacity-60 mt-0.5">{s.sub}</div>
-                                        <div className={`text-[10px] font-black mt-1 ${(file.photoSize || '10x15') === s.key ? 'photo-size-price-active' : 'opacity-50'}`}>{s.price} ₽</div>
-                                      </button>
-                                    ))}
-                                  </div>
-                                  {/* Поверхность */}
-                                  <div>
-                                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1.5">Поверхность</p>
-                                    <div className="grid grid-cols-2 gap-1.5">
-                                      {([['glossy','✨','Глянцевая','Яркие насыщенные цвета'],['matte','🔲','Матовая','Без отпечатков пальцев']] as const).map(([v,icon,name,desc]) => (
-                                        <button key={v} onClick={() => updateFile({ photoFinish: v })}
-                                          className={`surface-pill ${
-                                            (file.photoFinish || 'glossy') === v
-                                              ? 'surface-pill-active'
-                                              : 'surface-pill-inactive'}`}>
-                                          <div className="text-lg">{icon}</div>
-                                          <div className="text-[11px] font-black mt-1">{name}</div>
-                                          <div className="text-[9px] text-white/38 mt-0.5">{desc}</div>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
+                            {/* Краткая сводка выбранных параметров (настройка — в окошке при загрузке) */}
+                            <div className="border-t border-white/8 px-3.5 py-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-bold text-white/50">
+                              <span className="px-2 py-1 rounded-lg bg-white/5">{(file.printColor || 'bw') === 'bw' ? '⚪ Ч/Б' : '🔵 Цвет'}</span>
+                              <span className="px-2 py-1 rounded-lg bg-white/5">{isPhoto ? `🖼 Фото ${selSize.label}` : `📄 Обычная · ${(file.format || 'a4').toUpperCase()}`}</span>
+                              <span className="px-2 py-1 rounded-lg bg-white/5">{copies} шт.</span>
                             </div>
 
                             {/* Стоимость файла */}
@@ -3912,6 +3803,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         const fillReady = fillPct !== undefined;
         const bwPrice = isA3 ? 100 : 20;
         const colorPrice = isA3 ? 150 : (fillReady ? colorFillPrice(fillPct) : undefined);
+        const thickPrice = 250; // Плотная бумага (А3) — фиксированная цена, заливка не учитывается
+        const isThick = isA3 && file.paperType === 'thick';
 
         const photoSizes = [
           { key: '10x15', label: '10×15', price: 20 },
@@ -3923,7 +3816,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         ] as const;
         const selSize = photoSizes.find(s => s.key === (file.photoSize || '10x15')) || photoSizes[0];
 
-        const filePP = isPhoto ? selSize.price : ((file.printColor || 'bw') === 'bw' ? bwPrice : (colorPrice ?? 0));
+        const filePP = isPhoto ? selSize.price : (isThick ? thickPrice : ((file.printColor || 'bw') === 'bw' ? bwPrice : (colorPrice ?? 0)));
         const fileCost = filePP * (isPhoto ? 1 : pages) * copies;
         const canConfirm = !isPhoto || !!file.photoSize;
 
@@ -3950,9 +3843,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <button
                       type="button"
                       disabled={isPhoto}
-                      onClick={() => patch({ printColor: 'bw' })}
+                      onClick={() => patch({ printColor: 'bw', paperType: isThick ? 'plain' : file.paperType })}
                       className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${isPhoto ? 'opacity-30 cursor-not-allowed' : ''} ${
-                        (file.printColor || 'bw') === 'bw' && !isPhoto
+                        (file.printColor || 'bw') === 'bw' && !isPhoto && !isThick
                           ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
                       }`}
@@ -3963,9 +3856,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     </button>
                     <button
                       type="button"
-                      onClick={() => patch({ printColor: 'color' })}
+                      onClick={() => patch({ printColor: 'color', paperType: isThick ? 'plain' : file.paperType })}
                       className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                        (file.printColor || 'bw') === 'color' || isPhoto
+                        ((file.printColor || 'bw') === 'color' || isPhoto) && !isThick
                           ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
                       }`}
@@ -3979,8 +3872,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </div>
                 </div>
 
-                {/* Сообщение про заливку чернил */}
-                {!isPhoto && (file.printColor || 'bw') === 'color' && (
+                {/* Сообщение про заливку чернил — для А3 не показываем, там фиксированные цены без учёта заливки */}
+                {!isPhoto && !isA3 && (file.printColor || 'bw') === 'color' && (
                   <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 p-3.5">
                     {fillReady ? (
                       <p className="text-xs text-amber-800 dark:text-amber-300">
@@ -4023,7 +3916,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Формат</p>
                     <div className="flex gap-2">
                       {(['a4', 'a3'] as const).map(v => (
-                        <button key={v} type="button" onClick={() => patch({ format: v })}
+                        <button key={v} type="button" onClick={() => patch({ format: v, paperType: v === 'a4' ? (file.paperType === 'thick' ? 'plain' : file.paperType) : file.paperType })}
                           className={`px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
                             (file.format || 'a4') === v
                               ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300'
@@ -4035,6 +3928,21 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       ))}
                     </div>
                   </div>
+                )}
+
+                {/* Плотная бумага — отдельная фиксированная цена, только для А3 */}
+                {!isPhoto && isA3 && (
+                  <button type="button"
+                    onClick={() => patch({ paperType: isThick ? 'plain' : 'thick', printColor: 'color' })}
+                    className={`w-full p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                      isThick
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
+                    }`}
+                  >
+                    <span className="text-xs font-black text-slate-800 dark:text-white">📦 Плотная бумага (фотобумага)</span>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{thickPrice} ₽/стр.</span>
+                  </button>
                 )}
 
                 {/* Размер фото — обязателен для фотобумаги */}
