@@ -1094,7 +1094,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     const serviceExtra = selectedService?.price || 0;
     const finalTotalCost = totalCost + serviceExtra;
 
-    const orderId = `ORD-${1000 + database.orders.length + 1}`;
+    // ВАЖНО: id должен быть по-настоящему уникальным глобально, а не только
+    // среди заказов, которые видит именно этот клиент. database.orders.length
+    // отражает лишь заказы, доступные на чтение ТЕКУЩЕМУ пользователю (по
+    // правилам Firestore — только свои), поэтому у нового клиента он начинается
+    // с 0 и совпадает с уже существующим ID другого пользователя. setDoc на уже
+    // существующий чужой документ Firestore трактует как "update", а не
+    // "create" — и правки справедливо отклоняет ("Missing or insufficient permissions").
+    const orderId = `ORD-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
 
     const newOrder: Order = {
       id: orderId,
@@ -2413,7 +2420,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             <div key={i} className="bg-white h-full" style={{width:`${w*0.75}px`}}/>
                           ))}
                         </div>
-                        <span className="text-[8px] font-mono tracking-widest text-white/25">* ORD-{1000 + database.orders.length + 1} *</span>
+                        <span className="text-[8px] font-mono tracking-widest text-white/25">* НОМЕР ПРИСВОИТСЯ ПОСЛЕ ОФОРМЛЕНИЯ *</span>
                       </div>
                     </div>
                   )}
