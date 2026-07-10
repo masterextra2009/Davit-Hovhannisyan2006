@@ -53,22 +53,40 @@ export default function App() {
   // Storage database state (defaults to offline structure before Firebase sync)
   const [database, setDatabase] = useState<DatabaseState>(() => getInitialDatabase());
 
-  // Restore and keep authentication session synced in real-time
+  // Restore and keep authentication session synced in real-time.
+  // completeGoogleRedirectSignIn() must resolve BEFORE we let onAuthStateChanged's
+  // "no user" branch clear anything — right after returning from the Google
+  // redirect, Firebase can briefly report a null auth state while it's still
+  // processing the pending credential, and that null would otherwise race with
+  // (and wipe out) the user we just signed in.
   useEffect(() => {
+    let redirectChecked = false;
+
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
       if (!fbUser) {
+        if (!redirectChecked) return;
         setUser(null);
         saveCurrentUser(null);
       } else {
         // Run seed check when an authenticated user session is active
         seedInitialDataIfRequired();
-        
+
         // Gracefully request notification permissions
         if ('Notification' in window && Notification.permission === 'default') {
           Notification.requestPermission().catch(() => {});
         }
       }
     });
+
+    // Завершаем вход через Google, если страница только что вернулась после
+    // редиректа на accounts.google.com (см. AuthScreen — вход идёт через
+    // signInWithRedirect, а не всплывающее окно, ради надёжности на iOS Safari).
+    completeGoogleRedirectSignIn()
+      .then((googleUser) => {
+        if (googleUser) handleAuthSuccess(googleUser);
+      })
+      .catch((err) => console.error('Google redirect sign-in failed:', err))
+      .finally(() => { redirectChecked = true; });
 
     // Session recovery from storage
     const sessionUser = getCurrentUser();
@@ -77,17 +95,6 @@ export default function App() {
     }
 
     return () => unsubscribeAuth();
-  }, []);
-
-  // Завершаем вход через Google, если страница только что вернулась после
-  // редиректа на accounts.google.com (см. AuthScreen — вход идёт через
-  // signInWithRedirect, а не всплывающее окно, ради надёжности на iOS Safari).
-  useEffect(() => {
-    completeGoogleRedirectSignIn()
-      .then((googleUser) => {
-        if (googleUser) handleAuthSuccess(googleUser);
-      })
-      .catch((err) => console.error('Google redirect sign-in failed:', err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
