@@ -3808,29 +3808,23 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         )}
                       </div>
 
-                      {/* Название и описание */}
-                      <div className="px-3.5 pt-3 pb-2">
+                      {/* Название, описание и цена — статично, без hover */}
+                      <div className="px-3.5 pt-3 pb-3.5 flex flex-col flex-1">
                         <p className="font-extrabold text-[13px] text-slate-800 dark:text-white mb-0.5 leading-tight">{svc.title}</p>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
                           {svc.description?.slice(0,50)}{(svc.description?.length||0) > 50 ? '...' : ''}
                         </p>
-                      </div>
-
-                      {/* Hover drawer — выезжает снизу */}
-                      <div className="service-card-drawer">
-                        <div className="px-3.5 pt-2 pb-3.5">
-                          <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mb-2">{svc.price}</p>
-                          <button
-                            onClick={() => {
-                              const priceNum = parseInt(svc.price.replace(/[^0-9]/g, ''), 10) || 0;
-                              setSelectedService({ title: svc.title, price: priceNum });
-                              setNotes(`Услуга: ${svc.title} — ${svc.price}`);
-                              setActiveTab('upload');
-                            }}
-                            className="w-full py-2.5 rounded-[10px] text-white font-bold text-xs cursor-pointer"
-                            style={{background:'linear-gradient(135deg,#6366f1,#8b5cf6)'}}
-                          >Заказать →</button>
-                        </div>
+                        <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mt-2 mb-2">{svc.price}</p>
+                        <button
+                          onClick={() => {
+                            const priceNum = parseInt(svc.price.replace(/[^0-9]/g, ''), 10) || 0;
+                            setSelectedService({ title: svc.title, price: priceNum });
+                            setNotes(`Услуга: ${svc.title} — ${svc.price}`);
+                            setActiveTab('upload');
+                          }}
+                          className="w-full mt-auto py-2.5 rounded-[10px] text-white font-bold text-xs cursor-pointer"
+                          style={{background:'linear-gradient(135deg,#6366f1,#8b5cf6)'}}
+                        >Заказать →</button>
                       </div>
                     </div>
                   );
