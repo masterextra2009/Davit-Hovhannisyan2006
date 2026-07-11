@@ -498,6 +498,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     } catch {}
   }, [uploadedFiles]);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showUploadSuccessAnim, setShowUploadSuccessAnim] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   // Новые файлы сначала попадают сюда — "Настройте параметры печати" открывается
   // для каждого по очереди, и только после подтверждения файл переезжает в uploadedFiles
@@ -916,6 +917,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       }
 
       patchFileState(fileId, { url: data.url });
+      setShowUploadSuccessAnim(true);
+      setTimeout(() => setShowUploadSuccessAnim(false), 2200);
     } catch (error: any) {
       console.error('Server upload error for fileId ' + fileId + ':', error);
       const isTimeout = error instanceof Error && error.message === 'timeout';
@@ -1469,6 +1472,43 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       <div className="glass-bg-orb w-[250px] h-[250px] bottom-[25%] right-[12%] opacity-80 animate-[float-reverse_28s_infinite_ease-in-out]" style={{ backdropFilter: 'blur(20px) saturate(130%)' }} />
       <div className="glass-bg-orb w-[150px] h-[150px] top-[65%] left-[-2%] opacity-60 animate-[float-slow_30s_infinite_ease-in-out]" style={{ backdropFilter: 'blur(12px) saturate(110%)' }} />
       <div className="glass-bg-orb w-[110px] h-[110px] top-[35%] right-[22%] opacity-50 animate-[float-reverse_26s_infinite_ease-in-out]" style={{ backdropFilter: 'blur(10px) saturate(100%)' }} />
+
+      {/* Upload success animation — glowing burst + "Файл загружен", in the spirit
+          of the reference clip (glowing icon -> colorful particle burst -> text reveal) */}
+      <AnimatePresence>
+        {showUploadSuccessAnim && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md pointer-events-none"
+          >
+            <div className="flex flex-col items-center gap-5">
+              <div className="relative w-28 h-28 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full upload-success-burst" style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.55), rgba(99,102,241,0.35) 55%, transparent 75%)' }} />
+                <div className="absolute inset-0 rounded-full border-2 border-emerald-400/40 upload-success-ring" />
+                <motion.div
+                  initial={{ scale: 0.4, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 16, delay: 0.1 }}
+                  className="relative w-16 h-16 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/40"
+                >
+                  <Check className="w-9 h-9 text-white" strokeWidth={3} />
+                </motion.div>
+              </div>
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, duration: 0.3 }}
+                className="text-white font-black text-sm uppercase tracking-widest"
+              >
+                Файл загружен
+              </motion.p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Visual In-App Toast Indicator */}
       {showInAppPush && (

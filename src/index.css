@@ -1714,6 +1714,23 @@ body {
   50% { transform: translateY(-10px) rotate(15deg); opacity: 1; }
 }
 
+/* Полноэкранная анимация "Файл загружен" после успешной загрузки */
+.upload-success-burst {
+  animation: upload-success-burst 1.4s ease-out infinite;
+}
+@keyframes upload-success-burst {
+  0% { transform: scale(0.6); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+.upload-success-ring {
+  animation: upload-success-ring 1.8s cubic-bezier(0.34,1.2,0.64,1) infinite;
+}
+@keyframes upload-success-ring {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
 /* Будущие шаги — серые */
 .stage-pill-future {
   color: rgba(30,41,59,0.25) !important;

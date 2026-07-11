@@ -1337,8 +1337,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     { id: 'pending', label: 'Ожидают' },
                     { id: 'approved', label: 'Одобрено' },
                     { id: 'printing', label: 'Печатается' },
-                    { id: 'ready', label: 'К выдаче' },
-                    { id: 'printed', label: 'Выданы' }
+                    { id: 'ready', label: 'К выдаче' }
                   ].map(btn => (
                     <button
                       key={btn.id}
@@ -1363,6 +1362,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="grid grid-cols-1 gap-5">
                   {sortedOrders
                     .filter(o => {
+                      // Выданные заказы живут только в Архиве — как только заказ
+                      // выдан, он сразу пропадает из основной очереди.
+                      if (o.status === 'printed') return false;
                       if (statusFilter !== 'all' && o.status !== statusFilter) return false;
                       if (orderSearchQuery.trim() !== '') {
                         const q = orderSearchQuery.trim().toLowerCase();
@@ -1649,9 +1651,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               onClick={() => handleTogglePaymentStatus(order.id)}
                               className={`py-1.2 px-2.5 rounded-lg text-[10px] font-extrabold border transition ${
                                 order.paymentStatus === 'paid'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400'
-                                  : 'bg-rose-50 text-rose-800 border-rose-250 dark:bg-rose-955/20 dark:text-rose-400'
+                                  ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20'
+                                  : 'bg-rose-50 border-rose-250 dark:bg-rose-955/20'
                               }`}
+                              style={{ color: order.paymentStatus === 'paid' ? '#065f46' : '#9f1239' }}
                             >
                               {order.paymentStatus === 'paid' ? 'Отметить не Оплаченным' : 'Отметить Оплаченным'}
                             </button>
