@@ -1089,10 +1089,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // сеткой на лист(ы) А4 (пока не займут максимум COLLAGE_MAX_PER_SHEET —
   // дальше начинается следующий лист), рисуются на canvas и отправляются
   // на сервер как единый файл, как и обычная загрузка.
-  const COLLAGE_SHEET_PRICE = 150;
+  const COLLAGE_PRICE_PLAIN = 65;
+  const COLLAGE_PRICE_PHOTO = 100;
+  const collagePriceFor = (paper?: 'plain' | 'photo') => paper === 'photo' ? COLLAGE_PRICE_PHOTO : COLLAGE_PRICE_PLAIN;
   const COLLAGE_MAX_PER_SHEET = 9;
   const [showCollageBuilder, setShowCollageBuilder] = useState(false);
   const [collageSelectedIds, setCollageSelectedIds] = useState<string[]>([]);
+  const [collagePaperChoice, setCollagePaperChoice] = useState<'plain' | 'photo'>('photo');
   const [collageBuilding, setCollageBuilding] = useState(false);
 
   const collageEligibleFiles = uploadedFiles.filter(f => f.paperType === 'photo' && f.previewUrl);
@@ -1192,6 +1195,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           format: 'a4',
           fileCopies: 1,
           collageCount: sheetFiles.length,
+          collagePaper: collagePaperChoice,
         };
 
         setUploadedFiles(prev => [...prev, newFile]);
@@ -1246,7 +1250,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       const fillPct = f.colorFillPercent ?? 50;
       const isA3 = f.format === 'a3';
       const pp = isCollageFile
-        ? COLLAGE_SHEET_PRICE
+        ? collagePriceFor(f.collagePaper)
         : isPhotoFile
         ? (photoSizePrices[f.photoSize || '10x15'] || 20)
         : ((f.printColor || 'bw') === 'bw'
@@ -2210,7 +2214,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         const pages = file.pageCount || 1;
                         const fillPct = file.colorFillPercent ?? 50;
                         const isA3 = file.format === 'a3';
-                        const filePP = isCollage ? COLLAGE_SHEET_PRICE
+                        const filePP = isCollage ? collagePriceFor(file.collagePaper)
                           : isPhoto ? selSize.price
                           : ((file.printColor || 'bw') === 'bw'
                             ? (isA3 ? 100 : 20)
@@ -2247,7 +2251,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             <div className="border-t border-white/8 px-3.5 py-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-bold text-white/50">
                               {!isCollage && <span className="px-2 py-1 rounded-lg bg-white/5">{(file.printColor || 'bw') === 'bw' ? '⚪ Ч/Б' : '🔵 Цвет'}</span>}
                               <span className="px-2 py-1 rounded-lg bg-white/5">
-                                {isCollage ? `🖼️ Коллаж А4 · ${file.collageCount || '?'} фото` : isPhoto ? `🖼 Фото ${selSize.label}` : `📄 Обычная · ${(file.format || 'a4').toUpperCase()}`}
+                                {isCollage ? `🖼️ Коллаж А4 (${file.collagePaper === 'photo' ? 'фото' : 'обычная'}) · ${file.collageCount || '?'} фото` : isPhoto ? `🖼 Фото ${selSize.label}` : `📄 Обычная · ${(file.format || 'a4').toUpperCase()}`}
                               </span>
                               {!isCollage && <span className="px-2 py-1 rounded-lg bg-white/5">{copies} шт.</span>}
                               {!isCollage && (
@@ -2265,7 +2269,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             <div className="px-3.5 pb-3 flex justify-between items-center text-sm text-white/60">
                               <span>
                                 {isCollage
-                                  ? `Лист А4-коллаж × ${COLLAGE_SHEET_PRICE} ₽`
+                                  ? `Лист А4-коллаж (${file.collagePaper === 'photo' ? 'фото' : 'обычная'}) × ${collagePriceFor(file.collagePaper)} ₽`
                                   : isPhoto
                                   ? `${selSize.label} × ${selSize.price} ₽ × ${copies} шт.`
                                   : `${pages} стр. × ${filePP} ₽${!isA3 && (file.printColor || 'bw') !== 'bw' ? ` (${colorFillLabel(fillPct)}, ${fillPct}% цвета)` : ''} × ${copies} шт.`}
@@ -2597,7 +2601,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           const pages = f.pageCount || 1;
                           const fillPct = f.colorFillPercent ?? 50;
                           const isA3 = f.format === 'a3';
-                          const pp = isCollageFile ? COLLAGE_SHEET_PRICE
+                          const pp = isCollageFile ? collagePriceFor(f.collagePaper)
                             : isPhotoFile ? selSize.price
                             : ((f.printColor || 'bw') === 'bw'
                               ? (isA3 ? 100 : 20)
@@ -2628,7 +2632,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               const pages = f.pageCount || 1;
                               const fillPct = f.colorFillPercent ?? 50;
                               const isA3 = f.format === 'a3';
-                              const pp = isCollageFile ? COLLAGE_SHEET_PRICE
+                              const pp = isCollageFile ? collagePriceFor(f.collagePaper)
                                 : isPhotoFile ? selSize.price
                                 : ((f.printColor || 'bw') === 'bw'
                                   ? (isA3 ? 100 : 20)
@@ -4377,18 +4381,26 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Размер фотографии</p>
                     <div className="grid grid-cols-3 gap-2">
-                      {photoSizes.map(s => (
-                        <button key={s.key} type="button" onClick={() => patch({ photoSize: s.key })}
-                          className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
-                            (file.photoSize || '10x15') === s.key
-                              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30'
-                              : 'border-slate-200 dark:border-slate-800'
-                          }`}
-                        >
-                          <div className="text-[11px] font-black text-slate-800 dark:text-white">{s.label}</div>
-                          <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{s.price} ₽</div>
-                        </button>
-                      ))}
+                      {photoSizes.map(s => {
+                        const sizeSelected = (file.photoSize || '10x15') === s.key;
+                        return (
+                          <button key={s.key} type="button" onClick={() => patch({ photoSize: s.key })}
+                            className={`relative p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                              sizeSelected
+                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25 scale-[1.03]'
+                                : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                            }`}
+                          >
+                            {sizeSelected && (
+                              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                                <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                              </div>
+                            )}
+                            <div className={`text-[11px] font-black ${sizeSelected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{s.label}</div>
+                            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{s.price} ₽</div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -5202,6 +5214,47 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
             {/* Body */}
             <div className="p-5 space-y-5 overflow-y-auto">
+              {/* Бумага для листа-коллажа */}
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Бумага</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setCollagePaperChoice('plain')}
+                    className={`relative p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                      collagePaperChoice === 'plain'
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25'
+                        : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                    }`}
+                  >
+                    {collagePaperChoice === 'plain' && (
+                      <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                        <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                      </div>
+                    )}
+                    <div className="text-[11px] font-black text-slate-800 dark:text-white">Обычная</div>
+                    <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{COLLAGE_PRICE_PLAIN} ₽/лист</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCollagePaperChoice('photo')}
+                    className={`relative p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                      collagePaperChoice === 'photo'
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25'
+                        : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                    }`}
+                  >
+                    {collagePaperChoice === 'photo' && (
+                      <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                        <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                      </div>
+                    )}
+                    <div className="text-[11px] font-black text-slate-800 dark:text-white">Фото 🖼</div>
+                    <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{COLLAGE_PRICE_PHOTO} ₽/лист</div>
+                  </button>
+                </div>
+              </div>
+
               {/* Выбор фото */}
               <div>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
@@ -5269,8 +5322,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             {/* Footer */}
             <div className="p-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 space-y-2.5 shrink-0">
               <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1">
-                <span>{collageSheets.length} {collageSheets.length === 1 ? 'лист' : 'листа'} × {COLLAGE_SHEET_PRICE} ₽</span>
-                <strong className="text-slate-800 dark:text-white text-base">{collageSheets.length * COLLAGE_SHEET_PRICE} ₽</strong>
+                <span>{collageSheets.length} {collageSheets.length === 1 ? 'лист' : 'листа'} × {collagePriceFor(collagePaperChoice)} ₽</span>
+                <strong className="text-slate-800 dark:text-white text-base">{collageSheets.length * collagePriceFor(collagePaperChoice)} ₽</strong>
               </div>
               <button
                 type="button"
@@ -5283,7 +5336,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 ) : collageSelectedIds.length < 2 ? (
                   'Выберите минимум 2 фото'
                 ) : (
-                  `Добавить коллаж — ${collageSheets.length * COLLAGE_SHEET_PRICE} ₽ →`
+                  `Добавить коллаж — ${collageSheets.length * collagePriceFor(collagePaperChoice)} ₽ →`
                 )}
               </button>
             </div>

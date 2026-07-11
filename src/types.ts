@@ -50,6 +50,7 @@ export interface PrintFile {
   // только для отображения ("Коллаж А4 · 6 фото"), сама картинка уже
   // собрана в единое изображение и лежит в url/previewUrl как обычно.
   collageCount?: number;
+  collagePaper?: 'plain' | 'photo';
 }
 
 export type OrderStatus = 'pending' | 'approved' | 'printing' | 'ready' | 'printed';
