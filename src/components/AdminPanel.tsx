@@ -463,6 +463,26 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     deleteDoc(doc(db, 'services', id)).catch(console.error);
   };
 
+  // 3D-наклон карточки услуги вслед за курсором + усиление свечения —
+  // тот же эффект, что и в клиентской витрине (см. Dashboard.tsx).
+  const handleServiceCardTilt = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const rotateX = ((y - rect.height / 2) / (rect.height / 2)) * -8;
+    const rotateY = ((x - rect.width / 2) / (rect.width / 2)) * 10;
+    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+    const glow = card.querySelector('.service-card-glow') as HTMLElement | null;
+    if (glow) glow.style.opacity = '1';
+  };
+  const handleServiceCardTiltReset = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget;
+    card.style.transform = '';
+    const glow = card.querySelector('.service-card-glow') as HTMLElement | null;
+    if (glow) glow.style.opacity = '0';
+  };
+
   const handleSaveSettings = () => {    setSavingSettings(true);
     setSaveSuccess(false);
 
@@ -2883,7 +2903,12 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                     {(database.services || []).map((svc) => (
-                      <div key={svc.id} className="service-glass-row rounded-2xl flex flex-col">
+                      <div
+                        key={svc.id}
+                        onMouseMove={handleServiceCardTilt}
+                        onMouseLeave={handleServiceCardTiltReset}
+                        className="service-glass-row rounded-2xl flex flex-col relative"
+                      >
                         {/* Статус + удалить */}
                         <div className="flex items-center justify-end gap-1.5 p-1.5 pb-0">
                           <button
@@ -2903,6 +2928,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
                         {/* Фото услуги */}
                         <label className="service-glass-card-media relative h-28 mx-2.5 mt-1 rounded-xl shrink-0 cursor-pointer group block">
+                          <div className="service-card-glow absolute inset-0 pointer-events-none rounded-xl" />
                           {svc.imageUrl ? (
                             <img src={svc.imageUrl} alt={svc.title} className="w-full h-full object-contain rounded-xl" />
                           ) : (
