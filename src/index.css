@@ -2306,6 +2306,41 @@ button:hover .glass-icon-capsule {
   transform: translateY(0) scale(0.96);
 }
 
+/* Объёмная "физическая" кнопка подтверждения выбора файла — сплошной
+   цветной торец снизу имитирует толщину кнопки, при нажатии кнопка
+   проседает и торец скрывается, как у настоящей кнопки. */
+.btn-3d-choose {
+  position: relative;
+  background: linear-gradient(135deg, #818cf8, #8b5cf6);
+  box-shadow:
+    0 6px 0 0 #4c33b0,
+    0 16px 30px -8px rgba(99,102,241,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.4),
+    inset 0 -3px 6px rgba(0,0,0,0.15);
+  transform: translateY(0);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.btn-3d-choose:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 0 0 #4c33b0,
+    0 20px 34px -8px rgba(99,102,241,0.65),
+    inset 0 1px 0 rgba(255,255,255,0.45),
+    inset 0 -3px 6px rgba(0,0,0,0.15);
+}
+.btn-3d-choose:active:not(:disabled) {
+  transform: translateY(6px);
+  box-shadow:
+    0 0 0 0 #4c33b0,
+    0 6px 14px -6px rgba(99,102,241,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.25),
+    inset 0 -2px 4px rgba(0,0,0,0.25);
+}
+.btn-3d-choose:disabled {
+  box-shadow: none !important;
+  transform: none !important;
+}
+
 /* ============================================
    ГЛОБАЛЬНЫЕ СТЕКЛЯННЫЕ КНОПКИ — админка и кабинет клиента
    (тот же голографический стиль, что и на экране входа)

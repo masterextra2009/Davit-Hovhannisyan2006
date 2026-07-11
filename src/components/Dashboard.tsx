@@ -4271,8 +4271,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   type="button"
                   disabled={!canConfirm}
                   onClick={() => confirmFileConfig(file.id)}
-                  className="w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-transform hover:-translate-y-0.5 active:translate-y-0"
-                  style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 8px 24px -6px rgba(99,102,241,0.5)' }}
+                  className="btn-3d-choose w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Выбрать →
                 </button>
