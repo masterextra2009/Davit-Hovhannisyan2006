@@ -338,15 +338,18 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const [givingPromoCode, setGivingPromoCode] = useState('');
   const [givingPromoDiscount, setGivingPromoDiscount] = useState<number>(10);
 
-  // Авто-удаление выданных заказов через 48 часов после выдачи
+  // Archive search — by amount, name, email or date
+  const [archiveSearch, setArchiveSearch] = useState('');
+
+  // Авто-удаление выданных заказов через 5 дней после выдачи
   useEffect(() => {
     const autoDelete = async () => {
       const now = Date.now();
-      const ms48h = 48 * 60 * 60 * 1000;
+      const ms5d = 5 * 24 * 60 * 60 * 1000;
       const toDelete = database.orders.filter(o => {
         if (o.status !== 'printed') return false;
         const t = new Date(o.completedAt || o.orderDate).getTime();
-        return (now - t) > ms48h;
+        return (now - t) > ms5d;
       });
       for (const o of toDelete) {
         try { await deleteOrderFromFirebase(o.id); } catch {}
@@ -1145,11 +1148,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               <Archive className="w-4.5 h-4.5 text-white" />
             </div>
             <span className="hidden sm:inline">Архив</span>
-            {database.orders.filter(o => o.status === 'printed').length > 0 && (
-              <span className="ml-auto hidden md:flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black bg-amber-500/30 text-amber-300">
-                {database.orders.filter(o => o.status === 'printed').length}
-              </span>
-            )}
           </button>
         </nav>
 
@@ -2838,33 +2836,58 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           {/* ── ARCHIVE TAB ── */}
           {activeTab === 'archive' && (
             <div className="p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-black text-white">Архив выданных</h2>
-                  <p className="text-xs text-white/50 mt-0.5">Заказы удаляются через 48 часов после выдачи</p>
-                </div>
-                <div className="px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-black">
-                  {database.orders.filter(o => o.status === 'printed').length} выдано
-                </div>
+              <div>
+                <h2 className="text-lg font-black text-white">Архив выданных</h2>
+                <p className="text-xs text-white/50 mt-0.5">Заказы удаляются через 5 дней после выдачи</p>
               </div>
 
-              {database.orders.filter(o => o.status === 'printed').length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-                  <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center text-3xl">📦</div>
-                  <div>
-                    <p className="text-white font-bold text-sm">Архив пуст</p>
-                    <p className="text-white/40 text-xs mt-1">Выданные заказы появятся здесь</p>
-                  </div>
-                </div>
-              ) : (
+              <div className="relative">
+                <Search className="w-4 h-4 text-white/30 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={archiveSearch}
+                  onChange={e => setArchiveSearch(e.target.value)}
+                  placeholder="Поиск по сумме, имени, email или дате..."
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {(() => {
+                const archivedOrders = database.orders
+                  .filter(o => o.status === 'printed')
+                  .filter(o => {
+                    const q = archiveSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    const completedAt = new Date(o.completedAt || o.orderDate);
+                    const dateStr = completedAt.toLocaleDateString('ru-RU');
+                    return (
+                      String(o.totalCost).includes(q) ||
+                      (o.userName || '').toLowerCase().includes(q) ||
+                      (o.userEmail || '').toLowerCase().includes(q) ||
+                      dateStr.includes(q)
+                    );
+                  })
+                  .sort((a, b) => new Date(b.completedAt || b.orderDate).getTime() - new Date(a.completedAt || a.orderDate).getTime());
+
+                if (archivedOrders.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+                      <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center text-3xl">📦</div>
+                      <div>
+                        <p className="text-white font-bold text-sm">{archiveSearch ? 'Ничего не найдено' : 'Архив пуст'}</p>
+                        <p className="text-white/40 text-xs mt-1">{archiveSearch ? 'Попробуйте другой запрос' : 'Выданные заказы появятся здесь'}</p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
                 <div className="space-y-3">
-                  {database.orders
-                    .filter(o => o.status === 'printed')
-                    .sort((a, b) => new Date(b.completedAt || b.orderDate).getTime() - new Date(a.completedAt || a.orderDate).getTime())
+                  {archivedOrders
                     .map(order => {
                       const completedAt = new Date(order.completedAt || order.orderDate);
-                      const deleteAt = new Date(completedAt.getTime() + 48 * 60 * 60 * 1000);
-                      const hoursLeft = Math.max(0, Math.ceil((deleteAt.getTime() - Date.now()) / (60 * 60 * 1000)));
+                      const deleteAt = new Date(completedAt.getTime() + 5 * 24 * 60 * 60 * 1000);
+                      const daysLeft = Math.max(0, Math.ceil((deleteAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
                       return (
                         <div key={order.id} className="glass-panel rounded-2xl p-4 flex items-start gap-4">
                           <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
@@ -2880,7 +2903,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               Выдан: {completedAt.toLocaleDateString('ru-RU')} в {completedAt.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}
                             </p>
                             <p className="text-amber-400/80 text-[10px] mt-0.5 font-bold">
-                              🗑 Автоудаление через {hoursLeft} ч.
+                              🗑 Автоудаление через {daysLeft} {daysLeft === 1 ? 'день' : daysLeft < 5 ? 'дня' : 'дней'}
                             </p>
                           </div>
                           <div className="text-right shrink-0">
@@ -2901,7 +2924,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       );
                     })}
                 </div>
-              )}
+                );
+              })()}
             </div>
           )}
 
