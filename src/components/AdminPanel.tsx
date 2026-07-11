@@ -436,20 +436,55 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     setAdminAvatarY(adminUser.avatarY || 0);
   }, [adminUser]);
 
-  // Services showcase management
-  const handleAddService = () => {
+  // Services showcase management — добавление новой услуги через
+  // всплывающее окно с явной кнопкой "Сохранить", а не автосохранением
+  // по уходу курсора (как у уже существующих карточек в сетке).
+  const [showAddServiceModal, setShowAddServiceModal] = useState(false);
+  const [newServiceForm, setNewServiceForm] = useState({
+    emoji: '🖨️',
+    title: '',
+    description: '',
+    price: '',
+    imageUrl: '',
+  });
+  const [newServiceUploading, setNewServiceUploading] = useState(false);
+
+  const handleNewServicePhotoUpload = async (file: File) => {
+    setNewServiceUploading(true);
+    const formData = new FormData();
+    formData.append('photo', file);
+    try {
+      const res = await fetch('https://sever-18.ru/api/service-upload.php', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.url) {
+        setNewServiceForm(f => ({ ...f, imageUrl: data.url }));
+      }
+    } catch {
+      alert('Ошибка загрузки фото');
+    } finally {
+      setNewServiceUploading(false);
+    }
+  };
+
+  const handleCreateService = () => {
     const newId = `svc_${Date.now()}`;
     const newService = {
       id: newId,
-      title: 'Новая услуга',
-      description: 'Описание услуги',
-      price: '0 ₽',
-      emoji: '🖨️',
+      title: newServiceForm.title.trim() || 'Новая услуга',
+      description: newServiceForm.description.trim(),
+      price: newServiceForm.price.trim() || '0 ₽',
+      emoji: newServiceForm.emoji || '🖨️',
+      ...(newServiceForm.imageUrl ? { imageUrl: newServiceForm.imageUrl } : {}),
       category: 'print',
       isActive: true,
       order: (database.services?.length || 0) + 1,
     };
     setDoc(doc(db, 'services', newId), newService).catch(console.error);
+    setShowAddServiceModal(false);
+    setNewServiceForm({ emoji: '🖨️', title: '', description: '', price: '', imageUrl: '' });
   };
 
   const handleUpdateService = (id: string, field: string, value: any) => {
@@ -2890,7 +2925,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     <p className="text-[11px] text-slate-400 mt-1">Клиенты видят эти карточки в личном кабинете. Добавляй, редактируй, скрывай услуги без кода.</p>
                   </div>
                   <button
-                    onClick={handleAddService}
+                    onClick={() => setShowAddServiceModal(true)}
                     className="btn-holo-glass flex items-center gap-1.5 px-3.5 py-2 text-xs font-black rounded-xl transition cursor-pointer shrink-0"
                     style={{ color: '#1e293b' }}
                   >
@@ -3010,6 +3045,106 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   </div>
                 </div>
               </div>
+
+              {/* Новая услуга — всплывающее окно с явным сохранением */}
+              {showAddServiceModal && (
+                <div
+                  className="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in"
+                  onClick={() => setShowAddServiceModal(false)}
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="glass-window w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
+                  >
+                    <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/20 shrink-0">
+                      <h3 className="text-sm font-black text-slate-800 dark:text-white">Новая услуга</h3>
+                      <button
+                        onClick={() => setShowAddServiceModal(false)}
+                        className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 flex items-center justify-center text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="p-5 space-y-4 overflow-y-auto">
+                      {/* Фото */}
+                      <label className="relative h-32 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/40 cursor-pointer flex items-center justify-center overflow-hidden block">
+                        {newServiceForm.imageUrl ? (
+                          <img src={newServiceForm.imageUrl} alt="" className="w-full h-full object-contain" />
+                        ) : (
+                          <div className="flex flex-col items-center gap-1 text-slate-400">
+                            {newServiceUploading ? (
+                              <RefreshCw className="w-6 h-6 animate-spin" />
+                            ) : (
+                              <>
+                                <span className="text-2xl">{newServiceForm.emoji}</span>
+                                <span className="text-[10px] font-bold">Загрузить фото (необязательно)</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleNewServicePhotoUpload(file);
+                          }}
+                        />
+                      </label>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={newServiceForm.emoji}
+                          onChange={(e) => setNewServiceForm(f => ({ ...f, emoji: e.target.value }))}
+                          aria-label="Эмодзи услуги"
+                          className="w-12 shrink-0 text-center text-lg bg-transparent border border-slate-200 dark:border-white/10 rounded-lg p-2 focus:outline-none focus:border-indigo-400"
+                          maxLength={2}
+                        />
+                        <input
+                          type="text"
+                          value={newServiceForm.title}
+                          onChange={(e) => setNewServiceForm(f => ({ ...f, title: e.target.value }))}
+                          aria-label="Название услуги"
+                          placeholder="Название услуги"
+                          className="w-full min-w-0 bg-transparent border border-slate-200 dark:border-white/10 rounded-lg p-2 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:border-indigo-400"
+                          autoFocus
+                        />
+                      </div>
+
+                      <textarea
+                        value={newServiceForm.description}
+                        onChange={(e) => setNewServiceForm(f => ({ ...f, description: e.target.value }))}
+                        aria-label="Описание услуги"
+                        placeholder="Краткое описание"
+                        rows={2}
+                        className="w-full bg-transparent border border-slate-200 dark:border-white/10 rounded-lg p-2 text-xs text-slate-700 dark:text-white/80 focus:outline-none focus:border-indigo-400 resize-none"
+                      />
+
+                      <input
+                        type="text"
+                        value={newServiceForm.price}
+                        onChange={(e) => setNewServiceForm(f => ({ ...f, price: e.target.value }))}
+                        aria-label="Цена услуги"
+                        placeholder="Цена, например: 20 ₽ / стр"
+                        className="w-full bg-transparent border border-slate-200 dark:border-white/10 rounded-lg p-2 text-sm font-black text-emerald-600 dark:text-emerald-400 focus:outline-none focus:border-emerald-400"
+                      />
+                    </div>
+
+                    <div className="p-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 shrink-0">
+                      <button
+                        onClick={handleCreateService}
+                        className="btn-holo-glass w-full py-3 rounded-xl font-black text-sm cursor-pointer"
+                        style={{ color: '#1e293b' }}
+                      >
+                        Сохранить
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
