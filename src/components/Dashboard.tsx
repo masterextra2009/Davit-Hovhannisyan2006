@@ -500,6 +500,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   }, [uploadedFiles]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showUploadSuccessAnim, setShowUploadSuccessAnim] = useState(false);
+  // Круг-загрузчик, перетекающий в галочку, при нажатии "Оформить заказ" —
+  // 'loading' пока идёт создание платежа, 'success' на короткий миг перед
+  // переходом на оплату/переключением вкладки, чтобы клиент увидел явное
+  // подтверждение "заказ принят" до того как страница уйдёт на ЮKassa.
+  const [orderAcceptPhase, setOrderAcceptPhase] = useState<'idle' | 'loading' | 'success'>('idle');
   const [dragActive, setDragActive] = useState(false);
   // Новые файлы сначала попадают сюда — "Настройте параметры печати" открывается
   // для каждого по очереди, и только после подтверждения файл переезжает в uploadedFiles
@@ -1364,6 +1369,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
     // Создаём платёж в ЮKassa (withTimeout не даёт кнопке зависнуть навсегда
     // на нестабильной мобильной сети — см. объявление функции выше).
+    setOrderAcceptPhase('loading');
     (async () => {
       try {
         const res = await withTimeout(
@@ -1391,6 +1397,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           setPromoError(null);
           setSelectedService(null);
           setActiveTab('orders');
+          setOrderAcceptPhase('success');
+          await new Promise(r => setTimeout(r, 900));
           window.location.href = data.paymentUrl;
         } else {
           // ЮKassa недоступна — сохраняем заказ и показываем модалку
@@ -1404,6 +1412,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           setPromoError(null);
           setActiveTab('orders');
           setPayingOrder(pendingOrder);
+          setOrderAcceptPhase('success');
+          setTimeout(() => setOrderAcceptPhase('idle'), 1400);
         }
       } catch (err) {
         console.error('Payment error:', err);
@@ -1413,6 +1423,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             ? 'Не удалось создать платёж — слишком слабое соединение. Проверьте интернет и попробуйте ещё раз.'
             : 'Ошибка создания платежа. Попробуйте ещё раз.'
         );
+        setOrderAcceptPhase('idle');
         if (btn) { btn.disabled = false; btn.textContent = 'Оформить заказ'; }
       }
     })();
@@ -1676,6 +1687,68 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 className="text-white font-black text-sm uppercase tracking-widest"
               >
                 Файл загружен
+              </motion.p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Заказ принят — круг-загрузчик плавно перетекает в галочку (по мотивам
+          asynchrone-loader: круг рисуется/крутится пока идёт запрос, затем
+          скрывается и вместо него дорисовывается путь галочки). */}
+      <AnimatePresence>
+        {orderAcceptPhase !== 'idle' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md pointer-events-none"
+          >
+            <div className="flex flex-col items-center gap-5">
+              <svg width="110" height="110" viewBox="0 0 110 110" fill="none">
+                {orderAcceptPhase === 'loading' && (
+                  <motion.circle
+                    cx="55" cy="55" r="46"
+                    stroke="#818cf8"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray="80 209"
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                    style={{ transformOrigin: '55px 55px' }}
+                  />
+                )}
+                {orderAcceptPhase === 'success' && (
+                  <>
+                    <motion.circle
+                      cx="55" cy="55" r="46"
+                      stroke="#10b981"
+                      strokeWidth="8"
+                      initial={{ opacity: 0.3 }}
+                      animate={{ opacity: 0.3 }}
+                    />
+                    <motion.path
+                      d="M32 56L48 72L80 38"
+                      stroke="#10b981"
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.45, ease: 'easeOut' }}
+                    />
+                  </>
+                )}
+              </svg>
+              <motion.p
+                key={orderAcceptPhase}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="text-white font-black text-sm uppercase tracking-widest"
+              >
+                {orderAcceptPhase === 'loading' ? 'Оформляем заказ...' : 'Заказ принят!'}
               </motion.p>
             </div>
           </motion.div>
