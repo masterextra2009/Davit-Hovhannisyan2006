@@ -363,13 +363,26 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         if (u.id === user.id) {
           return {
             ...u,
-            avatarUrl: downloadUrl
+            avatarUrl: downloadUrl,
+            // Reset crop controls for the newly uploaded photo. The preview
+            // renders with object-fit: cover (see UserAvatar.tsx), which already
+            // auto-scales any image so its shorter side exactly fills the square
+            // frame, centered — i.e. scale=1/x=0/y=0 IS the correct "auto-fit"
+            // starting point for any photo, regardless of its dimensions. Without
+            // this reset, a new (differently-shaped) photo would inherit the
+            // previous photo's leftover zoom/pan and appear cropped oddly.
+            avatarScale: 1,
+            avatarX: 0,
+            avatarY: 0
           };
         }
         return u;
       });
-      
+
       setEditAvatarUrl(downloadUrl);
+      setEditAvatarScale(1);
+      setEditAvatarX(0);
+      setEditAvatarY(0);
       onUpdateDatabase({ users: updatedUsers });
     } catch (err) {
       console.error('Error uploading avatar:', err);
@@ -761,11 +774,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const unreadChatsCount = userChats.filter(c => c.senderRole === 'admin' && !c.readByClient).length;
   const unreadNotificationsCount = userNotifications.filter(n => !n.read).length;
 
-  // Auto-scroll chat to bottom
+  // Auto-scroll chat to bottom. Stickers/photos in messages load asynchronously
+  // and grow the list's height after the first scroll, so a single scrollIntoView
+  // right on tab-open can land short of the real bottom — re-scroll once more
+  // shortly after to catch that late layout shift.
   useEffect(() => {
-    if (activeTab === 'chat' && chatBottomRef.current) {
-      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (activeTab !== 'chat' || !chatBottomRef.current) return;
+    chatBottomRef.current.scrollIntoView({ behavior: 'auto' });
+    const t = setTimeout(() => {
+      chatBottomRef.current?.scrollIntoView({ behavior: 'auto' });
+    }, 400);
+    return () => clearTimeout(t);
   }, [activeTab, userChats.length]);
 
   // Mark chats as read when opening Chat tab
