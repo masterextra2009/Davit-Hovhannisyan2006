@@ -2605,7 +2605,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                         isPast
                                           ? 'bg-emerald-500 border-emerald-500 text-white'
                                           : isCurrent
-                                          ? 'bg-indigo-600 border-indigo-600 text-white animate-pulse shadow-lg shadow-indigo-500/30'
+                                          ? (stage.id === 'ready'
+                                              ? 'bg-indigo-600 border-indigo-600 text-white stage-ready-blink'
+                                              : 'bg-indigo-600 border-indigo-600 text-white animate-pulse shadow-lg shadow-indigo-500/30')
                                           : 'bg-slate-100 dark:bg-slate-850 border-slate-200 dark:border-slate-700 text-slate-400'
                                       }`}>
                                         {isPast ? <Check className="w-3.5 h-3.5" /> : idx + 1}
