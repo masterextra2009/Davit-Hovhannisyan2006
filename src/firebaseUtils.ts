@@ -25,7 +25,8 @@ import {
   onSnapshot,
   addDoc,
   deleteDoc,
-  increment
+  increment,
+  runTransaction
 } from './firebase';
 import type { User as FirebaseAuthUser } from 'firebase/auth';
 import { User, Order, ChatMessage, Notification, Service, DatabaseState } from './types';
@@ -426,6 +427,24 @@ export async function deleteUserAccountWithFirebase(userId: string): Promise<voi
       await signOut(auth);
     }
   }
+}
+
+/**
+ * Атомарно резервирует следующий порядковый номер заказа через Firestore-
+ * транзакцию (counters/orders, поле next) — гарантирует уникальность даже
+ * при одновременном оформлении заказов разными клиентами. Старые заказы
+ * (формат ORD-<base36 timestamp><random>) не трогаем — только для новых.
+ * При сбое транзакции откатываемся на прежнюю схему ID, чтобы оформление
+ * заказа не заблокировалось из-за проблемы со счётчиком.
+ */
+export async function getNextOrderNumber(): Promise<number> {
+  const counterRef = doc(db, 'counters', 'orders');
+  return runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(counterRef);
+    const current = snap.exists() && typeof snap.data().next === 'number' ? snap.data().next : 1000;
+    transaction.set(counterRef, { next: current + 1 }, { merge: true });
+    return current;
+  });
 }
 
 /**

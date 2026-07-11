@@ -30,7 +30,8 @@ import {
   getDocFromServer,
   addDoc,
   deleteDoc,
-  increment
+  increment,
+  runTransaction
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -68,6 +69,7 @@ export {
   addDoc,
   deleteDoc,
   increment,
+  runTransaction,
   ref,
   uploadBytes,
   getDownloadURL

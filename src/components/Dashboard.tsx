@@ -26,7 +26,7 @@ import {
   getClientTierForUser, isWorkingHours, showBrowserNotification
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
-import { subscribeToPushNotifications } from '../firebaseUtils';
+import { subscribeToPushNotifications, getNextOrderNumber } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Synthesized high-quality feedback sound chimes using Web Audio API
@@ -1071,7 +1071,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   };
 
   // Build the order from uploaded files
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isWorkingHours()) {
       setUploadError("К сожалению, отправка заказов приостановлена во внерабочее время. Мы работаем: Пн-Пт 09:00-19:00, Сб-Вс 10:00-19:00.");
@@ -1118,14 +1118,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     const serviceExtra = selectedService?.price || 0;
     const finalTotalCost = totalCost + serviceExtra;
 
-    // ВАЖНО: id должен быть по-настоящему уникальным глобально, а не только
-    // среди заказов, которые видит именно этот клиент. database.orders.length
-    // отражает лишь заказы, доступные на чтение ТЕКУЩЕМУ пользователю (по
-    // правилам Firestore — только свои), поэтому у нового клиента он начинается
-    // с 0 и совпадает с уже существующим ID другого пользователя. setDoc на уже
-    // существующий чужой документ Firestore трактует как "update", а не
-    // "create" — и правки справедливо отклоняет ("Missing or insufficient permissions").
-    const orderId = `ORD-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+    // Порядковый номер берём из атомарного Firestore-счётчика (counters/orders),
+    // чтобы у новых заказов был короткий читаемый номер вместо случайных букв
+    // (ORD-1000, ORD-1001, ...), сохраняя глобальную уникальность даже при
+    // одновременном оформлении несколькими клиентами. Если счётчик недоступен
+    // (сеть/права) — откатываемся на прежнюю схему, чтобы не заблокировать
+    // оформление заказа.
+    let orderId: string;
+    try {
+      const orderNumber = await getNextOrderNumber();
+      orderId = `ORD-${orderNumber}`;
+    } catch {
+      orderId = `ORD-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+    }
 
     const newOrder: Order = {
       id: orderId,
