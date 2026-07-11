@@ -17,7 +17,7 @@ import {
   Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, 
   FileCheck, LogOut, Check, ArrowDown, Bell, HelpCircle, Laptop, ArrowLeft,
   UserCheck, Layers, RefreshCw, Smartphone, Phone, Star, Trophy, Award, Share2, Copy, Mail, Gift,
-  Maximize2, Eye, ZoomIn, ZoomOut, RotateCw, Printer
+  Maximize2, Eye, ZoomIn, ZoomOut, RotateCw, Printer, X
 } from 'lucide-react';
 import { 
   calculateOrderCost, getFileFormatGroup, formatFileSize, 
@@ -462,6 +462,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   const [telegramLinking, setTelegramLinking] = useState(false);
   const [telegramLinked, setTelegramLinked] = useState(!!user.telegramChatId);
+  const [showTelegramModal, setShowTelegramModal] = useState(false);
 
   const handleConnectTelegram = async () => {
     setTelegramLinking(true);
@@ -1713,7 +1714,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           {/* Заметная кнопка подключения Telegram-уведомлений — скрывается, когда уже подключено */}
           {!user.telegramChatId && (
             <button
-              onClick={() => setActiveTab('profile')}
+              onClick={() => setShowTelegramModal(true)}
               className="relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-black rounded-2xl transition-transform hover:-translate-y-0.5 active:translate-y-0 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer text-white mt-1 animate-pulse-slow"
               style={{
                 background: 'linear-gradient(135deg, #38bdf8, #0ea5e9 60%, #0284c7)',
@@ -5013,6 +5014,111 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
             </div>
           </div>
+          </motion.div>
+        </div>
+      )}
+
+      {showTelegramModal && (
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in" onClick={() => setShowTelegramModal(false)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 180 }}
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel p-6 md:p-8 rounded-3xl space-y-5 max-w-md w-full relative"
+            style={{ boxShadow: '0 0 0 1px rgba(56,189,248,0.15), 0 20px 60px -20px rgba(14,165,233,0.35)' }}
+          >
+            <button
+              onClick={() => setShowTelegramModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <Send className="w-4.5 h-4.5 text-sky-500" />
+              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">Telegram-уведомления</h3>
+            </div>
+
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+              Подключите бота один раз — и больше не придётся заходить на сайт, чтобы узнать новости о заказе:
+            </p>
+
+            <ul className="space-y-2">
+              <li className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-200">
+                <span className="w-6 h-6 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">🖨</span>
+                Узнаете, когда заказ <b>взяли в печать</b>
+              </li>
+              <li className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-200">
+                <span className="w-6 h-6 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">✅</span>
+                Узнаете, когда заказ <b>готов к выдаче</b>
+              </li>
+              <li className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-200">
+                <span className="w-6 h-6 rounded-lg bg-sky-500/15 flex items-center justify-center shrink-0">💬</span>
+                Сразу увидите, если <b>вам ответили</b> в чате
+              </li>
+            </ul>
+
+            <div className="space-y-4 pt-1">
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                <div>
+                  <span className="text-xs font-black text-white block">Включить уведомления</span>
+                  <span className="text-[9px] text-white/40 mt-0.5 block">Уведомления о заказах</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    defaultChecked={!!user.telegramNotificationsEnabled}
+                    onChange={(e) => {
+                      const updatedUsers = database.users.map(u =>
+                        u.id === user.id ? { ...u, telegramNotificationsEnabled: e.target.checked } : u
+                      );
+                      onUpdateDatabase({ users: updatedUsers });
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500" />
+                </label>
+              </div>
+
+              <div className="space-y-3">
+                {telegramLinked || user.telegramChatId ? (
+                  <div className="flex items-center gap-3 p-3.5 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl">
+                    <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+                    <div>
+                      <p className="text-xs font-black text-emerald-400">Telegram подключён</p>
+                      <p className="text-[10px] text-white/50 mt-0.5">Вы будете получать уведомления в Telegram</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-white/50 leading-relaxed">
+                      Нажмите кнопку — откроется бот в Telegram. Там просто нажмите <b className="text-white/80">«Отправить»</b> и всё готово.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleConnectTelegram}
+                      disabled={telegramLinking}
+                      className="w-full py-3.5 px-4 disabled:opacity-50 text-white font-black text-sm rounded-2xl transition-transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
+                      style={{
+                        background: 'linear-gradient(135deg, #38bdf8, #0ea5e9 60%, #0284c7)',
+                        boxShadow: '0 8px 24px -6px rgba(14,165,233,0.55), inset 0 1px 0 rgba(255,255,255,0.25)',
+                      }}
+                    >
+                      {telegramLinking ? (
+                        <><RefreshCw className="w-4 h-4 animate-spin" /> Открываем бота...</>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.65-.35-1 .22-1.6 1.5-1.55 2.75-2.91 3.75-3.95.44-.45.89-.96.44-.96-.45 0-1.18.3-2.18.97-1 .68-1.86 1.25-3.5 2.33-.53.35-.95.53-1.34.52-.42 0-1.22-.23-1.82-.42-.74-.24-1.33-.36-1.28-.77.03-.21.32-.43.88-.67 3.44-1.5 5.74-2.49 6.89-2.98 3.29-1.37 3.98-1.61 4.43-1.62.1 0 .32.02.46.14.12.1.15.24.17.34.02.13.02.43 0 .52z"/></svg>
+                          Подключить Telegram
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </motion.div>
         </div>
       )}
