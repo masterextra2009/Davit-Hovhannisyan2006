@@ -2729,7 +2729,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                     {(database.services || []).map((svc) => (
-                      <div key={svc.id} className="service-glass-row rounded-2xl flex flex-col overflow-hidden">
+                      <div key={svc.id} className="service-glass-row rounded-2xl flex flex-col">
                         {/* Статус + удалить */}
                         <div className="flex items-center justify-end gap-1.5 p-1.5 pb-0">
                           <button
@@ -2748,16 +2748,16 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         </div>
 
                         {/* Фото услуги */}
-                        <label className="service-glass-card-media relative h-28 mx-2.5 mt-1 rounded-xl overflow-hidden shrink-0 cursor-pointer group block">
+                        <label className="service-glass-card-media relative h-28 mx-2.5 mt-1 rounded-xl shrink-0 cursor-pointer group block">
                           {svc.imageUrl ? (
-                            <img src={svc.imageUrl} alt={svc.title} className="w-full h-full object-cover" />
+                            <img src={svc.imageUrl} alt={svc.title} className="w-full h-full object-cover rounded-xl" />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center gap-1">
                               <span className="text-3xl">{svc.emoji}</span>
                               <span className="text-[9px] text-white/30 font-bold text-center leading-tight">загрузить фото</span>
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="absolute inset-0 rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
                             <span className="text-white text-xs font-bold">📷 Заменить</span>
                           </div>
                           <input

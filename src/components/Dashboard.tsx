@@ -3823,8 +3823,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             setNotes(`Услуга: ${svc.title} — ${svc.price}`);
                             setActiveTab('upload');
                           }}
-                          className="w-full mt-auto py-2.5 rounded-[10px] text-white font-bold text-xs cursor-pointer"
-                          style={{background:'linear-gradient(135deg,#6366f1,#8b5cf6)'}}
+                          className="btn-holo-glass w-full mt-auto py-2.5 rounded-[10px] text-slate-900 font-bold text-xs cursor-pointer"
                         >Заказать →</button>
                       </div>
                     </div>
