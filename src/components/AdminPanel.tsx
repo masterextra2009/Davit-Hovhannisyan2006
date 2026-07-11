@@ -1041,8 +1041,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 : 'text-white/55 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <div className={`glass-icon-capsule glass-icon-violet w-9 h-9 shrink-0 relative ${activeTab === 'orders' ? 'glass-icon-active' : ''}`}>
-              <Clock className="w-4.5 h-4.5 text-white" />
+            <div className="relative shrink-0">
+              <div className={`glass-icon-capsule glass-icon-violet w-9 h-9 ${activeTab === 'orders' ? 'glass-icon-active' : ''}`}>
+                <Clock className="w-4.5 h-4.5 text-white" />
+              </div>
               {pendingCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 border border-white shadow-md animate-pulse">
                   {pendingCount}
@@ -1060,8 +1062,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 : 'text-white/55 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <div className={`glass-icon-capsule glass-icon-green w-9 h-9 shrink-0 relative ${activeTab === 'chat' ? 'glass-icon-active' : ''}`}>
-              <MessageSquare className="w-4.5 h-4.5 text-white" />
+            <div className="relative shrink-0">
+              <div className={`glass-icon-capsule glass-icon-green w-9 h-9 ${activeTab === 'chat' ? 'glass-icon-active' : ''}`}>
+                <MessageSquare className="w-4.5 h-4.5 text-white" />
+              </div>
               {database.chatMessages.filter(m => m.senderRole === 'client' && !m.readByAdmin).length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 animate-bounce border border-white shadow-md">
                   {database.chatMessages.filter(m => m.senderRole === 'client' && !m.readByAdmin).length}
