@@ -1608,8 +1608,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             </div>
                           </div>
 
-                          {/* Order specifications specifications */}
-                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-3 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border border-slate-100 dark:border-slate-850/80 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                          {/* Order specifications — выделено рамкой слева, чтобы не потерялось
+                              среди списка заказов; показываются только реально выбранные
+                              клиентом параметры (скрепление/промокод скрыты, если не заданы). */}
+                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-3 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border-l-4 border-l-indigo-500 border-y border-r border-slate-100 dark:border-slate-850/80 text-xs text-slate-500 dark:text-slate-400 font-medium">
                             <div>Бумага: <strong className="text-slate-800 dark:text-white">
                               {order.paperType === 'standard' ? 'А4 Обычная' :
                                order.paperType === 'glossy' ? 'А4 Глянцевая' :
@@ -1622,21 +1624,24 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                order.printColor === 'color_full' ? 'Цветная 100% заливочная' : 'Цветная (RGB)'}
                             </strong></div>
                             <div>Количество тиража: <strong className="text-slate-800 dark:text-white">{order.copies} шт.</strong></div>
-                            <div>Скрепление: <strong className="text-indigo-650 dark:text-indigo-400">
-                              {!order.binding || order.binding === 'none' ? 'Нет' :
-                               order.binding === 'staple' ? 'Скрепка в углу' :
-                               order.binding === 'spring_plastic' ? 'Пружина пластик' :
-                               order.binding === 'spring_metal' ? 'Пружина металл' : 'Тв. переплет'}
-                            </strong></div>
-                            <div>Промокод: <strong className="text-emerald-600 dark:text-emerald-400 uppercase">
-                              {order.promoCode || 'Нет'}
-                            </strong></div>
+                            {order.binding && order.binding !== 'none' && (
+                              <div>Скрепление: <strong className="text-indigo-650 dark:text-indigo-400">
+                                {order.binding === 'staple' ? 'Скрепка в углу' :
+                                 order.binding === 'spring_plastic' ? 'Пружина пластик' :
+                                 order.binding === 'spring_metal' ? 'Пружина металл' : 'Тв. переплет'}
+                              </strong></div>
+                            )}
+                            {order.promoCode && (
+                              <div>Промокод: <strong className="text-emerald-600 dark:text-emerald-400 uppercase">
+                                {order.promoCode}
+                              </strong></div>
+                            )}
                             <div>Итоговая стоимость: <strong className="text-amber-600 dark:text-amber-400">₽{order.totalCost}</strong></div>
                           </div>
 
                           {order.notes && (
-                            <div className="p-3 bg-amber-500/5 dark:bg-amber-950/10 border border-amber-500/20 rounded-xl text-[11px] leading-relaxed">
-                              <span className="font-bold text-amber-700 dark:text-amber-400">Спец-требования клиента:</span> {order.notes}
+                            <div className="p-3 bg-amber-500/10 dark:bg-amber-950/20 border-2 border-amber-400/50 dark:border-amber-500/40 rounded-xl text-[11px] leading-relaxed animate-pulse-slow">
+                              <span className="font-black text-amber-700 dark:text-amber-400">⚠ Спец-требования клиента:</span> {order.notes}
                             </div>
                           )}
                         </div>
