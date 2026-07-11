@@ -10,7 +10,7 @@ import { LiveClock } from './LiveClock';
 import { RatingWidget } from './RatingWidget';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
-import logoImg from '../assets/logo.png';
+import logoImg from '../assets/logo.webp';
 import printerInkIcon from '../assets/printer-ink-icon.svg';
 import { 
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 

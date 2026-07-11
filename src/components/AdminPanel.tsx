@@ -7,7 +7,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, PaymentConfig, Service } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
-import logoImg from '../assets/logo.png';
+import logoImg from '../assets/logo.webp';
 import { 
   FileText, Users, Clock, MessageSquare, Download, CheckCircle, 
   Send, RefreshCw, BarChart3, Trash2, Edit3, Save, FileSpreadsheet, 
