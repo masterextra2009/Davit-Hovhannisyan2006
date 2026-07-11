@@ -1090,6 +1090,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           </button>
 
           <button
+            onClick={() => setActiveTab('services')}
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial ${
+              activeTab === 'services'
+                ? 'nav-holo-active bg-white/10 text-white font-black'
+                : 'text-white/55 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <div className={`glass-icon-capsule glass-icon-violet w-9 h-9 shrink-0 ${activeTab === 'services' ? 'glass-icon-active' : ''}`}>
+              <Printer className="w-4.5 h-4.5 text-white" />
+            </div>
+            <span className="hidden sm:inline">Услуги</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('settings')}
             className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial ${
               activeTab === 'settings' 
