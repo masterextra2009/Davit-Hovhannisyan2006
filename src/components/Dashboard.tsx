@@ -1070,6 +1070,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     setUploadedFiles(prev => prev.filter(f => f.id !== id));
   };
 
+  // Клиент ошибся с параметрами уже настроенного файла — возвращаем файл
+  // обратно в очередь на настройку и снова открываем ту же модалку
+  // "Настройте параметры печати", вместо удаления и повторной загрузки.
+  const editUploadedFile = (id: string) => {
+    setUploadedFiles(prev => {
+      const file = prev.find(f => f.id === id);
+      if (!file) return prev;
+      setPendingUploads(p => [...p, file]);
+      setActiveConfigFileId(id);
+      return prev.filter(f => f.id !== id);
+    });
+  };
+
   // Build the order from uploaded files
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2089,11 +2102,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               </button>
                             </div>
 
-                            {/* Краткая сводка выбранных параметров (настройка — в окошке при загрузке) */}
+                            {/* Краткая сводка выбранных параметров — можно передумать и открыть
+                                настройку заново, не удаляя и не перезагружая файл. */}
                             <div className="border-t border-white/8 px-3.5 py-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-bold text-white/50">
                               <span className="px-2 py-1 rounded-lg bg-white/5">{(file.printColor || 'bw') === 'bw' ? '⚪ Ч/Б' : '🔵 Цвет'}</span>
                               <span className="px-2 py-1 rounded-lg bg-white/5">{isPhoto ? `🖼 Фото ${selSize.label}` : `📄 Обычная · ${(file.format || 'a4').toUpperCase()}`}</span>
                               <span className="px-2 py-1 rounded-lg bg-white/5">{copies} шт.</span>
+                              <button
+                                type="button"
+                                onClick={() => editUploadedFile(file.id)}
+                                className="ml-auto px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <Sliders className="w-3 h-3" /> Изменить
+                              </button>
                             </div>
 
                             {/* Стоимость файла */}
@@ -4054,12 +4075,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         type="button"
                         disabled={isPhoto}
                         onClick={() => patch({ printColor: 'bw' })}
-                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${isPhoto ? 'opacity-30 cursor-not-allowed' : ''} ${
+                        className={`relative p-3 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${isPhoto ? 'opacity-30 cursor-not-allowed' : ''} ${
                           (file.printColor || 'bw') === 'bw' && !isPhoto
-                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
+                            ? 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900/50 ring-2 ring-indigo-500/40 scale-[1.03] shadow-lg shadow-indigo-500/20'
                             : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
                         }`}
                       >
+                        {(file.printColor || 'bw') === 'bw' && !isPhoto && (
+                          <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                            <Check className="w-3 h-3" strokeWidth={3} />
+                          </div>
+                        )}
                         <div className="text-lg">⚪</div>
                         <div className="text-xs font-black text-slate-800 dark:text-white mt-0.5">Ч/Б</div>
                         <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{bwPrice} ₽/стр.</div>
@@ -4067,12 +4093,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       <button
                         type="button"
                         onClick={() => patch({ printColor: 'color' })}
-                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        className={`relative p-3 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                           (file.printColor || 'bw') === 'color' || isPhoto
-                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
+                            ? 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900/50 ring-2 ring-indigo-500/40 scale-[1.03] shadow-lg shadow-indigo-500/20'
                             : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
                         }`}
                       >
+                        {((file.printColor || 'bw') === 'color' || isPhoto) && (
+                          <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                            <Check className="w-3 h-3" strokeWidth={3} />
+                          </div>
+                        )}
                         <div className="text-lg">🔵</div>
                         <div className="text-xs font-black text-slate-800 dark:text-white mt-0.5">Цвет</div>
                         <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
@@ -4109,12 +4140,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           photoSize: v === 'photo' ? (file.photoSize || '10x15') : undefined,
                           printColor: v === 'photo' ? 'color' : file.printColor,
                         })}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                        className={`relative px-3.5 py-2 rounded-xl text-xs font-black border transition-all duration-200 cursor-pointer ${
                           (file.paperType || 'plain') === v
-                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300'
+                            ? 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/40 scale-[1.05] shadow-lg shadow-indigo-500/20'
                             : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
                         }`}
                       >
+                        {(file.paperType || 'plain') === v && (
+                          <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                            <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                          </div>
+                        )}
                         {v === 'plain' ? 'Обычная' : 'Фото 🖼'}
                       </button>
                     ))}
@@ -4884,20 +4920,22 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
       {showPromoGiftModal && user.promoCode && (
         <div id="promo-postcard-modal" className="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
             transition={{ type: 'spring', damping: 25, stiffness: 180 }}
-            className="glass-window overflow-hidden max-w-md w-full relative flex flex-col"
+            className="coupon-neon-frame rounded-3xl max-w-md w-full relative"
           >
-            {/* Christmas/Gift Ribbon Visual Banner — built from CSS/emoji instead of an
-                external Unsplash image, which was silently failing to load and leaving
-                this whole banner blank. */}
+          <div className="glass-window overflow-hidden max-w-md w-full relative flex flex-col rounded-3xl">
+            {/* Купон — логотип по центру, неоновая анимированная рамка вокруг всей
+                карточки (та же техника, что у .btn-holo-glass, только ярче и толще).
+                Рамка — на ОТДЕЛЬНОЙ обёртке без overflow-hidden, иначе её обрезает
+                тот же overflow-hidden, что нужен для скругления баннера внутри. */}
             <div className="h-44 relative overflow-hidden" style={{ background: 'radial-gradient(circle at 50% 40%, rgba(99,102,241,0.35), rgba(15,15,25,0.95) 70%)' }}>
-              {/* Glow rings pulsing behind the gift box */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full bg-indigo-500/25 blur-xl gift-glow-ring" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full border border-indigo-400/20 gift-glow-ring" style={{ animationDelay: '0.6s' }} />
+              {/* Glow rings pulsing behind the logo */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-indigo-500/25 blur-xl gift-glow-ring" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 rounded-full border border-indigo-400/20 gift-glow-ring" style={{ animationDelay: '0.6s' }} />
 
               {/* Centered animated gift box */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl gift-box-bounce" style={{ filter: 'drop-shadow(0 8px 20px rgba(99,102,241,0.5))' }}>
@@ -4912,27 +4950,22 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/10 to-transparent"></div>
 
-              <div className="absolute bottom-4 left-5 right-5 flex justify-between items-end">
-                <span className="bg-emerald-500 text-white text-[10px] uppercase font-black px-2.5 py-1 rounded-full border border-emerald-400/40 tracking-wider">
-                  Персональный Подарок 🎁
-                </span>
+              <div className="absolute bottom-4 left-5 right-5 flex justify-end items-end">
                 <span className="font-mono text-xs text-white/70 font-semibold">Копи-точка А4 / А3</span>
               </div>
             </div>
 
-            {/* Circular seal badge straddling the banner/body seam — a nod to the
-                gift-card reference's overlapping icon badge. */}
+            {/* Circular seal badge straddling the banner/body seam — чистый логотип,
+                без цветной подложки за ним, только лёгкое свечение. */}
             <div className="relative z-10 flex justify-center -mt-6">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 border-4 border-white dark:border-slate-900 shadow-lg shadow-indigo-500/30 flex items-center justify-center text-xl">
-                🎁
-              </div>
+              <img src={logoImg} alt="Фото-Север" className="w-12 h-12 object-contain" style={{ filter: 'drop-shadow(0 4px 10px rgba(99,102,241,0.5))' }} />
             </div>
 
-            {/* Postcard Body */}
+            {/* Coupon Body */}
             <div className="p-6 sm:p-8 pt-3 space-y-5 text-center">
               <div className="space-y-1.5">
                 <h3 className="text-lg font-black text-slate-850 dark:text-white uppercase tracking-wider font-sans">
-                  Праздничная Открытка!
+                  Скидочный купон!
                 </h3>
                 <p className="text-xs text-slate-400 font-bold">
                   Специально для пользователя: <span className="text-slate-700 dark:text-slate-200">{user.fullName}</span>
@@ -4979,6 +5012,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </div>
 
             </div>
+          </div>
           </motion.div>
         </div>
       )}
