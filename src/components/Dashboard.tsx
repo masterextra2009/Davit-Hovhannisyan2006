@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Order, ChatMessage, Notification, PrintFile, FileFormatGroup, PaymentStatus, OrderStatus, Service } from '../types';
 import { ThemeToggle } from './ThemeToggle';
+import { LiveClock } from './LiveClock';
 import { RatingWidget } from './RatingWidget';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
@@ -1724,6 +1725,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             )}
           </div>
           <div className="flex items-center gap-2">
+            <LiveClock showSeconds={false} />
             <ThemeToggle />
             <button
               onClick={onLogout}
@@ -1781,7 +1783,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <Check className="w-3.5 h-3.5" /> Push включены
               </span>
             )}
-            
+
+            <LiveClock />
             <ThemeToggle />
             <UserAvatar user={user} className="w-9 h-9 rounded-xl" />
           </div>

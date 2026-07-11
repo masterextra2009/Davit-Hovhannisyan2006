@@ -144,6 +144,19 @@ export default function App() {
         saveDatabase(nextState);
         return nextState;
       });
+
+      // The `user` state (passed as a prop to Dashboard/AdminPanel) is separate
+      // from `database.users` — without this, live Firestore changes to the
+      // current user's own doc (e.g. admin gifting a promo code) never reach
+      // the components that actually read `user.promoCode` etc., since they'd
+      // stay frozen at whatever `user` was at login until a manual refresh.
+      if (syncedUpdates.users) {
+        const refreshedSelf = syncedUpdates.users.find(u => u.id === user.id);
+        if (refreshedSelf) {
+          setUser(refreshedSelf);
+          saveCurrentUser(refreshedSelf);
+        }
+      }
     });
 
     return () => unsubscribeCollection();

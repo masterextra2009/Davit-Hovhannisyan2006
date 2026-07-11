@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, PaymentConfig, Service } from '../types';
 import { ThemeToggle } from './ThemeToggle';
+import { LiveClock } from './LiveClock';
 import logoImg from '../assets/logo.png';
 import { 
   FileText, Users, Clock, MessageSquare, Download, CheckCircle, 
@@ -1186,6 +1187,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <h1 className="text-sm font-black text-white leading-none">АДМИН-ПК</h1>
           </div>
           <div className="flex items-center gap-2">
+            <LiveClock showSeconds={false} />
             <ThemeToggle />
             <button
               onClick={onLogout}
@@ -1216,6 +1218,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           </div>
 
           <div className="flex items-center gap-3">
+            <LiveClock />
             <ThemeToggle />
             <div className="text-xs glass-card px-3.5 py-2 rounded-xl text-white font-bold">
               Очередь принтера: <strong className="text-emerald-300">{database.orders.filter(o => o.status !== 'printed').length} активных</strong>
@@ -2054,7 +2057,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
               {/* GIFT PROMO CUSTOM DIALOG MODAL */}
               {promoGiftUser && (
-                <div id="user-promo-gift-modal" className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+                <div id="user-promo-gift-modal" className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 z-50 animate-fade-in">
                   <div className="glass-window max-w-md w-full flex flex-col overflow-hidden">
                     {/* Header */}
                     <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/20">
