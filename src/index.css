@@ -1847,10 +1847,6 @@ body {
 
 .service-glass-card-media {
   border-radius: 20px 20px 0 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.25));
-}
-.dark .service-glass-card-media {
-  background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
 }
 
 /* Картинка/иконка "вылетает" из карточки навстречу при наведении —

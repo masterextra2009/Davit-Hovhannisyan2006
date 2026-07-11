@@ -2620,8 +2620,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 w-full sm:w-auto justify-center ${
                       savingSettings
                         ? 'bg-indigo-400 text-white cursor-not-allowed shadow-none'
-                        : 'btn-holo-glass text-slate-900 cursor-pointer'
+                        : 'btn-holo-glass cursor-pointer'
                     }`}
+                    style={savingSettings ? undefined : { color: '#1e293b' }}
                   >
                     {savingSettings ? (
                       <>
@@ -2714,7 +2715,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   </div>
                   <button
                     onClick={handleAddService}
-                    className="btn-holo-glass flex items-center gap-1.5 px-3.5 py-2 text-slate-900 text-xs font-black rounded-xl transition cursor-pointer shrink-0"
+                    className="btn-holo-glass flex items-center gap-1.5 px-3.5 py-2 text-xs font-black rounded-xl transition cursor-pointer shrink-0"
+                    style={{ color: '#1e293b' }}
                   >
                     <span className="text-base leading-none">+</span> Добавить
                   </button>
