@@ -2389,6 +2389,22 @@ button.glass-card::after,
    (админка и кабинет клиента)
    ============================================ */
 .nav-holo-active,
+/* Стеклянные "пилюли" для всех кнопок бокового меню (админка + кабинет
+   клиента) по умолчанию — не только у активного пункта, как раньше.
+   Референс: глянцевая полупрозрачная кнопка-капсула с мягким бликом. */
+.sidebar-nav > button {
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 4px 14px rgba(0,0,0,0.18);
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.sidebar-nav > button:hover {
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+}
+
 .nav-holo-pill {
   position: relative !important;
   isolation: isolate;

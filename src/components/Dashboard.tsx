@@ -1779,7 +1779,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
 
         {/* Nav Links */}
-        <nav className="flex md:flex-col flex-1 gap-1 md:gap-1.5 justify-start md:justify-start w-full relative overflow-x-auto overflow-y-hidden scrollbar-hide">
+        <nav className="sidebar-nav flex md:flex-col flex-1 gap-1 md:gap-1.5 justify-start md:justify-start w-full relative overflow-x-auto overflow-y-hidden scrollbar-hide">
           <button
             onClick={() => setActiveTab('upload')}
             className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${

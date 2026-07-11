@@ -1127,7 +1127,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         </div>
 
         {/* Links Navigation */}
-        <nav className="flex md:flex-col flex-1 gap-2 md:gap-2 justify-around md:justify-start w-full">
+        <nav className="sidebar-nav flex md:flex-col flex-1 gap-2 md:gap-2 justify-around md:justify-start w-full">
           <button
             onClick={() => setActiveTab('orders')}
             className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial relative ${
