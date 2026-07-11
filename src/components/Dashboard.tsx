@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Order, ChatMessage, Notification, PrintFile, FileFormatGroup, PaymentStatus, OrderStatus } from '../types';
+import { User, Order, ChatMessage, Notification, PrintFile, FileFormatGroup, PaymentStatus, OrderStatus, Service } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 import { RatingWidget } from './RatingWidget';
 import { UserAvatar } from './UserAvatar';
@@ -212,6 +212,7 @@ interface DashboardProps {
     orders: Order[];
     chatMessages: ChatMessage[];
     notifications: Notification[];
+    services?: Service[];
   };
   onUpdateDatabase: (updatedData: {
     orders?: Order[];
@@ -3801,7 +3802,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       <div className="service-glass-card-media h-40 shrink-0 flex items-center justify-center">
                         {svc.imageUrl ? (
                           <img src={svc.imageUrl} alt={svc.title}
-                            className="w-full h-full object-cover rounded-t-[20px]"
+                            className="w-full h-full object-contain rounded-t-[20px]"
                             onError={e => { (e.currentTarget as HTMLImageElement).style.display='none'; }}
                           />
                         ) : (

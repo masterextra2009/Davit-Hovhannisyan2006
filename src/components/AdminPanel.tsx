@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, PaymentConfig } from '../types';
+import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, PaymentConfig, Service } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 import logoImg from '../assets/logo.png';
 import { 
@@ -32,6 +32,7 @@ interface AdminPanelProps {
     orders: Order[];
     chatMessages: ChatMessage[];
     notifications: AppNotification[];
+    services?: Service[];
     paymentConfig?: PaymentConfig;
     siteVisits?: number;
   };
@@ -2752,7 +2753,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         {/* Фото услуги */}
                         <label className="service-glass-card-media relative h-28 mx-2.5 mt-1 rounded-xl shrink-0 cursor-pointer group block">
                           {svc.imageUrl ? (
-                            <img src={svc.imageUrl} alt={svc.title} className="w-full h-full object-cover rounded-xl" />
+                            <img src={svc.imageUrl} alt={svc.title} className="w-full h-full object-contain rounded-xl" />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center gap-1">
                               <span className="text-3xl">{svc.emoji}</span>
