@@ -2603,7 +2603,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               {orderFilter === 'completed' && (
                 <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/15 border border-amber-200/60 dark:border-amber-900/40 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
                   <span>🗑</span>
-                  <span>Выданные заказы хранятся в архиве 5 дней, затем автоматически удаляются из базы вместе с файлами.</span>
+                  <span>Выданные заказы хранятся в архиве 48 часов, затем автоматически удаляются из базы вместе с файлами.</span>
                 </div>
               )}
 

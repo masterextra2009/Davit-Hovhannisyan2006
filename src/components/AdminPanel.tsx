@@ -405,15 +405,15 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   // Archive search — by amount, name, email or date
   const [archiveSearch, setArchiveSearch] = useState('');
 
-  // Авто-удаление выданных заказов через 5 дней после выдачи
+  // Авто-удаление выданных заказов через 48 часов после выдачи
   useEffect(() => {
     const autoDelete = async () => {
       const now = Date.now();
-      const ms5d = 5 * 24 * 60 * 60 * 1000;
+      const ms48h = 48 * 60 * 60 * 1000;
       const toDelete = database.orders.filter(o => {
         if (o.status !== 'printed') return false;
         const t = new Date(o.completedAt || o.orderDate).getTime();
-        return (now - t) > ms5d;
+        return (now - t) > ms48h;
       });
       for (const o of toDelete) {
         try { await deleteOrderFromFirebase(o.id); } catch {}
@@ -2968,7 +2968,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <div className="p-5 space-y-4">
               <div>
                 <h2 className="text-lg font-black text-white">Архив выданных</h2>
-                <p className="text-xs text-white/50 mt-0.5">Заказы удаляются через 5 дней после выдачи</p>
+                <p className="text-xs text-white/50 mt-0.5">Заказы удаляются через 48 часов после выдачи</p>
               </div>
 
               <div className="relative">
