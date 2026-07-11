@@ -3794,13 +3794,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   return (
                     <div
                       key={svc.id}
-                      className="service-glass-card group relative overflow-hidden cursor-pointer select-none flex flex-col"
+                      className="service-glass-card group relative cursor-pointer select-none flex flex-col"
                     >
-                      {/* Картинка сверху */}
-                      <div className="service-glass-card-media h-40 shrink-0 overflow-hidden flex items-center justify-center">
+                      {/* Картинка сверху — намеренно без overflow-hidden, чтобы при
+                          наведении фото вылетало за пределы карточки, как в референсе */}
+                      <div className="service-glass-card-media h-40 shrink-0 flex items-center justify-center">
                         {svc.imageUrl ? (
                           <img src={svc.imageUrl} alt={svc.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover rounded-t-[20px]"
                             onError={e => { (e.currentTarget as HTMLImageElement).style.display='none'; }}
                           />
                         ) : (

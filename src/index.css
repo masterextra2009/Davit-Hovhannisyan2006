@@ -1832,6 +1832,7 @@ body {
 .service-glass-card:hover {
   transform: translateY(-6px) scale(1.02);
   box-shadow: 0 20px 50px rgba(20,30,70,0.2), inset 0 1px 0 rgba(255,255,255,0.7);
+  z-index: 10;
 }
 .dark .service-glass-card {
   background: rgba(255,255,255,0.06);
@@ -1852,19 +1853,34 @@ body {
   background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
 }
 
-/* Картинка/иконка "выходит" из карточки навстречу при наведении —
-   как glassBox__imgBox в референсе (translateY + scale + лёгкий поворот) */
+/* Картинка/иконка "вылетает" из карточки навстречу при наведении —
+   те же значения, что в референсе Услуги.zip (glassBox__imgBox):
+   translate(-20px,-40px) rotate(-15deg) scale(1.4), без обрезки родителем. */
+.service-glass-card-media {
+  transition: transform 0.4s;
+}
 .service-glass-card-media img,
 .service-glass-card-media > div {
+  transition: transform 0.4s;
+  transform-origin: center;
+}
+.service-glass-card:hover .service-glass-card-media {
+  transform: translateY(-50px);
+}
+.service-glass-card:hover .service-glass-card-media img,
+.service-glass-card:hover .service-glass-card-media > div {
+  transform: translate(-20px, -40px) rotate(-15deg) scale(1.4);
+}
+
+/* В админ-редакторе карточка не кликабельная витрина, а ряд настроек —
+   там оставляем прежний, более сдержанный подъём без вылета за края. */
+.service-glass-row .service-glass-card-media img,
+.service-glass-row .service-glass-card-media > div {
   transition: transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
   transform-origin: center;
   transform: scale(1.1);
 }
-.service-glass-card:hover .service-glass-card-media img,
-.service-glass-row:hover .service-glass-card-media img {
-  transform: translateY(-8px) scale(1.18) rotate(-3deg);
-}
-.service-glass-card:hover .service-glass-card-media > div,
+.service-glass-row:hover .service-glass-card-media img,
 .service-glass-row:hover .service-glass-card-media > div {
   transform: translateY(-8px) scale(1.18) rotate(-3deg);
 }
