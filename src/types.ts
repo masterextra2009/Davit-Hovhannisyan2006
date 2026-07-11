@@ -40,12 +40,16 @@ export interface PrintFile {
   pageCount?: number;
   url?: string; // File download URL from Firebase Storage
   previewUrl?: string;
-  paperType?: 'plain' | 'thick' | 'photo';
+  paperType?: 'plain' | 'thick' | 'photo' | 'collage';
   format?: 'a4' | 'a3';
   printColor?: 'bw' | 'color';
   fileCopies?: number;
   photoSize?: string;
   colorFillPercent?: number;
+  // Коллаж из нескольких фото на одном листе А4 — collageCount хранится
+  // только для отображения ("Коллаж А4 · 6 фото"), сама картинка уже
+  // собрана в единое изображение и лежит в url/previewUrl как обычно.
+  collageCount?: number;
 }
 
 export type OrderStatus = 'pending' | 'approved' | 'printing' | 'ready' | 'printed';

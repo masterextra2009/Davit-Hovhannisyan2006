@@ -1084,6 +1084,131 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     });
   };
 
+  // ===== Конструктор коллажа А4 =====
+  // Клиент выбирает уже загруженные фото, они автоматически раскладываются
+  // сеткой на лист(ы) А4 (пока не займут максимум COLLAGE_MAX_PER_SHEET —
+  // дальше начинается следующий лист), рисуются на canvas и отправляются
+  // на сервер как единый файл, как и обычная загрузка.
+  const COLLAGE_SHEET_PRICE = 150;
+  const COLLAGE_MAX_PER_SHEET = 9;
+  const [showCollageBuilder, setShowCollageBuilder] = useState(false);
+  const [collageSelectedIds, setCollageSelectedIds] = useState<string[]>([]);
+  const [collageBuilding, setCollageBuilding] = useState(false);
+
+  const collageEligibleFiles = uploadedFiles.filter(f => f.paperType === 'photo' && f.previewUrl);
+
+  const toggleCollageSelect = (id: string) => {
+    setCollageSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const collageGridFor = (n: number) => {
+    const cols = Math.max(1, Math.ceil(Math.sqrt(n)));
+    const rows = Math.max(1, Math.ceil(n / cols));
+    return { cols, rows };
+  };
+
+  const collageSheets: PrintFile[][] = [];
+  for (let i = 0; i < collageSelectedIds.length; i += COLLAGE_MAX_PER_SHEET) {
+    const ids = collageSelectedIds.slice(i, i + COLLAGE_MAX_PER_SHEET);
+    collageSheets.push(ids.map(id => collageEligibleFiles.find(f => f.id === id)).filter(Boolean) as PrintFile[]);
+  }
+
+  const renderCollageSheet = (files: PrintFile[]): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const W = 1240, H = 1754; // A4 при ~150 dpi
+      const margin = 40, gutter = 20;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas не поддерживается браузером')); return; }
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, W, H);
+
+      const { cols, rows } = collageGridFor(files.length);
+      const cellW = (W - margin * 2 - gutter * (cols - 1)) / cols;
+      const cellH = (H - margin * 2 - gutter * (rows - 1)) / rows;
+
+      const loadImage = (src: string) => new Promise<HTMLImageElement>((res, rej) => {
+        const img = new Image();
+        img.onload = () => res(img);
+        img.onerror = () => rej(new Error('Не удалось загрузить одно из фото'));
+        img.src = src;
+      });
+
+      (async () => {
+        try {
+          for (let i = 0; i < files.length; i++) {
+            const img = await loadImage(files[i].previewUrl!);
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const x = margin + col * (cellW + gutter);
+            const y = margin + row * (cellH + gutter);
+
+            const scale = Math.max(cellW / img.width, cellH / img.height);
+            const drawW = img.width * scale;
+            const drawH = img.height * scale;
+            const dx = x + (cellW - drawW) / 2;
+            const dy = y + (cellH - drawH) / 2;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(x, y, cellW, cellH);
+            ctx.clip();
+            ctx.drawImage(img, dx, dy, drawW, drawH);
+            ctx.restore();
+          }
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob); else reject(new Error('Не удалось собрать изображение'));
+          }, 'image/jpeg', 0.92);
+        } catch (err) {
+          reject(err as Error);
+        }
+      })();
+    });
+  };
+
+  const confirmCollage = async () => {
+    if (collageSheets.length === 0) return;
+    setCollageBuilding(true);
+    const includedIds = new Set(collageSelectedIds);
+    try {
+      for (let s = 0; s < collageSheets.length; s++) {
+        const sheetFiles = collageSheets[s];
+        const blob = await renderCollageSheet(sheetFiles);
+        const fileId = 'collage_' + Date.now() + '_' + s + '_' + Math.floor(Math.random() * 1000);
+        const compositeFile = new File([blob], `Коллаж А4 ${s + 1}.jpg`, { type: 'image/jpeg' });
+        const previewUrl = URL.createObjectURL(blob);
+
+        const newFile: PrintFile = {
+          id: fileId,
+          name: compositeFile.name,
+          size: compositeFile.size,
+          type: 'image/jpeg',
+          uploadedAt: new Date().toISOString(),
+          formatGroup: 'image',
+          pageCount: 1,
+          previewUrl,
+          paperType: 'collage',
+          format: 'a4',
+          fileCopies: 1,
+          collageCount: sheetFiles.length,
+        };
+
+        setUploadedFiles(prev => [...prev, newFile]);
+        uploadFileToFirebaseStorage(compositeFile, fileId);
+      }
+      setUploadedFiles(prev => prev.filter(f => !includedIds.has(f.id)));
+      setShowUploadSuccessAnim(true);
+      setTimeout(() => setShowUploadSuccessAnim(false), 2200);
+      setCollageSelectedIds([]);
+      setShowCollageBuilder(false);
+    } catch (err) {
+      setUploadError('Не удалось собрать коллаж: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setCollageBuilding(false);
+    }
+  };
+
   // Build the order from uploaded files
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1115,16 +1240,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     };
     const subtotal = uploadedFiles.reduce((acc, f) => {
       const isPhotoFile = f.paperType === 'photo';
+      const isCollageFile = f.paperType === 'collage';
       const fileCopies = f.fileCopies || 1;
       const pages = f.pageCount || 1;
       const fillPct = f.colorFillPercent ?? 50;
       const isA3 = f.format === 'a3';
-      const pp = isPhotoFile
+      const pp = isCollageFile
+        ? COLLAGE_SHEET_PRICE
+        : isPhotoFile
         ? (photoSizePrices[f.photoSize || '10x15'] || 20)
         : ((f.printColor || 'bw') === 'bw'
           ? (isA3 ? 100 : 20)
           : (isA3 ? 150 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65)));
-      return acc + pp * (isPhotoFile ? 1 : pages) * fileCopies;
+      return acc + pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies;
     }, 0);
     const totalCost = finalDiscount ? Math.round(subtotal * (1 - finalDiscount / 100)) : subtotal;
 
@@ -1156,7 +1284,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       status: 'pending',
       totalCost: finalTotalCost,
       paymentStatus: 'unpaid',
-      paperType: uploadedFiles[0]?.paperType === 'photo' ? 'glossy' : 'standard',
+      paperType: (uploadedFiles[0]?.paperType === 'photo' || uploadedFiles[0]?.paperType === 'collage') ? 'glossy' : 'standard',
       paperDensity: 'regular',
       printColor: (uploadedFiles[0]?.printColor || 'bw') as 'bw' | 'color' | 'color_full',
       copies: uploadedFiles[0]?.fileCopies || 1,
@@ -2047,15 +2175,25 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 {/* Uploaded Queue Items */}
                 {uploadedFiles.length > 0 && (
                   <div className="space-y-3.5">
-                    <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-950/40 p-3 rounded-2xl">
+                    <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-950/40 p-3 rounded-2xl gap-2 flex-wrap">
                       <span className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">
                         Список к отправке на печать ({uploadedFiles.length})
                       </span>
+                      {collageEligibleFiles.length >= 2 && (
+                        <button
+                          type="button"
+                          onClick={() => { setCollageSelectedIds([]); setShowCollageBuilder(true); }}
+                          className="px-3 py-1.5 rounded-xl bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-300 text-[11px] font-black flex items-center gap-1.5 cursor-pointer transition-colors"
+                        >
+                          <Layers className="w-3.5 h-3.5" /> Собрать в коллаж А4
+                        </button>
+                      )}
                     </div>
 
                     <div className="space-y-3 pr-1">
                       {uploadedFiles.map(file => {
                         const isPhoto = file.paperType === 'photo';
+                        const isCollage = file.paperType === 'collage';
                         const updateFile = (updates: Partial<typeof file>) => {
                           setUploadedFiles(prev => prev.map(f => f.id === file.id ? { ...f, ...updates } : f));
                         };
@@ -2072,11 +2210,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         const pages = file.pageCount || 1;
                         const fillPct = file.colorFillPercent ?? 50;
                         const isA3 = file.format === 'a3';
-                        const filePP = isPhoto ? selSize.price
+                        const filePP = isCollage ? COLLAGE_SHEET_PRICE
+                          : isPhoto ? selSize.price
                           : ((file.printColor || 'bw') === 'bw'
                             ? (isA3 ? 100 : 20)
                             : (isA3 ? 150 : colorFillPrice(fillPct)));
-                        const fileCost = filePP * (isPhoto ? 1 : pages) * copies;
+                        const fileCost = filePP * (isPhoto || isCollage ? 1 : pages) * copies;
 
                         return (
                           <div key={file.id} className="glass-panel rounded-2xl overflow-hidden">
@@ -2091,7 +2230,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                   {formatFileSize(file.size)} · {file.formatGroup.toUpperCase()}
                                   {file.pageCount !== undefined ? ` · ${file.pageCount} стр.` : ' · сканирование...'}
                                   {file.url ? ' · ✓ Загружено' : ' · Загрузка...'}
-                                  {file.colorFillPercent !== undefined && (file.printColor || 'bw') !== 'bw' && !isPhoto && (
+                                  {file.colorFillPercent !== undefined && (file.printColor || 'bw') !== 'bw' && !isPhoto && !isCollage && (
                                     <span className="text-amber-400 font-black ml-1"> · 🎨 {colorFillLabel(file.colorFillPercent)} ({file.colorFillPercent}%)</span>
                                   )}
                                   {file.previewUrl && <span onClick={(e) => { e.stopPropagation(); setPreviewFile(file); }} className="text-indigo-400 font-black ml-1.5 cursor-pointer hover:underline">· 👁 Предпросмотр</span>}
@@ -2106,22 +2245,28 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             {/* Краткая сводка выбранных параметров — можно передумать и открыть
                                 настройку заново, не удаляя и не перезагружая файл. */}
                             <div className="border-t border-white/8 px-3.5 py-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-bold text-white/50">
-                              <span className="px-2 py-1 rounded-lg bg-white/5">{(file.printColor || 'bw') === 'bw' ? '⚪ Ч/Б' : '🔵 Цвет'}</span>
-                              <span className="px-2 py-1 rounded-lg bg-white/5">{isPhoto ? `🖼 Фото ${selSize.label}` : `📄 Обычная · ${(file.format || 'a4').toUpperCase()}`}</span>
-                              <span className="px-2 py-1 rounded-lg bg-white/5">{copies} шт.</span>
-                              <button
-                                type="button"
-                                onClick={() => editUploadedFile(file.id)}
-                                className="ml-auto px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 flex items-center gap-1 cursor-pointer transition-colors"
-                              >
-                                <Sliders className="w-3 h-3" /> Изменить
-                              </button>
+                              {!isCollage && <span className="px-2 py-1 rounded-lg bg-white/5">{(file.printColor || 'bw') === 'bw' ? '⚪ Ч/Б' : '🔵 Цвет'}</span>}
+                              <span className="px-2 py-1 rounded-lg bg-white/5">
+                                {isCollage ? `🖼️ Коллаж А4 · ${file.collageCount || '?'} фото` : isPhoto ? `🖼 Фото ${selSize.label}` : `📄 Обычная · ${(file.format || 'a4').toUpperCase()}`}
+                              </span>
+                              {!isCollage && <span className="px-2 py-1 rounded-lg bg-white/5">{copies} шт.</span>}
+                              {!isCollage && (
+                                <button
+                                  type="button"
+                                  onClick={() => editUploadedFile(file.id)}
+                                  className="ml-auto px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 flex items-center gap-1 cursor-pointer transition-colors"
+                                >
+                                  <Sliders className="w-3 h-3" /> Изменить
+                                </button>
+                              )}
                             </div>
 
                             {/* Стоимость файла */}
                             <div className="px-3.5 pb-3 flex justify-between items-center text-sm text-white/60">
                               <span>
-                                {isPhoto
+                                {isCollage
+                                  ? `Лист А4-коллаж × ${COLLAGE_SHEET_PRICE} ₽`
+                                  : isPhoto
                                   ? `${selSize.label} × ${selSize.price} ₽ × ${copies} шт.`
                                   : `${pages} стр. × ${filePP} ₽${!isA3 && (file.printColor || 'bw') !== 'bw' ? ` (${colorFillLabel(fillPct)}, ${fillPct}% цвета)` : ''} × ${copies} шт.`}
                               </span>
@@ -2438,6 +2583,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         {/* Список файлов с ценами */}
                         {uploadedFiles.map((f, idx) => {
                           const isPhotoFile = f.paperType === 'photo';
+                          const isCollageFile = f.paperType === 'collage';
                           const photoSizes = [
                             { key: '10x15', label: '10×15', price: 20 },
                             { key: 'polaroid', label: 'Полароид', price: 30 },
@@ -2451,11 +2597,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           const pages = f.pageCount || 1;
                           const fillPct = f.colorFillPercent ?? 50;
                           const isA3 = f.format === 'a3';
-                          const pp = isPhotoFile ? selSize.price
+                          const pp = isCollageFile ? COLLAGE_SHEET_PRICE
+                            : isPhotoFile ? selSize.price
                             : ((f.printColor || 'bw') === 'bw'
                               ? (isA3 ? 100 : 20)
                               : (isA3 ? 150 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65)));
-                          const fileCost = pp * (isPhotoFile ? 1 : pages) * fileCopies;
+                          const fileCost = pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies;
                           return (
                             <div key={f.id} className="flex justify-between items-start gap-2 text-white/70">
                               <span className="truncate max-w-[160px] text-white/60">{idx+1}. {f.name}</span>
@@ -2470,6 +2617,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             const activePromo = getActivePromo();
                             const subtotal = uploadedFiles.reduce((acc, f) => {
                               const isPhotoFile = f.paperType === 'photo';
+                              const isCollageFile = f.paperType === 'collage';
                               const photoSizes = [
                                 { key: '10x15', price: 20 }, { key: 'polaroid', price: 30 },
                                 { key: '13x18', price: 50 }, { key: '15x21', price: 70 },
@@ -2480,11 +2628,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               const pages = f.pageCount || 1;
                               const fillPct = f.colorFillPercent ?? 50;
                               const isA3 = f.format === 'a3';
-                              const pp = isPhotoFile ? selSize.price
+                              const pp = isCollageFile ? COLLAGE_SHEET_PRICE
+                                : isPhotoFile ? selSize.price
                                 : ((f.printColor || 'bw') === 'bw'
                                   ? (isA3 ? 100 : 20)
                                   : (isA3 ? 150 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65)));
-                              return acc + pp * (isPhotoFile ? 1 : pages) * fileCopies;
+                              return acc + pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies;
                             }, 0);
                             const discount = activePromo ? getActiveDiscountPercent(activePromo) : 0;
                             const total = Math.round(subtotal * (1 - discount / 100));
@@ -5013,6 +5162,131 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
             </div>
           </div>
+          </motion.div>
+        </div>
+      )}
+
+      {showCollageBuilder && (
+        <div
+          className="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in"
+          onClick={() => !collageBuilding && setShowCollageBuilder(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            onClick={(e) => e.stopPropagation()}
+            className="glass-window w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          >
+            {/* Header */}
+            <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex items-center gap-3 bg-slate-50/50 dark:bg-slate-950/30 shrink-0">
+              <div className="p-2.5 glass-icon-capsule glass-icon-indigo shrink-0">
+                <Layers className="w-5 h-5" />
+              </div>
+              <div className="overflow-hidden flex-1">
+                <h3 className="text-sm font-black text-slate-800 dark:text-white">Конструктор коллажа А4</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Выберите фото — сетка на листе подберётся автоматически
+                </p>
+              </div>
+              {!collageBuilding && (
+                <button
+                  onClick={() => setShowCollageBuilder(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 flex items-center justify-center text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white transition cursor-pointer shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto">
+              {/* Выбор фото */}
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  Фото для коллажа ({collageSelectedIds.length} выбрано)
+                </p>
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
+                  {collageEligibleFiles.map(f => {
+                    const selected = collageSelectedIds.includes(f.id);
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => toggleCollageSelect(f.id)}
+                        className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                          selected ? 'border-indigo-500 ring-2 ring-indigo-500/40 scale-[0.96]' : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                        }`}
+                      >
+                        <img src={f.previewUrl} alt={f.name} className="w-full h-full object-cover" />
+                        {selected && (
+                          <div className="absolute inset-0 bg-indigo-600/25 flex items-center justify-center">
+                            <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center option-selected-pop">
+                              <Check className="w-3.5 h-3.5 text-white" />
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Превью листов */}
+              {collageSheets.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                    Предпросмотр {collageSheets.length > 1 ? `(${collageSheets.length} листа А4)` : '(лист А4)'}
+                  </p>
+                  <div className="flex gap-3 overflow-x-auto pb-1">
+                    {collageSheets.map((sheet, si) => {
+                      const { cols, rows } = collageGridFor(sheet.length);
+                      return (
+                        <div
+                          key={si}
+                          className="shrink-0 bg-white rounded-lg shadow-md p-1.5 border border-slate-200"
+                          style={{ width: 120, height: Math.round(120 * (297 / 210)) }}
+                        >
+                          <div
+                            className="w-full h-full grid gap-1"
+                            style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}
+                          >
+                            {sheet.map(f => (
+                              <div key={f.id} className="bg-slate-100 rounded-xs overflow-hidden">
+                                <img src={f.previewUrl} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 space-y-2.5 shrink-0">
+              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1">
+                <span>{collageSheets.length} {collageSheets.length === 1 ? 'лист' : 'листа'} × {COLLAGE_SHEET_PRICE} ₽</span>
+                <strong className="text-slate-800 dark:text-white text-base">{collageSheets.length * COLLAGE_SHEET_PRICE} ₽</strong>
+              </div>
+              <button
+                type="button"
+                disabled={collageSelectedIds.length < 2 || collageBuilding}
+                onClick={confirmCollage}
+                className="btn-3d-choose w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {collageBuilding ? (
+                  <span className="flex items-center justify-center gap-2"><RefreshCw className="w-4 h-4 animate-spin" /> Собираем коллаж...</span>
+                ) : collageSelectedIds.length < 2 ? (
+                  'Выберите минимум 2 фото'
+                ) : (
+                  `Добавить коллаж — ${collageSheets.length * COLLAGE_SHEET_PRICE} ₽ →`
+                )}
+              </button>
+            </div>
           </motion.div>
         </div>
       )}
