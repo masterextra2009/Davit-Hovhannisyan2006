@@ -2905,7 +2905,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <p className="font-bold text-center">Витрина пуста — нажми «+ Добавить» чтобы создать первую карточку</p>
                     </div>
                   )}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-6 gap-2.5">
                     {(database.services || []).map((svc) => (
                       <div
                         key={svc.id}

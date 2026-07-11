@@ -1976,26 +1976,10 @@ body {
   border-radius: 20px 20px 0 0;
 }
 
-/* Картинка/иконка "вылетает" из карточки навстречу при наведении —
-   те же значения, что в референсе Услуги.zip (glassBox__imgBox):
-   translate(-20px,-40px) rotate(-15deg) scale(1.4), без обрезки родителем.
-   Только в админ-редакторе (.service-glass-row) — чтобы Давид видел
-   эффект при загрузке фото. На клиентской витрине (.service-glass-card)
-   вместо этого теперь 3D-наклон всей карточки + свечение. */
+/* Фото услуги — статичное, без "вылета" при наведении (эффект убран по
+   просьбе Давида и в клиентской витрине, и в админ-редакторе). */
 .service-glass-card-media {
-  transition: transform 0.4s;
-}
-.service-glass-card-media img,
-.service-glass-card-media > div {
-  transition: transform 0.4s;
-  transform-origin: center;
-}
-.service-glass-row:hover .service-glass-card-media {
-  transform: translateY(-50px);
-}
-.service-glass-row:hover .service-glass-card-media img,
-.service-glass-row:hover .service-glass-card-media > div {
-  transform: translate(-20px, -40px) rotate(-15deg) scale(1.4);
+  transition: none;
 }
 
 /* Та же стеклянная заливка, но для строки в админке (без hover-подъёма
