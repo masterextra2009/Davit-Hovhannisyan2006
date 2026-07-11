@@ -263,9 +263,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
   // Admin notification toast
   const [adminToast, setAdminToast] = useState<{type: 'order'|'chat'; text: string} | null>(null);
-  const prevOrdersCount = useRef(database.orders.length);
-  const prevChatCount = useRef(database.chatMessages.length);
-  const isFirstRender = useRef(true);
+  // null = ещё не видели ни одного реального снимка данных из Firestore.
+  // Firestore догружает данные асинхронно уже после первого рендера, поэтому
+  // нельзя просто "пропустить самый первый вызов эффекта" — на тот момент
+  // database.orders ещё может быть пустым массивом-заглушкой, и когда следом
+  // прилетают настоящие (старые) заказы, разница засчитывалась как "новые".
+  const prevOrdersCount = useRef<number | null>(null);
+  const prevChatCount = useRef<number | null>(null);
 
   // Play notification sound
   const playNotifSound = () => {
@@ -286,7 +290,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
   // Watch for new orders and chat messages
   useEffect(() => {
-    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    if (prevOrdersCount.current === null) {
+      prevOrdersCount.current = database.orders.length;
+      return;
+    }
 
     const newOrders = database.orders.length - prevOrdersCount.current;
     if (newOrders > 0) {
@@ -303,7 +310,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   }, [database.orders.length]);
 
   useEffect(() => {
-    if (isFirstRender.current) return;
+    if (prevChatCount.current === null) {
+      prevChatCount.current = database.chatMessages.length;
+      return;
+    }
 
     const newMsgs = database.chatMessages.length - prevChatCount.current;
     if (newMsgs > 0) {
