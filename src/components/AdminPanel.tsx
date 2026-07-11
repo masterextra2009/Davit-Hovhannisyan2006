@@ -1771,7 +1771,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               <div>
                                 {msg.message.startsWith('[STICKER]:') ? (
                                   <div className="msg-sticker">
-                                    <img src={msg.message.substring(10)} className="msg-sticker__img" alt="Стикер" />
+                                    {msg.message.substring(10).endsWith('.webm') ? (
+                                      <video src={msg.message.substring(10)} className="msg-sticker__img" autoPlay loop muted playsInline />
+                                    ) : (
+                                      <img src={msg.message.substring(10)} className="msg-sticker__img" alt="Стикер" />
+                                    )}
                                   </div>
                                 ) : (
                                 <div className="grok-msg-bubble">
