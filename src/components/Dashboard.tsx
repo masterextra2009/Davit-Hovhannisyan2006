@@ -1071,6 +1071,27 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     setUploadedFiles(prev => prev.filter(f => f.id !== id));
   };
 
+  // 3D-наклон карточки услуги вслед за курсором + усиление свечения —
+  // пишем стиль напрямую в DOM (не через React state), чтобы наклон был
+  // плавным на каждый pixel мыши без лишних ре-рендеров.
+  const handleServiceCardTilt = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const rotateX = ((y - rect.height / 2) / (rect.height / 2)) * -10;
+    const rotateY = ((x - rect.width / 2) / (rect.width / 2)) * 12;
+    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-6px)`;
+    const glow = card.querySelector('.service-card-glow') as HTMLElement | null;
+    if (glow) glow.style.opacity = '1';
+  };
+  const handleServiceCardTiltReset = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget;
+    card.style.transform = '';
+    const glow = card.querySelector('.service-card-glow') as HTMLElement | null;
+    if (glow) glow.style.opacity = '0';
+  };
+
   // Клиент ошибся с параметрами уже настроенного файла — возвращаем файл
   // обратно в очередь на настройку и снова открываем ту же модалку
   // "Настройте параметры печати", вместо удаления и повторной загрузки.
@@ -4061,18 +4082,22 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   return (
                     <div
                       key={svc.id}
+                      onMouseMove={handleServiceCardTilt}
+                      onMouseLeave={handleServiceCardTiltReset}
                       className="service-glass-card group relative cursor-pointer select-none flex flex-col"
                     >
                       {/* Картинка сверху — намеренно без overflow-hidden, чтобы при
                           наведении фото вылетало за пределы карточки, как в референсе */}
-                      <div className="service-glass-card-media h-40 shrink-0 flex items-center justify-center">
+                      <div className="service-glass-card-media h-40 shrink-0 flex items-center justify-center relative">
+                        {/* Свечение по центру картинки, усиливается при наклоне мышью */}
+                        <div className="service-card-glow absolute inset-0 pointer-events-none" />
                         {svc.imageUrl ? (
                           <img src={svc.imageUrl} alt={svc.title}
-                            className="w-full h-full object-contain rounded-t-[20px]"
+                            className="w-full h-full object-contain rounded-t-[20px] relative z-10"
                             onError={e => { (e.currentTarget as HTMLImageElement).style.display='none'; }}
                           />
                         ) : (
-                          <div>{get3DIcon(svc.emoji, svc.title)}</div>
+                          <div className="relative z-10">{get3DIcon(svc.emoji, svc.title)}</div>
                         )}
                       </div>
 
@@ -4090,8 +4115,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             setNotes(`Услуга: ${svc.title} — ${svc.price}`);
                             setActiveTab('upload');
                           }}
-                          className="btn-holo-glass w-full mt-auto py-2.5 rounded-[10px] font-bold text-xs cursor-pointer"
-                          style={{ color: '#1e293b' }}
+                          className="btn-3d-choose w-full mt-auto py-2.5 rounded-xl font-black text-xs text-white cursor-pointer"
                         >Заказать →</button>
                       </div>
                     </div>

@@ -2100,21 +2100,41 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     <div className="p-6 overflow-y-auto space-y-4 flex-1">
                       {(() => {
                         const userOrders = database.orders.filter(o => o.userId === selectedUserForFiles.id);
-                        const filesList = userOrders.flatMap(order => 
+                        const filesList = userOrders.flatMap(order =>
                           (order.files || []).map(file => ({ ...file, orderId: order.id, orderStatus: order.status, orderDate: order.orderDate }))
+                        );
+                        const totalPaid = userOrders
+                          .filter(o => o.paymentStatus === 'paid')
+                          .reduce((sum, o) => sum + o.totalCost, 0);
+
+                        const statsRow = (
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-4 bg-slate-50 dark:bg-slate-950/40 border border-slate-150 dark:border-slate-850 rounded-2xl">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Всего заказов</p>
+                              <p className="text-xl font-black text-slate-800 dark:text-white">{userOrders.length}</p>
+                            </div>
+                            <div className="p-4 bg-slate-50 dark:bg-slate-950/40 border border-slate-150 dark:border-slate-850 rounded-2xl">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Оплачено всего</p>
+                              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{totalPaid} ₽</p>
+                            </div>
+                          </div>
                         );
 
                         if (filesList.length === 0) {
                           return (
-                            <div className="text-center py-12 space-y-3">
-                              <FileText className="w-12 h-12 text-slate-350 dark:text-slate-700 mx-auto" />
-                              <p className="text-xs text-slate-400 font-bold">У этого пользователя нет загруженных файлов.</p>
-                            </div>
+                            <>
+                              {statsRow}
+                              <div className="text-center py-12 space-y-3">
+                                <FileText className="w-12 h-12 text-slate-350 dark:text-slate-700 mx-auto" />
+                                <p className="text-xs text-slate-400 font-bold">У этого пользователя нет загруженных файлов.</p>
+                              </div>
+                            </>
                           );
                         }
 
                         return (
                           <div className="space-y-3">
+                            {statsRow}
                             <div className="text-xs text-slate-400 font-bold mb-2">
                               Найдено {filesList.length} файлов в {userOrders.length} заказах:
                             </div>
