@@ -12,7 +12,7 @@ import {
   FileText, Users, Clock, MessageSquare, Download, CheckCircle, 
   Send, RefreshCw, BarChart3, Trash2, Edit3, Save, FileSpreadsheet, 
   Printer, ArrowRight, TrendingUp, DollarSign, Files, Eye, HelpCircle,
-  BellRing, LogOut, FileCheck, Settings, Camera, Image as ImageIcon, Key, CreditCard, Check, ShieldAlert, X, ShieldCheck, Gift, Search, Archive, ChevronLeft, Mail, Phone, User as UserIconLucide
+  BellRing, LogOut, FileCheck, Settings, Camera, Image as ImageIcon, Key, CreditCard, Check, ShieldAlert, X, ShieldCheck, Gift, Search, Archive, ChevronLeft, Mail, Phone, User as UserIconLucide, Upload
 } from 'lucide-react';
 import { 
   formatFileSize, formatDateTime, getStatusLabel, 
@@ -446,6 +446,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     description: '',
     price: '',
     imageUrl: '',
+    iconUrl: '',
   });
   const [newServiceUploading, setNewServiceUploading] = useState(false);
 
@@ -469,6 +470,40 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     }
   };
 
+  const handleNewServiceIconUpload = async (file: File) => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    try {
+      const res = await fetch('https://sever-18.ru/api/service-upload.php', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.url) {
+        setNewServiceForm(f => ({ ...f, iconUrl: data.url }));
+      }
+    } catch {
+      alert('Ошибка загрузки иконки');
+    }
+  };
+
+  const handleExistingServiceIconUpload = async (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    try {
+      const res = await fetch('https://sever-18.ru/api/service-upload.php', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.url) {
+        handleUpdateService(id, 'iconUrl', data.url);
+      }
+    } catch {
+      alert('Ошибка загрузки иконки');
+    }
+  };
+
   const handleCreateService = () => {
     const newId = `svc_${Date.now()}`;
     const newService = {
@@ -478,13 +513,14 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       price: newServiceForm.price.trim() || '0 ₽',
       emoji: newServiceForm.emoji || '🖨️',
       ...(newServiceForm.imageUrl ? { imageUrl: newServiceForm.imageUrl } : {}),
+      ...(newServiceForm.iconUrl ? { iconUrl: newServiceForm.iconUrl } : {}),
       category: 'print',
       isActive: true,
       order: (database.services?.length || 0) + 1,
     };
     setDoc(doc(db, 'services', newId), newService).catch(console.error);
     setShowAddServiceModal(false);
-    setNewServiceForm({ emoji: '🖨️', title: '', description: '', price: '', imageUrl: '' });
+    setNewServiceForm({ emoji: '🖨️', title: '', description: '', price: '', imageUrl: '', iconUrl: '' });
   };
 
   const handleUpdateService = (id: string, field: string, value: any) => {
@@ -2972,7 +3008,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             <img src={svc.imageUrl} alt={svc.title} className="w-full h-full object-contain rounded-xl" />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-                              <span className="text-3xl">{svc.emoji}</span>
+                              {svc.iconUrl ? (
+                                <img src={svc.iconUrl} alt="" className="w-10 h-10 object-contain" />
+                              ) : (
+                                <span className="text-3xl">{svc.emoji}</span>
+                              )}
                               <span className="text-[9px] text-white/30 font-bold text-center leading-tight">загрузить фото</span>
                             </div>
                           )}
@@ -3006,14 +3046,45 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
                         <div className="p-2.5 pt-2 space-y-1.5">
                           <div className="flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              defaultValue={svc.emoji}
-                              onBlur={(e) => handleUpdateService(svc.id, 'emoji', e.target.value)}
-                              aria-label="Эмодзи услуги"
-                              className="w-8 shrink-0 text-center text-base bg-transparent border border-white/10 rounded-lg p-1 focus:outline-none focus:border-indigo-400"
-                              maxLength={2}
-                            />
+                            <div className="relative w-8 h-8 shrink-0">
+                              {svc.iconUrl ? (
+                                <img src={svc.iconUrl} alt="" className="w-full h-full object-contain border border-white/10 rounded-lg" />
+                              ) : (
+                                <input
+                                  type="text"
+                                  defaultValue={svc.emoji}
+                                  onBlur={(e) => handleUpdateService(svc.id, 'emoji', e.target.value)}
+                                  aria-label="Эмодзи услуги"
+                                  className="w-full h-full text-center text-base bg-transparent border border-white/10 rounded-lg p-1 focus:outline-none focus:border-indigo-400"
+                                  maxLength={2}
+                                />
+                              )}
+                              <label
+                                title={svc.iconUrl ? 'Заменить свою иконку' : 'Загрузить свою иконку'}
+                                className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center cursor-pointer shadow-sm"
+                              >
+                                <Upload className="w-2 h-2 text-white" />
+                                <input
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleExistingServiceIconUpload(svc.id, file);
+                                  }}
+                                />
+                              </label>
+                              {svc.iconUrl && (
+                                <button
+                                  type="button"
+                                  title="Убрать свою иконку"
+                                  onClick={() => handleUpdateService(svc.id, 'iconUrl', '')}
+                                  className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-rose-500 hover:bg-rose-600 flex items-center justify-center cursor-pointer"
+                                >
+                                  <X className="w-2 h-2 text-white" />
+                                </button>
+                              )}
+                            </div>
                             <input
                               type="text"
                               defaultValue={svc.title}
@@ -3095,14 +3166,45 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       </label>
 
                       <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={newServiceForm.emoji}
-                          onChange={(e) => setNewServiceForm(f => ({ ...f, emoji: e.target.value }))}
-                          aria-label="Эмодзи услуги"
-                          className="w-12 shrink-0 text-center text-lg bg-transparent border border-slate-200 dark:border-white/10 rounded-lg p-2 focus:outline-none focus:border-indigo-400"
-                          maxLength={2}
-                        />
+                        <div className="relative w-12 h-11 shrink-0">
+                          {newServiceForm.iconUrl ? (
+                            <img src={newServiceForm.iconUrl} alt="" className="w-full h-full object-contain border border-slate-200 dark:border-white/10 rounded-lg" />
+                          ) : (
+                            <input
+                              type="text"
+                              value={newServiceForm.emoji}
+                              onChange={(e) => setNewServiceForm(f => ({ ...f, emoji: e.target.value }))}
+                              aria-label="Эмодзи услуги"
+                              className="w-full h-full text-center text-lg bg-transparent border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:border-indigo-400"
+                              maxLength={2}
+                            />
+                          )}
+                          <label
+                            title={newServiceForm.iconUrl ? 'Заменить свою иконку' : 'Загрузить свою иконку'}
+                            className="absolute -bottom-1.5 -right-1.5 w-5 h-5 rounded-full bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center cursor-pointer shadow-sm"
+                          >
+                            <Upload className="w-2.5 h-2.5 text-white" />
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleNewServiceIconUpload(file);
+                              }}
+                            />
+                          </label>
+                          {newServiceForm.iconUrl && (
+                            <button
+                              type="button"
+                              title="Убрать свою иконку"
+                              onClick={() => setNewServiceForm(f => ({ ...f, iconUrl: '' }))}
+                              className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-500 hover:bg-rose-600 flex items-center justify-center cursor-pointer"
+                            >
+                              <X className="w-2.5 h-2.5 text-white" />
+                            </button>
+                          )}
+                        </div>
                         <input
                           type="text"
                           value={newServiceForm.title}

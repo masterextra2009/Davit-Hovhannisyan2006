@@ -4173,6 +4173,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             className="w-full h-full object-contain rounded-t-[20px] relative z-10"
                             onError={e => { (e.currentTarget as HTMLImageElement).style.display='none'; }}
                           />
+                        ) : svc.iconUrl ? (
+                          <img src={svc.iconUrl} alt={svc.title} className="w-16 h-16 object-contain relative z-10" />
                         ) : (
                           <div className="relative z-10">{get3DIcon(svc.emoji, svc.title)}</div>
                         )}

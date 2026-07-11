@@ -123,6 +123,7 @@ export interface Service {
   price: string;
   emoji: string;
   imageUrl?: string;
+  iconUrl?: string;
   category: string;
   isActive: boolean;
   order: number;
