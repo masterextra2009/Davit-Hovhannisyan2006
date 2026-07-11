@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, PaymentConfig, Service } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
@@ -619,11 +619,17 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     }
   }, [activeChatUserId, database.chatMessages.length]);
 
-  // Scroll chat operator window
-  useEffect(() => {
-    if (activeTab === 'chat' && chatBottomRef.current) {
-      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+  // Scroll chat operator window — instant (not smooth) so it opens already at
+  // the latest message instead of visibly scrolling down to find it. A delayed
+  // re-scroll catches sticker/photo messages that load asynchronously and grow
+  // the list's height right after the first scroll.
+  useLayoutEffect(() => {
+    if (activeTab !== 'chat' || !chatBottomRef.current) return;
+    chatBottomRef.current.scrollIntoView({ behavior: 'auto' });
+    const t = setTimeout(() => {
+      chatBottomRef.current?.scrollIntoView({ behavior: 'auto' });
+    }, 400);
+    return () => clearTimeout(t);
   }, [activeTab, activeChatUserId, database.chatMessages.length]);
 
   // Order print status modifier

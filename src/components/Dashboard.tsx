@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { User, Order, ChatMessage, Notification, PrintFile, FileFormatGroup, PaymentStatus, OrderStatus, Service } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
@@ -779,7 +779,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // and grow the list's height after the first scroll, so a single scrollIntoView
   // right on tab-open can land short of the real bottom — re-scroll once more
   // shortly after to catch that late layout shift.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (activeTab !== 'chat' || !chatBottomRef.current) return;
     chatBottomRef.current.scrollIntoView({ behavior: 'auto' });
     const t = setTimeout(() => {
