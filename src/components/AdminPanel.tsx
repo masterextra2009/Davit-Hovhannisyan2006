@@ -2586,7 +2586,110 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
               </div>
 
-              {/* Services Showcase Manager */}
+              {/* Status Alert and Central Save Button */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 glass-panel rounded-3xl">
+                <div>
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Сохранить общие настройки системы</h4>
+                  <p className="text-[10px] text-slate-400 mt-1">Все изменения вступят в силу мгновенно и синхронизируются с удаленным сервером и вашим СБП-шлюзом.</p>
+                </div>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-end">
+                  {saveSuccess && (
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-1.5 rounded-xl border border-emerald-200/50 flex items-center gap-1.5 animate-pulse">
+                      <Check className="w-4 h-4" /> Настройки сохранены!
+                    </span>
+                  )}
+                  
+                  <button
+                    onClick={handleSaveSettings}
+                    disabled={savingSettings}
+                    className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 w-full sm:w-auto justify-center ${
+                      savingSettings
+                        ? 'bg-indigo-400 text-white cursor-not-allowed shadow-none'
+                        : 'btn-holo-glass text-slate-900 cursor-pointer'
+                    }`}
+                  >
+                    {savingSettings ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Синхронизация...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>Применить изменения</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CUSTOM DELETE CONFIRMATION MODAL */}
+          {userToDelete && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fade-in">
+              <div
+                className="glass-window max-w-md w-full p-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-3 text-rose-600 dark:text-rose-450 mb-4">
+                  <div className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded-2xl border border-rose-100/50 dark:border-rose-900/35">
+                    <Trash2 className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">Подтверждение удаления</h3>
+                    <p className="text-[10px] text-slate-400 font-bold">Это действие абсолютно необратимо</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 my-4">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-semibold">
+                    Вы действительно хотите безвозвратно удалить аккаунт клиента <strong className="text-slate-900 dark:text-slate-100">{userToDelete.fullName}</strong> (<span className="font-mono text-xs text-rose-600">{userToDelete.email}</span>)?
+                    <p className="mt-2 text-rose-600 dark:text-rose-400 font-bold">
+                      &bull; Будут навсегда стерты все его заказы, чат-логи и уведомления в базе данных.
+                    </p>
+                  </div>
+                  {deleteError && (
+                    <div className="p-3 bg-rose-50 dark:bg-rose-950/20 text-xs font-bold text-rose-600 border border-rose-200/50 rounded-xl leading-relaxed">
+                      {deleteError}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setUserToDelete(null)}
+                    disabled={isDeletingUser}
+                    className="flex-1 py-3 border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 rounded-2xl text-xs font-bold transition hover:bg-slate-50 dark:hover:bg-slate-900"
+                  >
+                    Отменить
+                  </button>
+                  <button
+                    onClick={confirmDeleteUser}
+                    disabled={isDeletingUser}
+                    className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 shadow-lg shadow-rose-600/10 disabled:opacity-50"
+                  >
+                    {isDeletingUser ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Удаление...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        <span>Удалить полностью</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── SERVICES TAB ── */}
+          {activeTab === 'services' && (
+            <div className="p-5 space-y-5">
               <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
@@ -2707,105 +2810,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
-
-              {/* Status Alert and Central Save Button */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 glass-panel rounded-3xl">
-                <div>
-                  <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Сохранить общие настройки системы</h4>
-                  <p className="text-[10px] text-slate-400 mt-1">Все изменения вступят в силу мгновенно и синхронизируются с удаленным сервером и вашим СБП-шлюзом.</p>
-                </div>
-
-                <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-end">
-                  {saveSuccess && (
-                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-1.5 rounded-xl border border-emerald-200/50 flex items-center gap-1.5 animate-pulse">
-                      <Check className="w-4 h-4" /> Настройки сохранены!
-                    </span>
-                  )}
-                  
-                  <button
-                    onClick={handleSaveSettings}
-                    disabled={savingSettings}
-                    className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 w-full sm:w-auto justify-center ${
-                      savingSettings
-                        ? 'bg-indigo-400 text-white cursor-not-allowed shadow-none'
-                        : 'btn-holo-glass text-slate-900 cursor-pointer'
-                    }`}
-                  >
-                    {savingSettings ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Синхронизация...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4" />
-                        <span>Применить изменения</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* CUSTOM DELETE CONFIRMATION MODAL */}
-          {userToDelete && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fade-in">
-              <div
-                className="glass-window max-w-md w-full p-6"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center gap-3 text-rose-600 dark:text-rose-450 mb-4">
-                  <div className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded-2xl border border-rose-100/50 dark:border-rose-900/35">
-                    <Trash2 className="w-6 h-6 animate-pulse" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">Подтверждение удаления</h3>
-                    <p className="text-[10px] text-slate-400 font-bold">Это действие абсолютно необратимо</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3 my-4">
-                  <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-semibold">
-                    Вы действительно хотите безвозвратно удалить аккаунт клиента <strong className="text-slate-900 dark:text-slate-100">{userToDelete.fullName}</strong> (<span className="font-mono text-xs text-rose-600">{userToDelete.email}</span>)?
-                    <p className="mt-2 text-rose-600 dark:text-rose-400 font-bold">
-                      &bull; Будут навсегда стерты все его заказы, чат-логи и уведомления в базе данных.
-                    </p>
-                  </div>
-                  {deleteError && (
-                    <div className="p-3 bg-rose-50 dark:bg-rose-950/20 text-xs font-bold text-rose-600 border border-rose-200/50 rounded-xl leading-relaxed">
-                      {deleteError}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={() => setUserToDelete(null)}
-                    disabled={isDeletingUser}
-                    className="flex-1 py-3 border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 rounded-2xl text-xs font-bold transition hover:bg-slate-50 dark:hover:bg-slate-900"
-                  >
-                    Отменить
-                  </button>
-                  <button
-                    onClick={confirmDeleteUser}
-                    disabled={isDeletingUser}
-                    className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 shadow-lg shadow-rose-600/10 disabled:opacity-50"
-                  >
-                    {isDeletingUser ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Удаление...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 className="w-4 h-4" />
-                        <span>Удалить полностью</span>
-                      </>
-                    )}
-                  </button>
                 </div>
               </div>
             </div>
