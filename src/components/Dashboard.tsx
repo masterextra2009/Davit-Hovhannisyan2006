@@ -2602,6 +2602,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                           {/* Order Status Badges indicators */}
                           <div className="flex flex-wrap items-center gap-2">
+                            {ord.rejected && (
+                              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">
+                                ⚠ Брак
+                              </span>
+                            )}
                             <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${getStatusColor(ord.status)}`}>
                               {getStatusLabel(ord.status)}
                             </span>
@@ -2610,6 +2615,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             </span>
                           </div>
                         </div>
+
+                        {ord.rejected && (
+                          <div className="px-5 py-3 bg-rose-50 dark:bg-rose-950/15 border-b border-rose-100 dark:border-rose-900/40 flex items-start gap-2.5">
+                            <span className="text-base shrink-0">⚠️</span>
+                            <div>
+                              <p className="text-[11px] font-black text-rose-700 dark:text-rose-400 uppercase tracking-wide">Заказ не может быть выполнен</p>
+                              <p className="text-xs text-rose-600 dark:text-rose-300 mt-0.5">{ord.rejectionReason}</p>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Order Status Stepper — mirrors admin's stage pills, read-only for client */}
                         {(

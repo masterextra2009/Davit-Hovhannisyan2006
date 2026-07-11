@@ -73,6 +73,11 @@ export interface Order {
   binding?: 'none' | 'staple' | 'file' | 'spring_plastic' | 'spring_metal' | 'hard_cover';
   promoCode?: string;
   promoDiscount?: number;
+  // Брак / отказ — независим от основного статуса, т.к. заказ может быть
+  // забракован на любой стадии, а не только в конце линейного процесса.
+  rejected?: boolean;
+  rejectionReason?: string;
+  rejectedAt?: string;
 }
 
 export interface ChatMessage {

@@ -103,6 +103,70 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   // Admin ENTIRE ORDER deletion state
   const [orderToConfirmDelete, setOrderToConfirmDelete] = useState<string | null>(null);
 
+  // Order rejection ("Брак") state — which order's reason box is open, and its draft text
+  const [rejectingOrderId, setRejectingOrderId] = useState<string | null>(null);
+  const [rejectionReasonDraft, setRejectionReasonDraft] = useState('');
+
+  const handleRejectOrder = (orderId: string, reason: string) => {
+    const targetOrder = database.orders.find(o => o.id === orderId);
+    if (!targetOrder || !reason.trim()) return;
+
+    const updatedOrders = database.orders.map(o =>
+      o.id === orderId
+        ? { ...o, rejected: true, rejectionReason: reason.trim(), rejectedAt: new Date().toISOString() }
+        : o
+    );
+
+    const newNotification: AppNotification = {
+      id: 'notif_reject_' + Date.now(),
+      userId: targetOrder.userId,
+      title: 'Заказ отклонён',
+      body: `Заказ ${orderId} не может быть выполнен: ${reason.trim()}`,
+      timestamp: new Date().toISOString(),
+      read: false,
+      type: 'order_status'
+    };
+
+    const systemChat: ChatMessage = {
+      id: 'c_sys_reject_' + Date.now(),
+      userId: targetOrder.userId,
+      senderId: adminUser.id,
+      senderRole: 'admin',
+      senderName: 'Авто-статус Копи-Центра',
+      message: `Заказ ${orderId}: Брак — ${reason.trim()}`,
+      timestamp: new Date().toISOString(),
+      readByAdmin: true,
+      readByClient: false
+    };
+
+    onUpdateDatabase({
+      orders: updatedOrders,
+      notifications: [newNotification, ...database.notifications],
+      chatMessages: [...database.chatMessages, systemChat]
+    });
+
+    fetch('https://sever-18.ru/api/telegram_notify.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: targetOrder.userId,
+        text: `⚠️ <b>Фото-Север</b>\n\nЗаказ ${orderId} отклонён: <b>${reason.trim()}</b>`
+      })
+    }).catch(() => {});
+
+    setRejectingOrderId(null);
+    setRejectionReasonDraft('');
+  };
+
+  const handleUnrejectOrder = (orderId: string) => {
+    const updatedOrders = database.orders.map(o =>
+      o.id === orderId
+        ? { ...o, rejected: false, rejectionReason: undefined, rejectedAt: undefined }
+        : o
+    );
+    onUpdateDatabase({ orders: updatedOrders });
+  };
+
   const handleAdminDeleteFileFromOrder = async (orderId: string, fileId: string) => {
     const order = database.orders.find(o => o.id === orderId);
     if (!order) return;
@@ -1322,6 +1386,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-2 items-center">
+                              {order.rejected && (
+                                <span className="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">
+                                  ⚠ Брак
+                                </span>
+                              )}
                               <span className={`text-[10px] uppercase font-bold px-2 px-2.5 py-0.5 rounded-md ${getStatusColor(order.status)}`}>
                                 {getStatusLabel(order.status)}
                               </span>
@@ -1381,6 +1450,53 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               );
                             })}
                           </div>
+
+                          {/* Row 3: Брак (reject) — независимо от стадии, т.к. брак может случиться на любом шаге */}
+                          {order.rejected ? (
+                            <div className="flex items-start gap-2 p-2.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40 rounded-xl">
+                              <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase shrink-0 mt-0.5">Причина брака:</span>
+                              <p className="text-[11px] text-rose-700 dark:text-rose-300 flex-1">{order.rejectionReason}</p>
+                              <button
+                                onClick={() => handleUnrejectOrder(order.id)}
+                                className="text-[9px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline shrink-0 cursor-pointer"
+                              >
+                                Отменить
+                              </button>
+                            </div>
+                          ) : rejectingOrderId === order.id ? (
+                            <div className="flex flex-col gap-1.5 p-2.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40 rounded-xl">
+                              <textarea
+                                autoFocus
+                                value={rejectionReasonDraft}
+                                onChange={e => setRejectionReasonDraft(e.target.value)}
+                                placeholder="Почему заказ не может быть выполнен? Клиент увидит этот текст."
+                                className="w-full p-2 text-[11px] bg-white dark:bg-slate-950 border border-rose-200 dark:border-rose-900/50 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 resize-none"
+                                rows={2}
+                              />
+                              <div className="flex gap-2 justify-end">
+                                <button
+                                  onClick={() => { setRejectingOrderId(null); setRejectionReasonDraft(''); }}
+                                  className="px-2.5 py-1 text-[10px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                                >
+                                  Отмена
+                                </button>
+                                <button
+                                  onClick={() => handleRejectOrder(order.id, rejectionReasonDraft)}
+                                  disabled={!rejectionReasonDraft.trim()}
+                                  className="px-3 py-1 text-[10px] font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg cursor-pointer transition"
+                                >
+                                  Отклонить заказ
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => { setRejectingOrderId(order.id); setRejectionReasonDraft(''); }}
+                              className="self-start text-[10px] font-bold text-rose-500/70 hover:text-rose-600 flex items-center gap-1 cursor-pointer"
+                            >
+                              ⚠ Брак / отклонить заказ
+                            </button>
+                          )}
                         </div>
 
                         {/* Mid Section - Files queue list */}
