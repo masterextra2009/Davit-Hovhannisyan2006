@@ -231,6 +231,21 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     script.setAttribute('data-onauth', 'onTelegramAuthCallback(user)');
     script.setAttribute('data-request-access', 'write');
     container.appendChild(script);
+
+    // Виджет вставляет свой iframe асинхронно уже после монтирования — в момент
+    // вставки он на первый кадр игнорирует opacity:0 родителя и на секунду
+    // проступает поверх нашей стилизованной кнопки. Ставим прозрачность прямо
+    // на сам iframe, как только он появится, а не только на контейнер.
+    const observer = new MutationObserver(() => {
+      const iframe = container.querySelector('iframe');
+      if (iframe) {
+        iframe.style.opacity = '0';
+        observer.disconnect();
+      }
+    });
+    observer.observe(container, { childList: true });
+
+    return () => observer.disconnect();
   }, []);
 
   // Simulate Social network logins (VK/Яндекс — pending real integration)
@@ -574,7 +589,10 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
 
                 <div className="relative w-full h-[46px] flex justify-center items-center rounded-full overflow-hidden">
                   {/* Видимая кнопка в стиле "Войти в кабинет" — только оформление, клики сквозь неё не ловим */}
-                  <div className="btn-holo-glass absolute inset-0 flex justify-center items-center gap-2 px-3 rounded-full text-xs font-bold text-slate-900 pointer-events-none">
+                  <div
+                    className="btn-holo-glass absolute inset-0 flex justify-center items-center gap-2 px-3 rounded-full text-xs font-bold text-slate-900 pointer-events-none"
+                    style={{ position: 'absolute' }}
+                  >
                     {socialLoading === 'telegram' ? (
                       <span className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-blue-600 animate-spin" />
                     ) : (
