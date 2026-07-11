@@ -28,7 +28,7 @@ import {
   increment
 } from './firebase';
 import type { User as FirebaseAuthUser } from 'firebase/auth';
-import { User, Order, ChatMessage, Notification, DatabaseState } from './types';
+import { User, Order, ChatMessage, Notification, Service, DatabaseState } from './types';
 
 // На нестабильной (особенно мобильной) сети запрос может зависнуть без ошибки
 // и без ответа — обрываем его по таймауту, чтобы UI не застревал навсегда.
@@ -596,7 +596,17 @@ export function subscribeToFirebaseCollections(
   });
   unsubscribes.push(unsubAlerts);
 
-  // 5. Listen to Site Visit Stats (admin only — public writes, admin-only reads)
+  // 5. Listen to Services Showcase (visible to any signed-in user, editable by admin only)
+  const unsubServices = onSnapshot(collection(db, 'services'), (snap) => {
+    const services: Service[] = [];
+    snap.forEach(doc => services.push(doc.data() as Service));
+    onSync({ services: services.sort((a, b) => a.order - b.order) });
+  }, (err) => {
+    handleFirestoreError(err, OperationType.LIST, 'services');
+  });
+  unsubscribes.push(unsubServices);
+
+  // 6. Listen to Site Visit Stats (admin only — public writes, admin-only reads)
   if (isAdminUser) {
     const unsubStats = onSnapshot(doc(db, 'stats', 'visits'), (docSnap) => {
       if (docSnap.exists()) {

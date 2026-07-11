@@ -106,11 +106,24 @@ export interface PaymentConfig {
   instructions?: string;
 }
 
+export interface Service {
+  id: string;
+  title: string;
+  description: string;
+  price: string;
+  emoji: string;
+  imageUrl?: string;
+  category: string;
+  isActive: boolean;
+  order: number;
+}
+
 export interface DatabaseState {
   users: User[];
   orders: Order[];
   chatMessages: ChatMessage[];
   notifications: Notification[];
+  services?: Service[];
   paymentConfig?: PaymentConfig;
   siteVisits?: number;
   siteVisitsHistory?: { date: string; count: number }[];

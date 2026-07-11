@@ -66,6 +66,13 @@ service cloud.firestore {
       allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
+    // Витрина услуг в личном кабинете клиента — читают все вошедшие
+    // пользователи, редактирует только админ.
+    match /services/{serviceId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // Публичный счётчик посещений сайта — единственный документ, куда
     // разрешена запись БЕЗ входа в аккаунт (чтобы считать анонимных посетителей).
     // Запись ограничена только полями total/history с числовым total, чтобы
