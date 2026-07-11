@@ -1518,9 +1518,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             )}
             <div className={`glass-icon-capsule capsule-glow-indigo shrink-0 relative ${activeTab === 'orders' ? 'scale-105' : 'opacity-90'}`}>
               <Clock className="w-4.5 h-4.5 text-white icon-3d-svg" />
-              {userOrders.filter(o => o.status !== 'printed').length > 0 && (
+              {userOrders.some(o => o.status === 'ready') ? (
+                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-emerald-500 z-10 animate-pulse border border-white shadow-[0_0_6px_2px_rgba(16,185,129,0.55)]" />
+              ) : userOrders.some(o => o.status !== 'printed') ? (
                 <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-[#ef4444] z-10 animate-ping border border-white" />
-              )}
+              ) : null}
             </div>
             <span className="hidden sm:inline z-10">Мои Заказы</span>
           </button>
