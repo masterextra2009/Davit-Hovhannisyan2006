@@ -580,13 +580,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     };
 
     // Auto append a helpful chat notification
+    const shortStatusLabels: Record<OrderStatus, string> = {
+      pending: 'Принят',
+      approved: 'Одобрен',
+      printing: 'Печать',
+      ready: 'Готов',
+      printed: 'Выдан'
+    };
     const systemChat: ChatMessage = {
       id: 'c_sys_' + Date.now(),
       userId: targetOrder.userId,
       senderId: adminUser.id,
       senderRole: 'admin',
       senderName: 'Авто-статус Копи-Центра',
-      message: `Статус вашего печатного заказа ${orderId} изменен на: [${getStatusLabel(newStatus).toUpperCase()}]. Благодарим, что вы с нами!`,
+      message: `Заказ ${orderId}: ${shortStatusLabels[newStatus]}`,
       timestamp: new Date().toISOString(),
       readByAdmin: true,
       readByClient: false
@@ -599,7 +606,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     });
 
     // Уведомляем клиента в Telegram, если он его подключил — доходит, даже если сайт закрыт
-    fetch('https://www.sever-18.ru/api/telegram_notify.php', {
+    fetch('https://sever-18.ru/api/telegram_notify.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -641,7 +648,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     try {
       // Формируем ссылку через download.php — принудительное скачивание
       const urlPath = file.url.replace(/https?:\/\/(www\.)?sever-18\.ru\//, '');
-      const downloadUrl = `https://www.sever-18.ru/api/download.php?file=${encodeURIComponent(urlPath)}&name=${encodeURIComponent(file.name)}`;
+      const downloadUrl = `https://sever-18.ru/api/download.php?file=${encodeURIComponent(urlPath)}&name=${encodeURIComponent(file.name)}`;
 
       const link = document.createElement('a');
       link.href = downloadUrl;
@@ -680,7 +687,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             let fetchUrl = file.url;
             if (file.url.includes('sever-18.ru/uploads/')) {
               const urlPath = file.url.replace(/https?:\/\/(www\.)?sever-18\.ru\//, '');
-              fetchUrl = `https://www.sever-18.ru/api/download.php?file=${encodeURIComponent(urlPath)}&name=${encodeURIComponent(file.name)}`;
+              fetchUrl = `https://sever-18.ru/api/download.php?file=${encodeURIComponent(urlPath)}&name=${encodeURIComponent(file.name)}`;
             }
             const res = await fetch(fetchUrl);
             if (res.ok) {
@@ -749,7 +756,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     // Отправляем Telegram-уведомление клиенту если он подключил Telegram
     const client = database.users.find(u => u.id === activeChatUserId);
     if (client?.telegramChatId || client?.telegramUsername) {
-      fetch('https://www.sever-18.ru/api/telegram_notify.php', {
+      fetch('https://sever-18.ru/api/telegram_notify.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -785,7 +792,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
     const client = database.users.find(u => u.id === activeChatUserId);
     if (client?.telegramChatId || client?.telegramUsername) {
-      fetch('https://www.sever-18.ru/api/telegram_notify.php', {
+      fetch('https://sever-18.ru/api/telegram_notify.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

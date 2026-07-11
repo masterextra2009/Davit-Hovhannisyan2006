@@ -456,7 +456,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
       // Сохраняем код на сервере
       await withTimeout(
-        fetch('https://www.sever-18.ru/api/telegram_link.php', {
+        fetch('https://sever-18.ru/api/telegram_link.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code, userId: user.id })
@@ -1371,7 +1371,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     });
 
     // Уведомляем администратора в Telegram о новом сообщении от клиента
-    fetch('https://www.sever-18.ru/api/telegram_admin_notify.php', {
+    fetch('https://sever-18.ru/api/telegram_admin_notify.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1543,8 +1543,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 transition={{ type: 'spring', stiffness: 380, damping: 30 }}
               />
             )}
-            <div className={`glass-icon-capsule capsule-glow-green shrink-0 relative ${activeTab === 'chat' ? 'scale-105' : 'opacity-90'}`}>
-              <MessageSquare className="w-4.5 h-4.5 text-white icon-3d-svg" />
+            <div className="relative shrink-0">
+              <div className={`glass-icon-capsule capsule-glow-green ${activeTab === 'chat' ? 'scale-105' : 'opacity-90'}`}>
+                <MessageSquare className="w-4.5 h-4.5 text-white icon-3d-svg" />
+              </div>
               {unreadChatsCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 animate-bounce border border-white shadow-md">
                   {unreadChatsCount}
@@ -1680,7 +1682,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/50 backdrop-blur-md relative z-10">
         
         {/* Top bar on small / medium devices for header */}
-        <header id="dashboard-header" className="md:hidden flex items-center justify-between px-4 py-3 glass-panel">
+        <header id="dashboard-header" className="md:hidden flex items-center justify-between px-4 py-3 glass-panel rounded-2xl">
           <div className="flex items-center gap-2">
             {activeTab !== 'upload' ? (
               <button
@@ -1710,7 +1712,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </div>
         </header>
 
-        <header className="hidden md:flex items-center justify-between px-8 py-5 glass-panel">
+        <header className="hidden md:flex items-center justify-between px-8 py-5 glass-panel rounded-2xl">
           <div className="flex items-center gap-4">
             {activeTab !== 'upload' && (
               <button
@@ -2576,6 +2578,56 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             </span>
                           </div>
                         </div>
+
+                        {/* Order Status Stepper — mirrors admin's stage pills, read-only for client */}
+                        {(
+                          <div className="px-5 pt-4 pb-2 border-b border-slate-150 dark:border-slate-800/80 bg-white/40 dark:bg-slate-900/20">
+                            <div className="flex items-start">
+                              {[
+                                { id: 'pending', label: 'Проверка' },
+                                { id: 'approved', label: 'Одобрен' },
+                                { id: 'printing', label: 'Печать' },
+                                { id: 'ready', label: 'Готовность' },
+                                { id: 'printed', label: 'Выдан' },
+                              ].map((stage, idx, arr) => {
+                                const stages = ['pending', 'approved', 'printing', 'ready', 'printed'];
+                                const currentIdx = stages.indexOf(ord.status);
+                                const isLastStage = idx === arr.length - 1;
+                                const isPast = idx < currentIdx || (idx === currentIdx && isLastStage);
+                                const isCurrent = idx === currentIdx && !isLastStage;
+                                return (
+                                  <React.Fragment key={stage.id}>
+                                    <div className="flex flex-col items-center gap-1.5 shrink-0 w-14">
+                                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black border-2 transition-all ${
+                                        isPast
+                                          ? 'bg-emerald-500 border-emerald-500 text-white'
+                                          : isCurrent
+                                          ? 'bg-indigo-600 border-indigo-600 text-white animate-pulse shadow-lg shadow-indigo-500/30'
+                                          : 'bg-slate-100 dark:bg-slate-850 border-slate-200 dark:border-slate-700 text-slate-400'
+                                      }`}>
+                                        {isPast ? <Check className="w-3.5 h-3.5" /> : idx + 1}
+                                      </div>
+                                      <span className={`text-[9px] font-bold uppercase tracking-tight text-center leading-tight ${
+                                        isCurrent
+                                          ? 'text-indigo-600 dark:text-indigo-400'
+                                          : isPast
+                                          ? 'text-emerald-600 dark:text-emerald-400'
+                                          : 'text-slate-400'
+                                      }`}>
+                                        {stage.label}
+                                      </span>
+                                    </div>
+                                    {idx < arr.length - 1 && (
+                                      <div className={`flex-1 h-0.5 mx-0.5 mt-3.5 rounded-full transition-all ${
+                                        idx < currentIdx ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'
+                                      }`} />
+                                    )}
+                                  </React.Fragment>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Mid Section - Files & Notes */}
                         <div className="p-5 space-y-4">
