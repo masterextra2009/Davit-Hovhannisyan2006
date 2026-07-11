@@ -1689,6 +1689,31 @@ body {
   }
 }
 
+/* Анимированный подарок в открытке промокода — вместо внешней (иногда не
+   грузящейся) картинки: пульсирующее свечение, покачивающаяся коробка,
+   парящее конфетти. */
+.gift-box-bounce {
+  animation: gift-box-bounce 2.2s ease-in-out infinite;
+}
+@keyframes gift-box-bounce {
+  0%, 100% { transform: translate(-50%, -50%) rotate(-4deg) scale(1); }
+  50% { transform: translate(-50%, -46%) rotate(4deg) scale(1.06); }
+}
+.gift-glow-ring {
+  animation: gift-glow-ring 2.4s ease-in-out infinite;
+}
+@keyframes gift-glow-ring {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.9); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+}
+.gift-confetti-float {
+  animation: gift-confetti-float 2.8s ease-in-out infinite;
+}
+@keyframes gift-confetti-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
+  50% { transform: translateY(-10px) rotate(15deg); opacity: 1; }
+}
+
 /* Будущие шаги — серые */
 .stage-pill-future {
   color: rgba(30,41,59,0.25) !important;

@@ -4824,30 +4824,45 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             transition={{ type: 'spring', damping: 25, stiffness: 180 }}
             className="glass-window overflow-hidden max-w-md w-full relative flex flex-col"
           >
-            {/* Christmas/Gift Ribbon Visual Banner */}
-            <div className="h-44 relative overflow-hidden bg-slate-100 dark:bg-slate-950">
-              <img 
-                src="https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=600&auto=format&fit=crop" 
-                alt="Подарочная упаковка" 
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
-              
+            {/* Christmas/Gift Ribbon Visual Banner — built from CSS/emoji instead of an
+                external Unsplash image, which was silently failing to load and leaving
+                this whole banner blank. */}
+            <div className="h-44 relative overflow-hidden" style={{ background: 'radial-gradient(circle at 50% 40%, rgba(99,102,241,0.35), rgba(15,15,25,0.95) 70%)' }}>
+              {/* Glow rings pulsing behind the gift box */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full bg-indigo-500/25 blur-xl gift-glow-ring" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full border border-indigo-400/20 gift-glow-ring" style={{ animationDelay: '0.6s' }} />
+
+              {/* Centered animated gift box */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl gift-box-bounce" style={{ filter: 'drop-shadow(0 8px 20px rgba(99,102,241,0.5))' }}>
+                🎁
+              </div>
+
+              {/* Floating confetti/sparkle particles */}
+              <div className="absolute top-6 left-8 text-lg gift-confetti-float">🎉</div>
+              <div className="absolute top-10 right-10 text-base gift-confetti-float" style={{ animationDelay: '0.8s' }}>✨</div>
+              <div className="absolute top-20 left-14 text-sm gift-confetti-float" style={{ animationDelay: '1.4s' }}>🎊</div>
+              <div className="absolute top-8 right-20 text-sm gift-confetti-float" style={{ animationDelay: '0.3s' }}>⭐</div>
+
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/10 to-transparent"></div>
+
               <div className="absolute bottom-4 left-5 right-5 flex justify-between items-end">
                 <span className="bg-emerald-500 text-white text-[10px] uppercase font-black px-2.5 py-1 rounded-full border border-emerald-400/40 tracking-wider">
                   Персональный Подарок 🎁
                 </span>
                 <span className="font-mono text-xs text-white/70 font-semibold">Копи-точка А4 / А3</span>
               </div>
+            </div>
 
-              {/* Floating absolute decorative absolute shapes */}
-              <div className="absolute top-3 left-4 text-xl animate-bounce">🎁</div>
-              <div className="absolute top-2 right-4 text-lg animate-bounce delay-150">🎉</div>
+            {/* Circular seal badge straddling the banner/body seam — a nod to the
+                gift-card reference's overlapping icon badge. */}
+            <div className="relative z-10 flex justify-center -mt-6">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 border-4 border-white dark:border-slate-900 shadow-lg shadow-indigo-500/30 flex items-center justify-center text-xl">
+                🎁
+              </div>
             </div>
 
             {/* Postcard Body */}
-            <div className="p-6 sm:p-8 space-y-5 text-center">
+            <div className="p-6 sm:p-8 pt-3 space-y-5 text-center">
               <div className="space-y-1.5">
                 <h3 className="text-lg font-black text-slate-850 dark:text-white uppercase tracking-wider font-sans">
                   Праздничная Открытка!
