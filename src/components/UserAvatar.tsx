@@ -56,6 +56,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         <img
           src={avatarUrl}
           alt={fullName}
+          loading="lazy"
           className="w-full h-full object-cover origin-center select-none"
           style={{
             transform: `scale(${user?.avatarScale ?? 1}) translate(${user?.avatarX ?? 0}px, ${user?.avatarY ?? 0}px)`,

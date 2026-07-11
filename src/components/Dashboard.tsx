@@ -2496,9 +2496,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                     // True Uploaded Image Preview
                                     <div className="absolute inset-0 p-1 flex flex-col justify-between bg-white dark:bg-slate-900 rounded-xl overflow-hidden">
                                       <div className="w-full h-[82%] relative rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-950 flex items-center justify-center">
-                                        <img 
-                                          src={uploadedFiles[0].previewUrl || uploadedFiles[0].url} 
-                                          className="w-full h-full object-cover" 
+                                        <img
+                                          src={uploadedFiles[0].previewUrl || uploadedFiles[0].url}
+                                          loading="lazy"
+                                          className="w-full h-full object-cover"
                                           alt={uploadedFiles[0].name}
                                           referrerPolicy="no-referrer"
                                         />
@@ -3272,7 +3273,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               {msg.message.substring(10).endsWith('.webm') ? (
                                 <video src={msg.message.substring(10)} className="msg-sticker__img" autoPlay loop muted playsInline />
                               ) : (
-                                <img src={msg.message.substring(10)} className="msg-sticker__img" alt="Стикер" />
+                                <img src={msg.message.substring(10)} loading="lazy" className="msg-sticker__img" alt="Стикер" />
                               )}
                             </div>
                           ) : (
@@ -3287,6 +3288,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               <div className="space-y-1 my-0.5">
                                 <img
                                   src={msg.message.substring(8)}
+                                  loading="lazy"
                                   className="rounded-xl max-w-[200px] sm:max-w-xs cursor-pointer hover:opacity-90 shadow-sm border border-slate-200 dark:border-slate-800"
                                   alt="Пример готового продукта"
                                 />
@@ -3470,7 +3472,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 editAvatarUrl === urlPreset ? 'border-indigo-600 scale-105 shadow-md' : 'border-transparent hover:scale-102'
                               }`}
                             >
-                              <img src={urlPreset} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              <img src={urlPreset} alt="" loading="lazy" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                             </button>
                           ))}
                         </div>
@@ -4170,11 +4172,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         <div className="service-card-glow absolute inset-0 pointer-events-none" />
                         {svc.imageUrl ? (
                           <img src={svc.imageUrl} alt={svc.title}
+                            loading="lazy"
                             className="w-full h-full object-contain rounded-t-[20px] relative z-10"
                             onError={e => { (e.currentTarget as HTMLImageElement).style.display='none'; }}
                           />
                         ) : svc.iconUrl ? (
-                          <img src={svc.iconUrl} alt={svc.title} className="w-16 h-16 object-contain relative z-10" />
+                          <img src={svc.iconUrl} alt={svc.title} loading="lazy" className="w-16 h-16 object-contain relative z-10" />
                         ) : (
                           <div className="relative z-10">{get3DIcon(svc.emoji, svc.title)}</div>
                         )}
@@ -5375,7 +5378,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           selected ? 'border-indigo-500 ring-2 ring-indigo-500/40 scale-[0.96]' : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
                         }`}
                       >
-                        <img src={f.previewUrl} alt={f.name} className="w-full h-full object-cover" />
+                        <img src={f.previewUrl} alt={f.name} loading="lazy" className="w-full h-full object-cover" />
                         {selected && (
                           <div className="absolute inset-0 bg-indigo-600/25 flex items-center justify-center">
                             <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center option-selected-pop">

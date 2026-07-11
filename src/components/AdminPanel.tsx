@@ -1845,7 +1845,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                     {msg.message.substring(10).endsWith('.webm') ? (
                                       <video src={msg.message.substring(10)} className="msg-sticker__img" autoPlay loop muted playsInline />
                                     ) : (
-                                      <img src={msg.message.substring(10)} className="msg-sticker__img" alt="Стикер" />
+                                      <img src={msg.message.substring(10)} loading="lazy" className="msg-sticker__img" alt="Стикер" />
                                     )}
                                   </div>
                                 ) : (
@@ -1854,6 +1854,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                     <div className="space-y-1 text-left">
                                       <img
                                         src={msg.message.substring(8)}
+                                        loading="lazy"
                                         className="rounded-xl max-w-[200px] sm:max-w-xs cursor-pointer hover:opacity-90"
                                         alt="Пример готового продукта"
                                         onClick={() => {
@@ -2810,7 +2811,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               adminAvatarUrl === pUrl ? 'border-[#6366f1] scale-110' : 'border-transparent opacity-80'
                             }`}
                           >
-                            <img src={pUrl} alt="Preset icon" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            <img src={pUrl} alt="Preset icon" loading="lazy" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           </button>
                         ))}
                       </div>
@@ -3005,11 +3006,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         <label className="service-glass-card-media relative h-28 mx-2.5 mt-1 rounded-xl shrink-0 cursor-pointer group block">
                           <div className="service-card-glow absolute inset-0 pointer-events-none rounded-xl" />
                           {svc.imageUrl ? (
-                            <img src={svc.imageUrl} alt={svc.title} className="w-full h-full object-contain rounded-xl" />
+                            <img src={svc.imageUrl} alt={svc.title} loading="lazy" className="w-full h-full object-contain rounded-xl" />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center gap-1">
                               {svc.iconUrl ? (
-                                <img src={svc.iconUrl} alt="" className="w-10 h-10 object-contain" />
+                                <img src={svc.iconUrl} alt="" loading="lazy" className="w-10 h-10 object-contain" />
                               ) : (
                                 <span className="text-3xl">{svc.emoji}</span>
                               )}
@@ -3048,7 +3049,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           <div className="flex items-center gap-1.5">
                             <div className="relative w-8 h-8 shrink-0">
                               {svc.iconUrl ? (
-                                <img src={svc.iconUrl} alt="" className="w-full h-full object-contain border border-white/10 rounded-lg" />
+                                <img src={svc.iconUrl} alt="" loading="lazy" className="w-full h-full object-contain border border-white/10 rounded-lg" />
                               ) : (
                                 <input
                                   type="text"

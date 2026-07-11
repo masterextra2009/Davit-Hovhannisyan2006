@@ -136,13 +136,16 @@ export function LandingPage({ onEnter }: LandingPageProps) {
         >
           <div className="relative w-full max-w-[320px] rounded-[32px] overflow-hidden shadow-2xl border border-white/20 glass-card">
             <video
-              src="/hero-demo.mp4"
               autoPlay
               loop
               muted
               playsInline
+              preload="metadata"
               className="w-full h-auto block"
-            />
+            >
+              <source src="/hero-demo.webm" type="video/webm" />
+              <source src="/hero-demo.mp4" type="video/mp4" />
+            </video>
           </div>
         </motion.div>
       </section>
