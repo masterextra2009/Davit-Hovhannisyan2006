@@ -4474,11 +4474,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 {/* Рамка — с белыми полями или край-в-край, только для фотобумаги */}
                 {isPhoto && (
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Печать</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Печать</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug mb-2">
+                      Если пропорции фото не совпадают с размером бумаги: «без рамки» обрежет края фото, «с рамкой» покажет фото целиком с белыми полями.
+                    </p>
                     <div className="grid grid-cols-2 gap-2.5">
                       {([
-                        { key: 'borderless', label: 'Без рамки', sub: 'край-в-край' },
-                        { key: 'bordered', label: 'С рамкой', sub: 'белые поля' },
+                        { key: 'borderless', label: 'Без рамки', sub: 'может обрезать края' },
+                        { key: 'bordered', label: 'С рамкой', sub: 'видно всё фото' },
                       ] as const).map(opt => {
                         const selected = (file.photoBorder || 'borderless') === opt.key;
                         return (
@@ -4494,7 +4497,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
                               </div>
                             )}
-                            <div className={`w-12 h-16 rounded-md overflow-hidden border border-slate-300 dark:border-slate-600 ${opt.key === 'bordered' ? 'bg-white p-1.5' : 'bg-slate-200 dark:bg-slate-700'}`}>
+                            <div className={`w-20 h-28 rounded-sm overflow-hidden border border-slate-300 dark:border-slate-600 shadow-sm ${opt.key === 'bordered' ? 'bg-white p-2' : 'bg-slate-200 dark:bg-slate-700'}`}>
                               {file.previewUrl ? (
                                 <img
                                   src={file.previewUrl}
@@ -4545,7 +4548,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </div>
 
               {/* Footer */}
-              <div className="p-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 space-y-2.5 shrink-0">
+              <div className="p-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2.5 shrink-0">
                 <button
                   type="button"
                   disabled={!canConfirm}
