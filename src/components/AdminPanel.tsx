@@ -1137,7 +1137,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const activeChatClient = clientsOnly.find(u => u.id === activeChatUserId);
 
   return (
-    <div id="admin-dashboard-root" className="liquid-glass-bg h-dvh text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative">
+    <div id="admin-dashboard-root" className="liquid-glass-bg h-dvh overflow-hidden text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative">
       
       {/* Admin notification toast */}
       {adminToast && (
