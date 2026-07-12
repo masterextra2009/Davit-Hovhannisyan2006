@@ -2237,7 +2237,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full md:overflow-y-auto md:flex-1 min-h-0 pr-1"
+                className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1"
               >
                 
                 {/* Interactive Step Timeline Indicator */}
@@ -2949,7 +2949,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="space-y-6 w-full md:overflow-y-auto md:flex-1 min-h-0 pr-1"
+                className="space-y-6 w-full md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1"
               >
               
               {/* Filter controls and top line */}
@@ -3380,7 +3380,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </div>
 
               {/* Chat Messages Log */}
-              <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto bg-slate-50/30 dark:bg-slate-950/10 chat-message-log">
+              <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto overscroll-contain bg-slate-50/30 dark:bg-slate-950/10 chat-message-log">
               <div ref={chatContentRef} className="space-y-4">
                 {userChats.length === 0 ? (
                   <div className="h-full flex flex-col justify-center items-center text-center p-8">
@@ -3520,7 +3520,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="space-y-6 w-full md:overflow-y-auto md:flex-1 min-h-0 pr-1"
+                className="space-y-6 w-full md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1"
               >
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3964,7 +3964,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.22 }}
-            className="space-y-5 pb-8 md:overflow-y-auto md:flex-1 min-h-0 pr-1 w-full overflow-x-hidden"
+            className="space-y-5 pb-8 md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1 w-full overflow-x-hidden"
           >
             <div className="mb-6 max-w-2xl mx-auto text-center">
               <h2 className="text-xl font-black text-white mb-1">Контакты студии</h2>
@@ -4052,7 +4052,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.22 }}
-            className="space-y-5 pb-8 md:overflow-y-auto md:flex-1 min-h-0 pr-1 w-full overflow-x-hidden"
+            className="space-y-5 pb-8 md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1 w-full overflow-x-hidden"
           >
             <div className="mb-6 max-w-4xl mx-auto text-center">
               <h2 className="text-xl font-black text-white mb-1">Наши услуги</h2>
@@ -4238,7 +4238,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             </div>
 
             {/* Content area */}
-            <div className="p-4 md:p-6 overflow-y-auto flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-950/20 min-h-[260px]">
+            <div className="p-4 md:p-6 overflow-y-auto overscroll-contain flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-950/20 min-h-[260px]">
               {previewFile.type.startsWith('image/') || previewFile.formatGroup === 'image' ? (
                 <img
                   src={previewFile.previewUrl || previewFile.url}
@@ -4697,7 +4697,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             </div>
 
             {/* Content area splitting into Canvas on left, controls on right */}
-            <div className="flex-1 overflow-y-auto p-5 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 bg-slate-50/40 dark:bg-slate-950/20">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-5 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 bg-slate-50/40 dark:bg-slate-950/20">
               
               {/* Left Panel: 3D stage with zero blur, maximum size and detailed textures */}
               <div className="lg:col-span-7 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-950 dark:to-slate-900 rounded-3xl border border-slate-200/60 dark:border-slate-850/50 p-6 flex flex-col justify-between relative min-h-[380px] md:min-h-[460px] overflow-hidden shadow-inner">

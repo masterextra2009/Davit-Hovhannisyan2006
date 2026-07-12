@@ -1450,7 +1450,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         </header>
 
         {/* WORKSPACE CONTENT AREA */}
-        <div className="flex-1 p-4 md:p-8 space-y-6 overflow-y-auto max-w-6xl w-full mx-auto">
+        <div className="flex-1 p-4 md:p-8 space-y-6 overflow-y-auto overscroll-contain max-w-6xl w-full mx-auto">
           
           {/* TAB 1: ALL ORDERS AND FILES DOWNLOADS */}
           {activeTab === 'orders' && (
@@ -2268,7 +2268,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     </div>
 
                     {/* Modal Scrollable Content */}
-                    <div className="p-6 overflow-y-auto space-y-4 flex-1">
+                    <div className="p-6 overflow-y-auto overscroll-contain space-y-4 flex-1">
                       {(() => {
                         const userOrders = database.orders.filter(o => o.userId === selectedUserForFiles.id);
                         const filesList = userOrders.flatMap(order =>
@@ -2664,7 +2664,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               <div className="glass-panel rounded-3xl p-6 md:p-8">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-450 block mb-4">Журнал последних банковских транзакций (PCI-DSS)</span>
                 
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-60 overflow-y-auto overscroll-contain pr-1">
                   {database.orders
                     .filter(o => o.paymentStatus === 'paid')
                     .map(payLog => (
@@ -3126,7 +3126,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       </button>
                     </div>
 
-                    <div className="p-5 space-y-4 overflow-y-auto">
+                    <div className="p-5 space-y-4 overflow-y-auto overscroll-contain">
                       {/* Фото — пропорции 1:1 с реальной карточкой услуги у клиента (h-40,
                           во всю ширину), чтобы превью точно показывало итоговый вид */}
                       <div>
