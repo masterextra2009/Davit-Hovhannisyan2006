@@ -78,7 +78,7 @@ service cloud.firestore {
       allow update: if isSignedIn() && (
         isAdmin() ||
         (resource.data.userId == request.auth.uid &&
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['files', 'totalCost', 'rating', 'ratingComment']))
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['files', 'totalCost', 'rating', 'ratingComment', 'transactionId']))
       );
       // Клиент может удалить свой собственный заказ, только пока он ещё
       // неоплачен и не взят в обработку (pending) — не даёт скрыть
