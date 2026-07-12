@@ -529,11 +529,34 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     }
   }, [activeConfigFileId, pendingUploads]);
 
-  const confirmFileConfig = (fileId: string) => {
+  // Сбрасываем чекбокс "применить ко всем" при переходе к следующему файлу очереди
+  const [applyToAllPending, setApplyToAllPending] = useState(false);
+  useEffect(() => {
+    setApplyToAllPending(false);
+  }, [activeConfigFileId]);
+
+  const confirmFileConfig = (fileId: string, applyToAllPhotos: boolean = false) => {
     const file = pendingUploads.find(f => f.id === fileId);
     if (!file) return;
-    setPendingUploads(prev => prev.filter(f => f.id !== fileId));
-    setUploadedFiles(prev => [...prev, file]);
+    // Массовая настройка: клиент загрузил много фото разом (например 30 штук)
+    // и не хочет открывать модалку для каждого — применяем параметры текущего
+    // фото ко всем остальным фото в очереди одним действием.
+    if (applyToAllPhotos && file.paperType === 'photo') {
+      const settings = {
+        paperType: file.paperType,
+        photoSize: file.photoSize,
+        photoBorder: file.photoBorder,
+        printColor: file.printColor,
+        fileCopies: file.fileCopies,
+      };
+      const toConfirm = pendingUploads.filter(f => f.formatGroup === 'image');
+      const rest = pendingUploads.filter(f => f.formatGroup !== 'image');
+      setUploadedFiles(prev => [...prev, ...toConfirm.map(f => ({ ...f, ...settings }))]);
+      setPendingUploads(rest);
+    } else {
+      setPendingUploads(prev => prev.filter(f => f.id !== fileId));
+      setUploadedFiles(prev => [...prev, file]);
+    }
     setActiveConfigFileId(null);
   };
 
@@ -4557,6 +4580,22 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </div>
                 )}
 
+                {/* Массовое применение — когда клиент разом загрузил много фото
+                    (например 30 штук), не заставляем настраивать каждое отдельно */}
+                {isPhoto && pendingUploads.filter(f => f.id !== file.id && f.formatGroup === 'image').length > 0 && (
+                  <label className="flex items-center gap-2.5 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/25 border border-indigo-200/50 dark:border-indigo-900/40 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={applyToAllPending}
+                      onChange={(e) => setApplyToAllPending(e.target.checked)}
+                      className="w-4 h-4 accent-indigo-600 cursor-pointer shrink-0"
+                    />
+                    <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                      Применить эти настройки ко всем {pendingUploads.filter(f => f.formatGroup === 'image').length} фото сразу
+                    </span>
+                  </label>
+                )}
+
                 {/* Копии */}
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Копий</p>
@@ -4592,10 +4631,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <button
                   type="button"
                   disabled={!canConfirm}
-                  onClick={() => confirmFileConfig(file.id)}
+                  onClick={() => confirmFileConfig(file.id, applyToAllPending)}
                   className="btn-3d-choose w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Выбрать →
+                  {applyToAllPending ? `Применить ко всем и продолжить →` : 'Выбрать →'}
                 </button>
                 <button
                   type="button"
