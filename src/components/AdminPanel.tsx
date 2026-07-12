@@ -327,12 +327,16 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   // Admin notification toast
   const [adminToast, setAdminToast] = useState<{type: 'order'|'chat'; text: string} | null>(null);
   // null = ещё не видели ни одного реального снимка данных из Firestore.
-  // Firestore догружает данные асинхронно уже после первого рендера, поэтому
-  // нельзя просто "пропустить самый первый вызов эффекта" — на тот момент
-  // database.orders ещё может быть пустым массивом-заглушкой, и когда следом
-  // прилетают настоящие (старые) заказы, разница засчитывалась как "новые".
-  const prevOrdersCount = useRef<number | null>(null);
-  const prevChatCount = useRef<number | null>(null);
+  // Firestore догружает данные асинхронно уже после первого рендера — на тот
+  // момент database.orders/chatMessages ещё может быть пустым массивом-
+  // заглушкой, и когда следом прилетают настоящие (старые) записи, простое
+  // сравнение количества "было/стало" ошибочно засчитывало их как новые —
+  // отсюда баг "при каждом входе всплывает уведомление о старом сообщении".
+  // Вместо счётчика сравниваем время создания записи с моментом монтирования
+  // компонента и не даём одному и тому же ID уведомить дважды.
+  const mountTimeRef = useRef(Date.now());
+  const notifiedOrderIdsRef = useRef(new Set<string>());
+  const notifiedChatIdsRef = useRef(new Set<string>());
 
   // Play notification sound
   const playNotifSound = () => {
@@ -353,15 +357,12 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
   // Watch for new orders and chat messages
   useEffect(() => {
-    if (prevOrdersCount.current === null) {
-      prevOrdersCount.current = database.orders.length;
-      return;
-    }
-
-    const newOrders = database.orders.length - prevOrdersCount.current;
-    if (newOrders > 0) {
-      const latest = database.orders[0];
-      const msg = `📦 Новый заказ от ${latest?.userName || 'клиента'}`;
+    const latest = database.orders[0];
+    if (!latest) return;
+    const createdAt = new Date(latest.orderDate).getTime();
+    if (createdAt > mountTimeRef.current && !notifiedOrderIdsRef.current.has(latest.id)) {
+      notifiedOrderIdsRef.current.add(latest.id);
+      const msg = `📦 Новый заказ от ${latest.userName || 'клиента'}`;
       setAdminToast({ type: 'order', text: msg });
       playNotifSound();
       if ('Notification' in window && Notification.permission === 'granted') {
@@ -369,30 +370,23 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       }
       setTimeout(() => setAdminToast(null), 5000);
     }
-    prevOrdersCount.current = database.orders.length;
-  }, [database.orders.length]);
+  }, [database.orders]);
 
   useEffect(() => {
-    if (prevChatCount.current === null) {
-      prevChatCount.current = database.chatMessages.length;
-      return;
-    }
-
-    const newMsgs = database.chatMessages.length - prevChatCount.current;
-    if (newMsgs > 0) {
-      const latest = database.chatMessages[database.chatMessages.length - 1];
-      if (latest?.senderRole === 'client') {
-        const msg = `💬 Новое сообщение от ${latest.senderName}`;
-        setAdminToast({ type: 'chat', text: msg });
-        playNotifSound();
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Фото-Север', { body: msg, icon: '/logo-192.png' });
-        }
-        setTimeout(() => setAdminToast(null), 5000);
+    const latest = database.chatMessages[database.chatMessages.length - 1];
+    if (!latest || latest.senderRole !== 'client') return;
+    const sentAt = new Date(latest.timestamp).getTime();
+    if (sentAt > mountTimeRef.current && !notifiedChatIdsRef.current.has(latest.id)) {
+      notifiedChatIdsRef.current.add(latest.id);
+      const msg = `💬 Новое сообщение от ${latest.senderName}`;
+      setAdminToast({ type: 'chat', text: msg });
+      playNotifSound();
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Фото-Север', { body: msg, icon: '/logo-192.png' });
       }
+      setTimeout(() => setAdminToast(null), 5000);
     }
-    prevChatCount.current = database.chatMessages.length;
-  }, [database.chatMessages.length]);
+  }, [database.chatMessages]);
 
   // Gift Promo Code state
   const [promoGiftUser, setPromoGiftUser] = useState<User | null>(null);
