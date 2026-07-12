@@ -54,7 +54,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
           src={avatarUrl}
           alt={fullName}
           loading="lazy"
-          className="w-full h-full object-contain select-none"
+          className="w-full h-full object-cover select-none"
           referrerPolicy="no-referrer"
           onError={() => setImgFailed(true)}
         />

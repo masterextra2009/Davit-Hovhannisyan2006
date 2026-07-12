@@ -2505,6 +2505,17 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         })()}
                       </p>
                       <div className="text-[10px] text-slate-400">Сегодня • Всего: {database.siteVisits || 0}</div>
+                      <div className="text-[10px] text-slate-400">
+                        {(() => {
+                          const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+                          const now = new Date();
+                          const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                          const monthTotal = (database.siteVisitsHistory || [])
+                            .filter((h: any) => h.date.startsWith(monthPrefix))
+                            .reduce((sum: number, h: any) => sum + (h.count || 0), 0);
+                          return `За ${MONTH_NAMES[now.getMonth()]}: ${monthTotal}`;
+                        })()}
+                      </div>
                     </div>
                     <div className="p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-500 rounded-2xl">
                       <Users className="w-5 h-5" />
