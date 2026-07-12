@@ -672,6 +672,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [chatInput, setChatInput] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const chatContentRef = useRef<HTMLDivElement>(null);
 
   // Notification states
   const [pushConsent, setPushConsent] = useState<'default' | 'granted' | 'denied'>(() => {
@@ -806,21 +808,32 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const unreadChatsCount = userChats.filter(c => c.senderRole === 'admin' && !c.readByClient).length;
   const unreadNotificationsCount = userNotifications.filter(n => !n.read).length;
 
-  // Auto-scroll chat to bottom. Stickers/photos in messages load asynchronously
-  // and grow the list's height after the first scroll, so a single scrollIntoView
-  // right on tab-open can land short of the real bottom — re-scroll once more
-  // shortly after to catch that late layout shift.
+  // Auto-scroll chat to bottom. Раньше это делалось фиксированными таймерами
+  // (400/1000/2000мс) — угадывание задержки ненадёжно: стикеры (webm-видео) и
+  // Firestore-подписка догружаются с непредсказуемой скоростью, и на плохой
+  // сети открытие чата всё равно показывало середину истории, а не низ.
+  // ResizeObserver реагирует на РЕАЛЬНОЕ изменение высоты списка сообщений —
+  // сколько бы времени ни заняла загрузка, скролл к низу сработает сразу же,
+  // как только контент фактически вырастет.
   useLayoutEffect(() => {
-    if (activeTab !== 'chat' || !chatBottomRef.current) return;
-    chatBottomRef.current.scrollIntoView({ behavior: 'auto' });
-    // Стикеры — это webm-видео, которые грузятся заметно дольше картинок,
-    // поэтому один повтор через 400мс не всегда успевал — добавлены ещё два
-    // более поздних повтора, чтобы догнать даже медленную сеть.
-    const timers = [400, 1000, 2000].map(delay => setTimeout(() => {
-      chatBottomRef.current?.scrollIntoView({ behavior: 'auto' });
-    }, delay));
-    return () => timers.forEach(clearTimeout);
-  }, [activeTab, userChats.length]);
+    if (activeTab !== 'chat') return;
+    const container = chatContainerRef.current;
+    const content = chatContentRef.current;
+    if (!container || !content) return;
+
+    const scrollToBottom = () => {
+      container.scrollTop = container.scrollHeight;
+    };
+    scrollToBottom();
+
+    // Наблюдаем за ВНУТРЕННИМ контейнером сообщений (растёт вместе с
+    // контентом), а не за внешним прокручиваемым — у внешнего своя
+    // фиксированная высота (flex-1), она не меняется при добавлении
+    // сообщений, поэтому ResizeObserver на нём никогда бы не сработал.
+    const observer = new ResizeObserver(scrollToBottom);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [activeTab]);
 
   // Авто-удаление уведомлений старше 48 часов — тот же принцип, что и у
   // архива выданных заказов в админке: журнал уведомлений это просто лог
@@ -3354,7 +3367,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </div>
 
               {/* Chat Messages Log */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/30 dark:bg-slate-950/10 chat-message-log">
+              <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto bg-slate-50/30 dark:bg-slate-950/10 chat-message-log">
+              <div ref={chatContentRef} className="space-y-4">
                 {userChats.length === 0 ? (
                   <div className="h-full flex flex-col justify-center items-center text-center p-8">
                     <div className="bg-slate-100 dark:bg-slate-900 w-14 h-14 rounded-full flex items-center justify-center text-slate-400 mb-3">
@@ -3445,6 +3459,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   })
                 )}
                 <div ref={chatBottomRef} />
+              </div>
               </div>
 
               {/* Chat inputs panel */}
