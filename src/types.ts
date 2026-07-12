@@ -11,9 +11,6 @@ export interface User {
   createdAt: string;
   phone?: string;
   avatarUrl?: string;
-  avatarScale?: number;
-  avatarX?: number;
-  avatarY?: number;
   isSocial?: boolean;
   isOnline?: boolean;
   lastActiveAt?: string;

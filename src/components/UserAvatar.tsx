@@ -4,9 +4,6 @@ interface UserAvatarProps {
   user?: {
     fullName?: string;
     avatarUrl?: string;
-    avatarScale?: number;
-    avatarX?: number;
-    avatarY?: number;
   } | null;
   className?: string; // e.g. "w-9 h-9"
   fallbackText?: string;
@@ -52,15 +49,12 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 
   if (hasValidUrl && !imgFailed) {
     return (
-      <div className={`${className} overflow-hidden shrink-0 relative ${shapeClass}`}>
+      <div className={`${className} overflow-hidden shrink-0 relative bg-slate-100 dark:bg-slate-800 ${shapeClass}`}>
         <img
           src={avatarUrl}
           alt={fullName}
           loading="lazy"
-          className="w-full h-full object-cover origin-center select-none"
-          style={{
-            transform: `scale(${user?.avatarScale ?? 1}) translate(${user?.avatarX ?? 0}px, ${user?.avatarY ?? 0}px)`,
-          }}
+          className="w-full h-full object-contain select-none"
           referrerPolicy="no-referrer"
           onError={() => setImgFailed(true)}
         />

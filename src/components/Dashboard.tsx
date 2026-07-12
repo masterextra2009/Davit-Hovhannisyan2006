@@ -347,9 +347,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [editFullName, setEditFullName] = useState(user.fullName);
   const [editPhone, setEditPhone] = useState(user.phone || '');
   const [editAvatarUrl, setEditAvatarUrl] = useState(user.avatarUrl || '');
-  const [editAvatarScale, setEditAvatarScale] = useState(user.avatarScale || 1);
-  const [editAvatarX, setEditAvatarX] = useState(user.avatarX || 0);
-  const [editAvatarY, setEditAvatarY] = useState(user.avatarY || 0);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -366,28 +363,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       
       const updatedUsers = database.users.map(u => {
         if (u.id === user.id) {
-          return {
-            ...u,
-            avatarUrl: downloadUrl,
-            // Reset crop controls for the newly uploaded photo. The preview
-            // renders with object-fit: cover (see UserAvatar.tsx), which already
-            // auto-scales any image so its shorter side exactly fills the square
-            // frame, centered — i.e. scale=1/x=0/y=0 IS the correct "auto-fit"
-            // starting point for any photo, regardless of its dimensions. Without
-            // this reset, a new (differently-shaped) photo would inherit the
-            // previous photo's leftover zoom/pan and appear cropped oddly.
-            avatarScale: 1,
-            avatarX: 0,
-            avatarY: 0
-          };
+          return { ...u, avatarUrl: downloadUrl };
         }
         return u;
       });
 
       setEditAvatarUrl(downloadUrl);
-      setEditAvatarScale(1);
-      setEditAvatarX(0);
-      setEditAvatarY(0);
       onUpdateDatabase({ users: updatedUsers });
     } catch (err) {
       console.error('Error uploading avatar:', err);
@@ -401,10 +382,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     setEditFullName(user.fullName);
     setEditPhone(user.phone || '');
     setEditAvatarUrl(user.avatarUrl || '');
-    setEditAvatarScale(user.avatarScale || 1);
-    setEditAvatarX(user.avatarX || 0);
-    setEditAvatarY(user.avatarY || 0);
-  }, [user.fullName, user.phone, user.avatarUrl, user.avatarScale, user.avatarX, user.avatarY]);
+  }, [user.fullName, user.phone, user.avatarUrl]);
 
   // Keep client online status synced in Firestore
   useEffect(() => {
@@ -452,9 +430,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           fullName: editFullName.trim(),
           phone: editPhone.trim(),
           avatarUrl: editAvatarUrl.trim(),
-          avatarScale: editAvatarScale,
-          avatarX: editAvatarX,
-          avatarY: editAvatarY
         };
       }
       return u;
@@ -3442,84 +3417,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             user={{
                               fullName: editFullName,
                               avatarUrl: editAvatarUrl,
-                              avatarScale: editAvatarScale,
-                              avatarX: editAvatarX,
-                              avatarY: editAvatarY
                             }}
                             className="w-24 h-24 rounded-2xl ring-4 ring-indigo-500/15"
                           />
-                        </div>
-
-                        {/* Sliders for precise alignment */}
-                        <div className="max-w-xs mx-auto bg-slate-50 dark:bg-slate-950/40 border border-slate-150 dark:border-slate-850 rounded-xl p-3 space-y-3">
-                          <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-1.5">
-                            <span className="text-[10px] font-black text-indigo-650 dark:text-indigo-400 uppercase tracking-widest">Разметка и наклон лица</span>
-                            <button
-                              onClick={() => {
-                                setEditAvatarScale(1);
-                                setEditAvatarX(0);
-                                setEditAvatarY(0);
-                              }}
-                              type="button"
-                              className="text-[9px] font-bold text-slate-400 hover:text-indigo-600 cursor-pointer uppercase transition-colors"
-                            >
-                              Сбросить
-                            </button>
-                          </div>
-
-                          {/* Scale Slider */}
-                          <div className="space-y-1 text-left">
-                            <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                              <span>Масштаб (Приближение):</span>
-                              <span className="font-mono text-indigo-500">{(editAvatarScale * 100).toFixed(0)}%</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="1"
-                              max="3"
-                              step="0.02"
-                              value={editAvatarScale}
-                              onChange={(e) => setEditAvatarScale(parseFloat(e.target.value))}
-                              aria-label="Масштаб аватара"
-                              className="w-full accent-indigo-600 h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                            />
-                          </div>
-
-                          {/* X Offset Slider */}
-                          <div className="space-y-1 text-left">
-                            <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                              <span>Влево ↔ Вправо:</span>
-                              <span className="font-mono text-indigo-500">{editAvatarX > 0 ? `+${editAvatarX}` : editAvatarX}px</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="-100"
-                              max="100"
-                              step="1"
-                              value={editAvatarX}
-                              onChange={(e) => setEditAvatarX(parseInt(e.target.value))}
-                              aria-label="Смещение аватара по горизонтали"
-                              className="w-full accent-indigo-600 h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                            />
-                          </div>
-
-                          {/* Y Offset Slider */}
-                          <div className="space-y-1 text-left">
-                            <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                              <span>Вверх ↕ Вниз:</span>
-                              <span className="font-mono text-indigo-500">{editAvatarY > 0 ? `+${editAvatarY}` : editAvatarY}px</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="-100"
-                              max="100"
-                              step="1"
-                              value={editAvatarY}
-                              onChange={(e) => setEditAvatarY(parseInt(e.target.value))}
-                              aria-label="Смещение аватара по вертикали"
-                              className="w-full accent-indigo-600 h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                            />
-                          </div>
                         </div>
 
                         <span className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">Выберите быстрый аватар:</span>
@@ -3535,13 +3435,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             <button
                               key={idx}
                               type="button"
-                              onClick={() => {
-                                setEditAvatarUrl(urlPreset);
-                                // Reset offsets for presets
-                                setEditAvatarScale(1);
-                                setEditAvatarX(0);
-                                setEditAvatarY(0);
-                              }}
+                              onClick={() => setEditAvatarUrl(urlPreset)}
                               className={`w-10 h-10 rounded-xl object-cover overflow-hidden border-2 transition cursor-pointer ${
                                 editAvatarUrl === urlPreset ? 'border-indigo-600 scale-105 shadow-md' : 'border-transparent hover:scale-102'
                               }`}
@@ -3557,13 +3451,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             id="edit-avatar-url"
                             type="text"
                             value={editAvatarUrl}
-                            onChange={(e) => {
-                              setEditAvatarUrl(e.target.value);
-                              // Reset offsets for custom URL to keep initial layout clean
-                              setEditAvatarScale(1);
-                              setEditAvatarX(0);
-                              setEditAvatarY(0);
-                            }}
+                            onChange={(e) => setEditAvatarUrl(e.target.value)}
                             className="w-full bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="https://example.com/avatar.jpg"
                           />

@@ -293,9 +293,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const [adminFullName, setAdminFullName] = useState(adminUser.fullName);
   const [adminPhone, setAdminPhone] = useState(adminUser.phone || '');
   const [adminAvatarUrl, setAdminAvatarUrl] = useState(adminUser.avatarUrl || '');
-  const [adminAvatarScale, setAdminAvatarScale] = useState(adminUser.avatarScale || 1);
-  const [adminAvatarX, setAdminAvatarX] = useState(adminUser.avatarX || 0);
-  const [adminAvatarY, setAdminAvatarY] = useState(adminUser.avatarY || 0);
   const avatarFileRef = useRef<HTMLInputElement>(null);
   
   // Bank gateway setting states
@@ -431,9 +428,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     setAdminFullName(adminUser.fullName);
     setAdminPhone(adminUser.phone || '');
     setAdminAvatarUrl(adminUser.avatarUrl || '');
-    setAdminAvatarScale(adminUser.avatarScale || 1);
-    setAdminAvatarX(adminUser.avatarX || 0);
-    setAdminAvatarY(adminUser.avatarY || 0);
   }, [adminUser]);
 
   // Services showcase management — добавление новой услуги через
@@ -561,13 +555,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       u.id === adminUser.id 
         ? { 
             ...u, 
-            fullName: adminFullName, 
-            phone: adminPhone, 
+            fullName: adminFullName,
+            phone: adminPhone,
             avatarUrl: adminAvatarUrl,
-            avatarScale: adminAvatarScale,
-            avatarX: adminAvatarX,
-            avatarY: adminAvatarY
-          } 
+          }
         : u
     );
 
@@ -2695,9 +2686,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         user={{
                           fullName: adminFullName,
                           avatarUrl: adminAvatarUrl,
-                          avatarScale: adminAvatarScale,
-                          avatarX: adminAvatarX,
-                          avatarY: adminAvatarY
                         }}
                         className="w-24 h-24 rounded-2xl ring-4 ring-indigo-500/15"
                       />
@@ -2718,79 +2706,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       className="hidden"
                     />
 
-                    {/* Interactive positioning controls constraint of user photo alignment */}
-                    <div className="w-full bg-white/5 border border-white/10 rounded-xl p-3 space-y-3">
-                      <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                        <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Настройка разметки лица</span>
-                        <button 
-                          onClick={() => {
-                            setAdminAvatarScale(1);
-                            setAdminAvatarX(0);
-                            setAdminAvatarY(0);
-                          }}
-                          type="button"
-                          className="text-[9px] font-bold text-slate-400 hover:text-indigo-650 cursor-pointer uppercase transition-colors"
-                        >
-                          Сбросить сдвиги
-                        </button>
-                      </div>
-
-                      {/* Scale Slider */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                          <span>Масштаб (Зум):</span>
-                          <span className="font-mono text-indigo-500">{(adminAvatarScale * 100).toFixed(0)}%</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="1"
-                          max="3"
-                          step="0.02"
-                          value={adminAvatarScale}
-                          onChange={(e) => setAdminAvatarScale(parseFloat(e.target.value))}
-                          aria-label="Масштаб аватара"
-                          className="w-full accent-indigo-600 h-1 bg-slate-100 dark:bg-slate-850 rounded-lg appearance-none cursor-pointer"
-                        />
-                      </div>
-
-                      {/* X Offset Slider */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                          <span>Влево ↔ Вправо:</span>
-                          <span className="font-mono text-indigo-500">{adminAvatarX > 0 ? `+${adminAvatarX}` : adminAvatarX}px</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="-100"
-                          max="100"
-                          step="1"
-                          value={adminAvatarX}
-                          onChange={(e) => setAdminAvatarX(parseInt(e.target.value))}
-                          aria-label="Смещение аватара по горизонтали"
-                          className="w-full accent-indigo-600 h-1 bg-slate-100 dark:bg-slate-850 rounded-lg appearance-none cursor-pointer"
-                        />
-                      </div>
-
-                      {/* Y Offset Slider */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                          <span>Вверх ↕ Вниз:</span>
-                          <span className="font-mono text-indigo-500">{adminAvatarY > 0 ? `+${adminAvatarY}` : adminAvatarY}px</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="-100"
-                          max="100"
-                          step="1"
-                          value={adminAvatarY}
-                          onChange={(e) => setAdminAvatarY(parseInt(e.target.value))}
-                          aria-label="Смещение аватара по вертикали"
-                          className="w-full accent-indigo-600 h-1 bg-slate-100 dark:bg-slate-850 rounded-lg appearance-none cursor-pointer"
-                        />
-                      </div>
-                      <p className="text-[8px] text-slate-400 leading-normal text-center italic">Передвигайте бегунки для аккуратного центрирования лица внутри рамки</p>
-                    </div>
-
                     {/* Fast presets selection */}
                     <div className="text-center w-full">
                       <span className="text-[10px] text-slate-400 font-bold block mb-2 uppercase tracking-wider">Или выберите стильный пресет:</span>
@@ -2805,13 +2720,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           <button
                             key={idx}
                             type="button"
-                            onClick={() => {
-                              setAdminAvatarUrl(pUrl);
-                              // Reset alignment when selecting pre-set to prevent weird clipping
-                              setAdminAvatarScale(1);
-                              setAdminAvatarX(0);
-                              setAdminAvatarY(0);
-                            }}
+                            onClick={() => setAdminAvatarUrl(pUrl)}
                             className={`w-9 h-9 rounded-lg overflow-hidden border-2 transition-all hover:scale-105 shrink-0 ${
                               adminAvatarUrl === pUrl ? 'border-[#6366f1] scale-110' : 'border-transparent opacity-80'
                             }`}
