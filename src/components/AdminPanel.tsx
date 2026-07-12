@@ -464,19 +464,24 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     if (!emailComposeUser || !emailSubject.trim() || !emailBody.trim()) return;
     setIsSendingEmail(true);
     setEmailSendResult(null);
+    const minDelay = new Promise(resolve => setTimeout(resolve, 1800));
     try {
-      const res = await fetch('https://sever-18.ru/api/send-email.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: emailComposeUser.email,
-          subject: emailSubject.trim(),
-          message: emailBody.trim(),
+      const [res] = await Promise.all([
+        fetch('https://sever-18.ru/api/send-email.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: emailComposeUser.email,
+            subject: emailSubject.trim(),
+            message: emailBody.trim(),
+          }),
         }),
-      });
+        minDelay,
+      ]);
       if (!res.ok) throw new Error('send failed');
       setEmailSendResult('ok');
     } catch {
+      await minDelay;
       setEmailSendResult('error');
     } finally {
       setIsSendingEmail(false);
