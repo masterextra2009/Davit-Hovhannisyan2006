@@ -286,7 +286,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
   };
 
   return (
-    <div id="auth-screen-root" className="min-h-screen flex flex-col justify-center items-center py-14 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden select-none" style={isDark ? AUTH_BG_DARK : AUTH_BG_LIGHT}>
+    <div id="auth-screen-root" className="min-h-dvh flex flex-col justify-center items-center py-14 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden select-none" style={isDark ? AUTH_BG_DARK : AUTH_BG_LIGHT}>
 
       {/* Мягкое затемнение поверх градиентного фона, чтобы текст и карточка не терялись */}
       <div className="absolute inset-0 z-0" style={{ background: 'radial-gradient(circle at 50% 40%, rgba(5,8,20,0.15) 0%, rgba(5,8,20,0.55) 100%)' }} />

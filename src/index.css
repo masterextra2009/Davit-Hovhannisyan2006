@@ -2306,7 +2306,7 @@ button:hover .glass-icon-capsule {
    проседает и торец скрывается, как у настоящей кнопки. */
 .btn-3d-choose {
   position: relative;
-  background: linear-gradient(135deg, #818cf8, #8b5cf6);
+  background: linear-gradient(180deg, #818cf8, #8b5cf6);
   box-shadow:
     0 6px 0 0 #4c33b0,
     0 16px 30px -8px rgba(99,102,241,0.6),
@@ -2931,6 +2931,9 @@ p.landing-p {
 h3.landing-h3 {
   color: #ffffff !important;
   opacity: 1 !important;
+}
+h1.splash-title-white {
+  color: #ffffff !important;
 }
 a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-cta-btn * {
   color: #0f172a !important;

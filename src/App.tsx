@@ -297,7 +297,7 @@ export default function App() {
                 transition={{ delay: 0.4, duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
                 className="space-y-4"
               >
-                <h1 className="text-4xl font-black font-display tracking-tight text-white flex items-center justify-center gap-1.5 selection:bg-indigo-500">
+                <h1 className="splash-title-white text-4xl font-black font-display tracking-tight text-white flex items-center justify-center gap-1.5 selection:bg-indigo-500">
                   Фото<span className="shimmer-text-luxury">-Север</span>
                 </h1>
                 
@@ -340,7 +340,7 @@ export default function App() {
             initial={{ opacity: 0, scale: 0.985 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="min-h-screen"
+            className="min-h-dvh"
           >
             {paymentReturnOrderId ? (
               <PaymentReceiptScreen

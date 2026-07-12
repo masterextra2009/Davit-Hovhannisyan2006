@@ -41,7 +41,7 @@ const PRICES = [
 
 export function LandingPage({ onEnter }: LandingPageProps) {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#03000a] text-slate-900 dark:text-white">
+    <div className="min-h-dvh bg-slate-50 dark:bg-[#03000a] text-slate-900 dark:text-white">
 
       {/* ===== HEADER ===== */}
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/70 dark:bg-black/40 border-b border-slate-150 dark:border-white/10">

@@ -1355,6 +1355,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         printColor: f.printColor || 'bw',
         fileCopies: f.fileCopies || 1,
         photoSize: f.photoSize || null,
+        photoBorder: f.paperType === 'photo' ? (f.photoBorder || 'borderless') : null,
         formatGroup: f.formatGroup || 'other',
         pageCount: f.pageCount || 1,
         colorFillPercent: f.colorFillPercent || 0,
@@ -1645,7 +1646,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   };
 
   return (
-    <div id="client-dashboard-root" className="liquid-glass-bg min-h-screen md:h-screen text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative overflow-x-hidden overflow-y-auto md:overflow-hidden">
+    <div id="client-dashboard-root" className="liquid-glass-bg min-h-dvh md:h-dvh text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative overflow-x-hidden overflow-y-auto md:overflow-hidden">
       
       {/* Neutral frosted glow accents (no color tint) */}
       
@@ -2347,6 +2348,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               <span className="px-2 py-1 rounded-lg bg-white/5">
                                 {isCollage ? `🖼️ Коллаж А4 (${file.collagePaper === 'photo' ? 'фото' : 'обычная'}) · ${file.collageCount || '?'} фото` : isPhoto ? `🖼 Фото ${selSize.label}` : `📄 Обычная · ${(file.format || 'a4').toUpperCase()}`}
                               </span>
+                              {isPhoto && <span className="px-2 py-1 rounded-lg bg-white/5">{(file.photoBorder || 'borderless') === 'bordered' ? '🖼 С рамкой' : '✂️ Без рамки'}</span>}
                               {!isCollage && <span className="px-2 py-1 rounded-lg bg-white/5">{copies} шт.</span>}
                               {!isCollage && (
                                 <button
@@ -4398,6 +4400,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         onClick={() => patch({
                           paperType: v,
                           photoSize: v === 'photo' ? (file.photoSize || '10x15') : undefined,
+                          photoBorder: v === 'photo' ? (file.photoBorder || 'borderless') : undefined,
                           printColor: v === 'photo' ? 'color' : file.printColor,
                         })}
                         className={`relative px-3.5 py-2 rounded-xl text-xs font-black border transition-all duration-200 cursor-pointer ${
@@ -4422,17 +4425,25 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Формат</p>
                     <div className="flex gap-2">
-                      {(['a4', 'a3'] as const).map(v => (
-                        <button key={v} type="button" onClick={() => patch({ format: v, paperType: v === 'a4' ? (file.paperType === 'thick' ? 'plain' : file.paperType) : file.paperType })}
-                          className={`px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
-                            (file.format || 'a4') === v
-                              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300'
-                              : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
-                          }`}
-                        >
-                          {v.toUpperCase()}
-                        </button>
-                      ))}
+                      {(['a4', 'a3'] as const).map(v => {
+                        const selected = (file.format || 'a4') === v;
+                        return (
+                          <button key={v} type="button" onClick={() => patch({ format: v, paperType: v === 'a4' ? (file.paperType === 'thick' ? 'plain' : file.paperType) : file.paperType })}
+                            className={`relative px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                              selected
+                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300'
+                                : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                            }`}
+                          >
+                            {selected && (
+                              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                                <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                              </div>
+                            )}
+                            {v.toUpperCase()}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -4444,36 +4455,51 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <div className="grid grid-cols-3 gap-2">
                       <button type="button"
                         onClick={() => patch({ printColor: 'bw', paperType: 'plain' })}
-                        className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
+                        className={`relative p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
                           (file.printColor || 'bw') === 'bw' && !isThick
                             ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
                             : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
                         }`}
                       >
+                        {(file.printColor || 'bw') === 'bw' && !isThick && (
+                          <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                            <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                          </div>
+                        )}
                         <div className="text-base">⚪</div>
                         <div className="text-[11px] font-black text-slate-800 dark:text-white mt-0.5">Ч/Б</div>
                         <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{bwPrice} ₽</div>
                       </button>
                       <button type="button"
                         onClick={() => patch({ printColor: 'color', paperType: 'plain' })}
-                        className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
+                        className={`relative p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
                           (file.printColor || 'bw') === 'color' && !isThick
                             ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
                             : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
                         }`}
                       >
+                        {(file.printColor || 'bw') === 'color' && !isThick && (
+                          <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                            <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                          </div>
+                        )}
                         <div className="text-base">🔵</div>
                         <div className="text-[11px] font-black text-slate-800 dark:text-white mt-0.5">Цвет</div>
                         <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{colorPrice} ₽</div>
                       </button>
                       <button type="button"
                         onClick={() => patch({ paperType: 'thick', printColor: 'color' })}
-                        className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
+                        className={`relative p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
                           isThick
                             ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
                             : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
                         }`}
                       >
+                        {isThick && (
+                          <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                            <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                          </div>
+                        )}
                         <div className="text-base">📦</div>
                         <div className="text-[11px] font-black text-slate-800 dark:text-white mt-0.5">Плотная</div>
                         <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{thickPrice} ₽</div>
@@ -4511,13 +4537,57 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </div>
                 )}
 
+                {/* Рамка — с белыми полями или край-в-край, только для фотобумаги */}
+                {isPhoto && (
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Печать</p>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {([
+                        { key: 'borderless', label: 'Без рамки', sub: 'край-в-край' },
+                        { key: 'bordered', label: 'С рамкой', sub: 'белые поля' },
+                      ] as const).map(opt => {
+                        const selected = (file.photoBorder || 'borderless') === opt.key;
+                        return (
+                          <button key={opt.key} type="button" onClick={() => patch({ photoBorder: opt.key })}
+                            className={`relative p-2.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
+                              selected
+                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25 scale-[1.03]'
+                                : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                            }`}
+                          >
+                            {selected && (
+                              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                                <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                              </div>
+                            )}
+                            <div className={`w-10 h-10 rounded-md bg-gradient-to-br from-sky-300 to-indigo-400 ${opt.key === 'bordered' ? 'p-1.5 bg-white dark:bg-slate-100 border border-slate-300' : ''}`}>
+                              <div className={opt.key === 'bordered' ? 'w-full h-full rounded-[2px] bg-gradient-to-br from-sky-300 to-indigo-400' : 'hidden'} />
+                            </div>
+                            <div className={`text-[11px] font-black ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{opt.label}</div>
+                            <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400">{opt.sub}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Копии */}
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Копий</p>
                   <div className="flex items-center gap-3">
                     <button type="button" onClick={() => patch({ fileCopies: Math.max(1, copies - 1) })}
                       className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">−</button>
-                    <span className="text-sm font-black text-slate-800 dark:text-white min-w-[20px] text-center">{copies}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={copies}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        patch({ fileCopies: Number.isNaN(v) || v < 1 ? 1 : v });
+                      }}
+                      className="w-12 text-sm font-black text-slate-800 dark:text-white text-center bg-slate-100 dark:bg-slate-800 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
                     <button type="button" onClick={() => patch({ fileCopies: copies + 1 })}
                       className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">+</button>
                   </div>

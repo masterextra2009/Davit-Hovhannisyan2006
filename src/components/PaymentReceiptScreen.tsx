@@ -62,7 +62,7 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
   });
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center py-10 px-4" style={{ background: '#eef0f3' }}>
+    <div className="min-h-dvh w-full flex items-center justify-center py-10 px-4" style={{ background: '#eef0f3' }}>
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

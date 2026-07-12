@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getLocalDateKey } from './utils';
 import {
   auth,
   db,
@@ -527,7 +528,7 @@ export async function trackSiteVisit(): Promise<void> {
     if (alreadyTracked) return;
     sessionStorage.setItem('sever18_visit_tracked', '1');
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateKey();
     const statsRef = doc(db, 'stats', 'visits');
     await setDoc(statsRef, {
       total: increment(1),

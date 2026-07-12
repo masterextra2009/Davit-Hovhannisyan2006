@@ -828,5 +828,16 @@ export function isWorkingHours(): boolean {
   return true;
 }
 
+// Календарная дата по локальному времени устройства (YYYY-MM-DD), а не по UTC.
+// new Date().toISOString() режет сутки по UTC-полуночи, которая в Москве
+// наступает только в 03:00 — из-за этого дневной счётчик посещений "обновлялся"
+// на 3 часа позже настоящей полуночи.
+export function getLocalDateKey(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 
 

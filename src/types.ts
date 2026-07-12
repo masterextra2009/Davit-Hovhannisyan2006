@@ -45,6 +45,7 @@ export interface PrintFile {
   printColor?: 'bw' | 'color';
   fileCopies?: number;
   photoSize?: string;
+  photoBorder?: 'bordered' | 'borderless';
   colorFillPercent?: number;
   // Коллаж из нескольких фото на одном листе А4 — collageCount хранится
   // только для отображения ("Коллаж А4 · 6 фото"), сама картинка уже

@@ -14,10 +14,10 @@ import {
   Printer, ArrowRight, TrendingUp, DollarSign, Files, Eye, HelpCircle,
   BellRing, LogOut, FileCheck, Settings, Camera, Image as ImageIcon, Key, CreditCard, Check, ShieldAlert, X, ShieldCheck, Gift, Search, Archive, ChevronLeft, Mail, Phone, User as UserIconLucide, Upload
 } from 'lucide-react';
-import { 
-  formatFileSize, formatDateTime, getStatusLabel, 
-  getStatusColor, getPaymentStatusLabel, getPaymentStatusColor, 
-  exportToCSV, printInvoiceHTML, calculateOrderCost
+import {
+  formatFileSize, formatDateTime, getStatusLabel,
+  getStatusColor, getPaymentStatusLabel, getPaymentStatusColor,
+  exportToCSV, printInvoiceHTML, calculateOrderCost, getLocalDateKey
 } from '../utils';
 import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase } from '../firebaseUtils';
 import { db, doc, setDoc, deleteDoc } from '../firebase';
@@ -895,7 +895,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       
       const link = document.createElement('a');
       link.href = URL.createObjectURL(content);
-      link.download = `Заказ_${order.id.substring(0, 7)}_Фотопечать_Все_${filesCount}_фото.zip`;
+      link.download = `Заказ_${order.id.substring(0, 7)}_Все_файлы_${filesCount}_шт.zip`;
       link.click();
 
       setTimeout(() => {
@@ -1137,7 +1137,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const activeChatClient = clientsOnly.find(u => u.id === activeChatUserId);
 
   return (
-    <div id="admin-dashboard-root" className="liquid-glass-bg h-screen text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative">
+    <div id="admin-dashboard-root" className="liquid-glass-bg h-dvh text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative">
       
       {/* Admin notification toast */}
       {adminToast && (
@@ -1193,7 +1193,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           </div>
 
           <div className="px-1 mb-6 text-[11px] text-white/50 font-bold uppercase tracking-wider">
-            Режим Администратора сайта
+            Режим Администратора
           </div>
         </div>
 
@@ -1604,7 +1604,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           <div>
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2.5">
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Файлы для выгрузки на ПК типографии:</span>
-                              {((order.paperType === 'matte' || order.paperType === 'glossy') && order.files && order.files.length > 5) && (
+                              {(order.files && order.files.length > 2) && (
                                 <button
                                   onClick={() => handleDownloadAllAsZip(order)}
                                   disabled={zippingOrderId === order.id}
@@ -1622,7 +1622,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                   ) : (
                                     <>
                                       <Files className="w-3.5 h-3.5 text-white/95 dark:text-emerald-450" />
-                                      Скачать все фото в ZIP ({order.files.length} шт.)
+                                      Скачать все файлы в ZIP ({order.files.length} шт.)
                                     </>
                                   )}
                                 </button>
@@ -1639,7 +1639,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                     <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
                                     <div className="overflow-hidden">
                                       <span className="font-bold block truncate text-slate-700 dark:text-slate-300">{file.name}</span>
-                                      <span className="text-[9px] text-slate-400 block mt-0.5">{formatFileSize(file.size)} &bull; ID: {file.id} {file.pageCount !== undefined ? `&bull; Папок/Стр: ${file.pageCount}–стр` : ''}</span>
+                                      <span className="text-[9px] text-slate-400 block mt-0.5">{formatFileSize(file.size)} &bull; ID: {file.id} {file.pageCount !== undefined ? `&bull; Папок/Стр: ${file.pageCount}–стр` : ''} {file.paperType === 'photo' ? `&bull; ${(file.photoBorder || 'borderless') === 'bordered' ? 'С рамкой (белые поля)' : 'Без рамки (край-в-край)'}` : ''}</span>
                                     </div>
                                   </div>
 
@@ -2503,7 +2503,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Заходы на Сайт</span>
                       <p className="text-2xl font-black text-slate-800 dark:text-white">
                         {(() => {
-                          const today = new Date().toISOString().split('T')[0];
+                          const today = getLocalDateKey();
                           const todayData = (database.siteVisitsHistory || []).find((h: any) => h.date === today);
                           return todayData?.count || 0;
                         })()}
@@ -2519,7 +2519,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     {(database.siteVisitsHistory || []).slice(-7).map((h: any, i: number) => {
                       const max = Math.max(...(database.siteVisitsHistory || []).slice(-7).map((x: any) => x.count || 0), 1);
                       const height = Math.max(4, Math.round((h.count / max) * 40));
-                      const isToday = h.date === new Date().toISOString().split('T')[0];
+                      const isToday = h.date === getLocalDateKey();
                       return (
                         <div key={i} className="flex-1 flex flex-col items-center gap-0.5" title={`${h.date}: ${h.count} визитов`}>
                           <div
