@@ -3005,6 +3005,32 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
+
+                          {/* Приблизить/отдалить фото — прямо на карточке, не только при
+                              создании услуги (работает и для уже загруженных старых фото) */}
+                          {svc.imageUrl && (
+                            <div className="absolute bottom-2 left-2 z-20 flex items-center gap-1 pointer-events-none">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateService(svc.id, 'imageScale', Math.max(1, (svc.imageScale || 1) - 0.1))}
+                                title="Отдалить"
+                                className="pointer-events-auto w-6 h-6 rounded-md bg-black/45 hover:bg-black/60 text-white backdrop-blur-sm flex items-center justify-center text-xs font-black cursor-pointer transition"
+                              >
+                                −
+                              </button>
+                              <span className="pointer-events-none px-1 py-0.5 rounded-md bg-black/45 backdrop-blur-sm text-white text-[9px] font-bold">
+                                {Math.round((svc.imageScale || 1) * 100)}%
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateService(svc.id, 'imageScale', Math.min(3, (svc.imageScale || 1) + 0.1))}
+                                title="Приблизить"
+                                className="pointer-events-auto w-6 h-6 rounded-md bg-black/45 hover:bg-black/60 text-white backdrop-blur-sm flex items-center justify-center text-xs font-black cursor-pointer transition"
+                              >
+                                +
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         <div className="p-2.5 pt-2 space-y-1.5">
