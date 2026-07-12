@@ -4300,9 +4300,23 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 {!isPhoto && !isA3 && (file.printColor || 'bw') === 'color' && (
                   <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 p-3.5">
                     {fillReady ? (
-                      <p className="text-xs text-amber-800 dark:text-amber-300">
-                        🎨 Обнаружена <b>{colorFillLabel(fillPct)}</b> ({fillPct}% чернил на странице) — поэтому цена {colorPrice} ₽/стр. Наши цены за цветную страницу — от 25 до 65 ₽, в зависимости от того, сколько чернил уходит на печать.
-                      </p>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-lg shrink-0">🎨</span>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-black uppercase tracking-wide text-amber-700 dark:text-amber-300 truncate">{colorFillLabel(fillPct)}</p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <div className="w-16 h-1.5 rounded-full bg-amber-200/60 dark:bg-amber-900/50 overflow-hidden shrink-0">
+                                <div className="h-full rounded-full bg-amber-500" style={{ width: `${fillPct}%` }} />
+                              </div>
+                              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 shrink-0">{fillPct}%</span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-xl font-black text-amber-800 dark:text-amber-300 shrink-0">
+                          {colorPrice} <span className="text-[10px] font-bold">₽/стр.</span>
+                        </span>
+                      </div>
                     ) : (
                       <p className="text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
                         <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" /> Анализируем заливку чернил на странице...
