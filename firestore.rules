@@ -80,7 +80,16 @@ service cloud.firestore {
         (resource.data.userId == request.auth.uid &&
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['files', 'totalCost', 'rating', 'ratingComment']))
       );
-      allow delete: if isSignedIn() && isAdmin();
+      // Клиент может удалить свой собственный заказ, только пока он ещё
+      // неоплачен и не взят в обработку (pending) — не даёт скрыть
+      // одобренный/оплаченный/печатающийся заказ, чтобы избежать оплаты
+      // или спрятать что-то от админа задним числом.
+      allow delete: if isSignedIn() && (
+        isAdmin() ||
+        (resource.data.userId == request.auth.uid &&
+         resource.data.paymentStatus == 'unpaid' &&
+         resource.data.status == 'pending')
+      );
     }
 
     // Live chat log channels path rules

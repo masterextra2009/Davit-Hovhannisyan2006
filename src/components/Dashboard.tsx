@@ -26,7 +26,7 @@ import {
   getClientTierForUser, isWorkingHours, showBrowserNotification
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
-import { subscribeToPushNotifications, getNextOrderNumber } from '../firebaseUtils';
+import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Synthesized high-quality feedback sound chimes using Web Audio API
@@ -684,9 +684,31 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   // Order file deletion state
   const [fileToConfirmDelete, setFileToConfirmDelete] = useState<{ orderId: string; fileId: string } | null>(null);
+  const [orderToConfirmDelete, setOrderToConfirmDelete] = useState<string | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
   const canDeleteFileFromOrder = (ord: Order) => {
     return ord.status === 'pending' || ord.status === 'approved';
+  };
+
+  // Клиент может удалить свой заказ целиком, только пока он ещё не оплачен
+  // и не взят в обработку (см. такое же условие в firestore.rules) —
+  // одобренный/оплаченный/печатающийся заказ так убрать нельзя.
+  const canDeleteOwnOrder = (ord: Order) => {
+    return ord.status === 'pending' && ord.paymentStatus === 'unpaid';
+  };
+
+  const handleDeleteOwnOrder = async (orderId: string) => {
+    setDeletingOrderId(orderId);
+    try {
+      await deleteOrderFromFirebase(orderId);
+      onUpdateDatabase({ orders: database.orders.filter(o => o.id !== orderId) });
+    } catch (err) {
+      console.error('Failed to delete own order:', err);
+    } finally {
+      setDeletingOrderId(null);
+      setOrderToConfirmDelete(null);
+    }
   };
 
   const handleDeleteFileFromOrder = (orderId: string, fileId: string) => {
@@ -2982,9 +3004,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${getStatusColor(ord.status)}`}>
                               {getStatusLabel(ord.status)}
                             </span>
-                            <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${getPaymentStatusColor(ord.paymentStatus)}`}>
-                              {getPaymentStatusLabel(ord.paymentStatus)}
-                            </span>
+                            {ord.paymentStatus === 'unpaid' && ord.paymentMethod === 'При получении (Наличные/Карта)' ? (
+                              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
+                                💵 Оплата при получении
+                              </span>
+                            ) : (
+                              <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${getPaymentStatusColor(ord.paymentStatus)}`}>
+                                {getPaymentStatusLabel(ord.paymentStatus)}
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -3201,6 +3229,37 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               <CheckCircle className="w-3.5 h-3.5" />
                               Статус обработки
                             </button>
+
+                            {/* Удалить заказ целиком — только пока не оплачен и не взят в обработку */}
+                            {canDeleteOwnOrder(ord) && (
+                              orderToConfirmDelete === ord.id ? (
+                                <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 p-1 rounded-lg border border-rose-100 dark:border-rose-900/40">
+                                  <span className="text-[9px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить заказ?</span>
+                                  <button
+                                    onClick={() => handleDeleteOwnOrder(ord.id)}
+                                    disabled={deletingOrderId === ord.id}
+                                    className="bg-rose-500 hover:bg-rose-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition disabled:opacity-50"
+                                  >
+                                    {deletingOrderId === ord.id ? '...' : 'Да'}
+                                  </button>
+                                  <button
+                                    onClick={() => setOrderToConfirmDelete(null)}
+                                    disabled={deletingOrderId === ord.id}
+                                    className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition disabled:opacity-50"
+                                  >
+                                    Нет
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setOrderToConfirmDelete(ord.id)}
+                                  title="Удалить заказ"
+                                  className="flex items-center justify-center gap-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-xs font-bold px-3 py-2.5 rounded-xl transition"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )
+                            )}
                           </div>
                         </div>
 
