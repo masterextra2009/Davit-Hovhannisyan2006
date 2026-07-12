@@ -1406,6 +1406,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     setOrderAcceptPhase('loading');
     (async () => {
       try {
+        // Пишем заказ в базу ДО обращения к payment-create.php — серверный
+        // код читает оттуда реальную сумму заказа (защита от подделки
+        // суммы платежа), значит документ обязан уже существовать к этому
+        // моменту, а не только после успешного ответа ЮKassa.
+        await withTimeout(setDoc(doc(db, 'orders', orderId), pendingOrder), 15000);
+
         const res = await withTimeout(
           fetch('https://sever-18.ru/api/payment-create.php', {
             method: 'POST',
@@ -1419,8 +1425,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         if (data.paymentUrl && data.paymentId) {
           const updated = { ...pendingOrder, transactionId: data.paymentId };
           sessionStorage.setItem('pending_order', JSON.stringify(updated));
-          // Пишем заказ в базу ДО перехода на оплату — иначе вебхуку ЮKassa
-          // после успешной оплаты будет некуда записать статус "оплачено".
+          // Дозаписываем transactionId, полученный от ЮKassa (сам заказ уже
+          // существует в базе — записан выше, до вызова payment-create.php).
           await withTimeout(setDoc(doc(db, 'orders', orderId), updated), 15000);
           onUpdateDatabase({ orders: [updated, ...database.orders], users: updatedUsers });
           setUploadedFiles([]);
@@ -1435,8 +1441,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           await new Promise(r => setTimeout(r, 900));
           window.location.href = data.paymentUrl;
         } else {
-          // ЮKassa недоступна — сохраняем заказ и показываем модалку
-          await withTimeout(setDoc(doc(db, 'orders', orderId), pendingOrder), 15000);
+          // ЮKassa недоступна — заказ уже записан выше, просто показываем модалку
           onUpdateDatabase({ orders: [pendingOrder, ...database.orders], users: updatedUsers });
           setUploadedFiles([]);
           setNotes('');
