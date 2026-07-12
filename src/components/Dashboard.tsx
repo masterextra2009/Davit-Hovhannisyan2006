@@ -4494,8 +4494,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
                               </div>
                             )}
-                            <div className={`w-10 h-10 rounded-md bg-gradient-to-br from-sky-300 to-indigo-400 ${opt.key === 'bordered' ? 'p-1.5 bg-white dark:bg-slate-100 border border-slate-300' : ''}`}>
-                              <div className={opt.key === 'bordered' ? 'w-full h-full rounded-[2px] bg-gradient-to-br from-sky-300 to-indigo-400' : 'hidden'} />
+                            <div className={`w-12 h-16 rounded-md overflow-hidden border border-slate-300 dark:border-slate-600 ${opt.key === 'bordered' ? 'bg-white p-1.5' : 'bg-slate-200 dark:bg-slate-700'}`}>
+                              {file.previewUrl ? (
+                                <img
+                                  src={file.previewUrl}
+                                  alt=""
+                                  className={`w-full h-full ${opt.key === 'bordered' ? 'object-contain' : 'object-cover'}`}
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-sky-300 to-indigo-400" />
+                              )}
                             </div>
                             <div className={`text-[11px] font-black ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{opt.label}</div>
                             <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400">{opt.sub}</div>
