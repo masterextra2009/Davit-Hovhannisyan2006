@@ -1244,7 +1244,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   };
 
   // Build the order from uploaded files
-  const handlePlaceOrder = async (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent, onReceipt: boolean = false) => {
     e.preventDefault();
     if (!isWorkingHours()) {
       setUploadError("К сожалению, отправка заказов приостановлена во внерабочее время. Мы работаем: Пн-Пт 09:00-19:00, Сб-Вс 10:00-19:00.");
@@ -1365,6 +1365,34 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         colorFillPercent: f.colorFillPercent || 0,
       }))
     };
+    // Оплата при получении — без похода в ЮKassa: заказ сразу пишется в базу
+    // как есть, admin увидит его в очереди и отметит оплаченным при выдаче.
+    if (onReceipt) {
+      const onReceiptOrder = { ...pendingOrder, paymentMethod: 'При получении (Наличные/Карта)' };
+      setUploadError('');
+      setOrderAcceptPhase('loading');
+      try {
+        await withTimeout(setDoc(doc(db, 'orders', orderId), onReceiptOrder), 15000);
+        onUpdateDatabase({ orders: [onReceiptOrder, ...database.orders], users: updatedUsers });
+        setUploadedFiles([]);
+        setNotes('');
+        setBinding('none');
+        setAppliedPromo(null);
+        setPromoCode('');
+        setPromoError(null);
+        setSelectedService(null);
+        setActiveTab('orders');
+        setOrderAcceptPhase('success');
+        setTimeout(() => setOrderAcceptPhase('idle'), 1400);
+        playPlaceOrderSound();
+      } catch (err) {
+        console.error('On-receipt order error:', err);
+        setUploadError('Не удалось создать заказ. Проверьте интернет и попробуйте ещё раз.');
+        setOrderAcceptPhase('idle');
+      }
+      return;
+    }
+
     sessionStorage.setItem('pending_order', JSON.stringify(pendingOrder));
 
     // Показываем что идёт обработка
@@ -2810,7 +2838,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       ? 'Оформление временно недоступно'
                       : uploadedFiles.some(f => !f.url)
                         ? 'Загрузка файлов...'
-                        : 'Оформить заказ'}
+                        : 'Оформить и оплатить онлайн'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handlePlaceOrder(e, true)}
+                    disabled={(uploadedFiles.length === 0 && !selectedService) || !isWorkingHours() || uploadedFiles.some(f => !f.url)}
+                    className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-bold text-xs mt-2 transition-all ${
+                      (uploadedFiles.length > 0 || selectedService) && isWorkingHours() && !uploadedFiles.some(f => !f.url)
+                        ? 'bg-white/8 hover:bg-white/15 text-white cursor-pointer border border-white/15'
+                        : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'
+                    }`}
+                  >
+                    💵 Оплата при получении
                   </button>
                   {uploadedFiles.length === 0 && !selectedService && (
                     <p className="text-center text-[11px] text-white/30 mt-2">

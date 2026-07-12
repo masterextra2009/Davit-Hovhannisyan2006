@@ -1456,6 +1456,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       // Выданные заказы живут только в Архиве — как только заказ
                       // выдан, он сразу пропадает из основной очереди.
                       if (o.status === 'printed') return false;
+                      // Заказ пишется в базу ДО перехода на оплату ЮKassa (нужно
+                      // вебхуку куда писать статус) — если клиент передумал и не
+                      // заплатил, запись остаётся неоплаченной навсегда. Прячем
+                      // такие брошенные заказы из очереди, но не трогаем явную
+                      // "оплату при получении" — она специально начинает жизнь
+                      // неоплаченной и должна быть видна админу.
+                      if (o.paymentStatus === 'unpaid' && o.paymentMethod !== 'При получении (Наличные/Карта)') return false;
                       if (statusFilter !== 'all' && o.status !== statusFilter) return false;
                       if (orderSearchQuery.trim() !== '') {
                         const q = orderSearchQuery.trim().toLowerCase();
