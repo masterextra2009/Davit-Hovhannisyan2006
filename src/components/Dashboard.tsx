@@ -166,9 +166,13 @@ async function analyzeColorFill(imageUrl: string): Promise<number> {
           const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
           if (a < 30) continue;
           total++;
-          const max = Math.max(r,g,b)/255, min = Math.min(r,g,b)/255;
-          const saturation = max === 0 ? 0 : (max - min) / max;
-          if (saturation > 0.15 && max < 0.97) coloredPixels++;
+          // Считаем ЛЮБОЙ пиксель, который не близок к чистому белому листу,
+          // как расход чернил — раньше здесь мерялась именно "цветастость"
+          // (насыщенность), из-за чего сплошные фото с большой долей светлых
+          // бликов/тонких тонов кожи (низкая насыщенность, но чернила всё
+          // равно расходуются) занижали итоговый процент заливки.
+          const brightness = (r + g + b) / (3 * 255);
+          if (brightness < 0.94) coloredPixels++;
         }
         resolve(total === 0 ? 0 : Math.round((coloredPixels / total) * 100));
       } catch { resolve(50); }
