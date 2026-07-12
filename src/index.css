@@ -685,6 +685,69 @@
   }
 }
 
+@keyframes email-plane-fly {
+  0% {
+    transform: translate(-90px, 40px) rotate(-8deg) scale(0.85);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate(0px, -6px) rotate(6deg) scale(1.05);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(90px, -40px) rotate(18deg) scale(0.85);
+    opacity: 0;
+  }
+}
+
+@keyframes email-plane-trail {
+  0%, 40% { opacity: 0; transform: scaleX(0); }
+  55% { opacity: 0.5; }
+  100% { opacity: 0; transform: scaleX(1); }
+}
+
+@keyframes email-check-pop {
+  0% { transform: scale(0); opacity: 0; }
+  55% { transform: scale(1.15); opacity: 1; }
+  75% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes email-check-ring {
+  0% { transform: scale(0.6); opacity: 0.6; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+@keyframes email-fade-up {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.email-plane-fly {
+  animation: email-plane-fly 1.8s ease-in-out infinite;
+}
+
+.email-plane-trail {
+  animation: email-plane-trail 1.8s ease-in-out infinite;
+}
+
+.email-check-pop {
+  animation: email-check-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.email-check-ring {
+  animation: email-check-ring 1s ease-out infinite;
+}
+
+.email-fade-up {
+  animation: email-fade-up 0.5s ease-out forwards;
+}
+
 body {
   background: #fdf5ff;
   background-image: 

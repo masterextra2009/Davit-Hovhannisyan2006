@@ -476,17 +476,18 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       });
       if (!res.ok) throw new Error('send failed');
       setEmailSendResult('ok');
-      setTimeout(() => {
-        setEmailComposeUser(null);
-        setEmailSubject('');
-        setEmailBody('');
-        setEmailSendResult(null);
-      }, 1500);
     } catch {
       setEmailSendResult('error');
     } finally {
       setIsSendingEmail(false);
     }
+  };
+
+  const handleCloseEmailModal = () => {
+    setEmailComposeUser(null);
+    setEmailSubject('');
+    setEmailBody('');
+    setEmailSendResult(null);
   };
 
   // Archive search — by amount, name, email or date
@@ -2496,78 +2497,117 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {emailComposeUser && (
                 <div id="email-compose-modal" className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 z-50 animate-fade-in">
                   <div className="glass-window max-w-md w-full flex flex-col overflow-hidden">
-                    <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/20">
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-5 h-5 text-sky-500" />
-                        <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                          Написать клиенту
-                        </h3>
+
+                    {isSendingEmail ? (
+                      /* --- PHASE 2: SENDING ANIMATION --- */
+                      <div className="p-10 flex flex-col items-center justify-center gap-5 min-h-[340px]">
+                        <div className="relative w-full h-20 flex items-center justify-center overflow-hidden">
+                          <div className="absolute left-1/2 top-1/2 w-24 h-[2px] bg-gradient-to-r from-transparent via-sky-400/70 to-transparent email-plane-trail" />
+                          <span className="text-5xl email-plane-fly">📨</span>
+                        </div>
+                        <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                          Отправка письма...
+                        </p>
+                        <p className="text-xs text-slate-450 dark:text-slate-400 text-center">
+                          Письмо для <strong className="text-slate-700 dark:text-white">{emailComposeUser.fullName}</strong> в пути
+                        </p>
                       </div>
-                      <button
-                        onClick={() => setEmailComposeUser(null)}
-                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-650 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        aria-label="Закрыть"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    <div className="p-6 space-y-4">
-                      <p className="text-xs text-slate-505 dark:text-slate-400">
-                        Письмо уйдёт на <strong className="text-slate-700 dark:text-white">{emailComposeUser.email}</strong> ({emailComposeUser.fullName}) с адреса info@sever-18.ru.
-                      </p>
-
-                      <div>
-                        <label htmlFor="email-subject" className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
-                          Тема письма
-                        </label>
-                        <input
-                          id="email-subject"
-                          type="text"
-                          placeholder="Например: Ваш заказ готов"
-                          value={emailSubject}
-                          onChange={e => setEmailSubject(e.target.value)}
-                          className="w-full p-3 border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none text-xs font-bold"
-                        />
+                    ) : emailSendResult === 'ok' ? (
+                      /* --- PHASE 3: SUCCESS --- */
+                      <div className="p-10 flex flex-col items-center justify-center gap-4 min-h-[340px] email-fade-up">
+                        <div className="relative flex items-center justify-center w-20 h-20">
+                          <span className="absolute inset-0 rounded-full border-2 border-emerald-400 email-check-ring" />
+                          <div className="relative w-20 h-20 rounded-full bg-emerald-500 flex items-center justify-center email-check-pop shadow-lg shadow-emerald-500/30">
+                            <Check className="w-10 h-10 text-white" strokeWidth={3} />
+                          </div>
+                        </div>
+                        <p className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider text-center">
+                          Ваше письмо отправлено!
+                        </p>
+                        <p className="text-xs text-slate-450 dark:text-slate-400 text-center">
+                          Доставлено на {emailComposeUser.email}
+                        </p>
+                        <button
+                          onClick={handleCloseEmailModal}
+                          className="mt-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition shadow-lg shadow-emerald-600/10"
+                        >
+                          Готово
+                        </button>
                       </div>
+                    ) : (
+                      /* --- PHASE 1: COMPOSE --- */
+                      <>
+                        <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/20">
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-5 h-5 text-sky-500" />
+                            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                              Написать клиенту
+                            </h3>
+                          </div>
+                          <button
+                            onClick={handleCloseEmailModal}
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-650 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            aria-label="Закрыть"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
 
-                      <div>
-                        <label htmlFor="email-body" className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
-                          Текст письма
-                        </label>
-                        <textarea
-                          id="email-body"
-                          rows={6}
-                          placeholder="Напишите сообщение клиенту..."
-                          value={emailBody}
-                          onChange={e => setEmailBody(e.target.value)}
-                          className="w-full p-3 border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none text-xs resize-none"
-                        />
-                      </div>
+                        <div className="p-6 space-y-4">
+                          <p className="text-xs text-slate-505 dark:text-slate-400">
+                            Письмо уйдёт на <strong className="text-slate-700 dark:text-white">{emailComposeUser.email}</strong> ({emailComposeUser.fullName}) с адреса info@sever-18.ru.
+                          </p>
 
-                      {emailSendResult === 'ok' && (
-                        <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">✅ Письмо отправлено!</p>
-                      )}
-                      {emailSendResult === 'error' && (
-                        <p className="text-xs font-bold text-rose-600 dark:text-rose-400">❌ Не удалось отправить письмо. Попробуйте ещё раз.</p>
-                      )}
-                    </div>
+                          <div>
+                            <label htmlFor="email-subject" className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
+                              Тема письма
+                            </label>
+                            <input
+                              id="email-subject"
+                              type="text"
+                              placeholder="Например: Ваш заказ готов"
+                              value={emailSubject}
+                              onChange={e => setEmailSubject(e.target.value)}
+                              className="w-full p-3 border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none text-xs font-bold"
+                            />
+                          </div>
 
-                    <div className="p-4 border-t border-slate-150 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-950/20 flex justify-end gap-2 text-right">
-                      <button
-                        onClick={() => setEmailComposeUser(null)}
-                        className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition"
-                      >
-                        Отмена
-                      </button>
-                      <button
-                        onClick={handleSendEmailToClient}
-                        disabled={isSendingEmail || !emailSubject.trim() || !emailBody.trim()}
-                        className="px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs rounded-xl transition shadow-lg shadow-sky-600/10"
-                      >
-                        {isSendingEmail ? 'Отправка...' : '📧 Отправить'}
-                      </button>
-                    </div>
+                          <div>
+                            <label htmlFor="email-body" className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
+                              Текст письма
+                            </label>
+                            <textarea
+                              id="email-body"
+                              rows={6}
+                              placeholder="Напишите сообщение клиенту..."
+                              value={emailBody}
+                              onChange={e => setEmailBody(e.target.value)}
+                              className="w-full p-3 border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none text-xs resize-none"
+                            />
+                          </div>
+
+                          {emailSendResult === 'error' && (
+                            <p className="text-xs font-bold text-rose-600 dark:text-rose-400">❌ Не удалось отправить письмо. Попробуйте ещё раз.</p>
+                          )}
+                        </div>
+
+                        <div className="p-4 border-t border-slate-150 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-950/20 flex justify-end gap-2 text-right">
+                          <button
+                            onClick={handleCloseEmailModal}
+                            className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition"
+                          >
+                            Отмена
+                          </button>
+                          <button
+                            onClick={handleSendEmailToClient}
+                            disabled={!emailSubject.trim() || !emailBody.trim()}
+                            className="px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs rounded-xl transition shadow-lg shadow-sky-600/10"
+                          >
+                            📧 Отправить
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
