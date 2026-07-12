@@ -46,6 +46,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isForgotPasswordSent, setIsForgotPasswordSent] = useState(false);
@@ -126,6 +127,11 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
 
     if (password.length < 6) {
       setErrorMsg('Пароль должен состоять минимум из 6 символов.');
+      return;
+    }
+
+    if (!agreedToTerms) {
+      setErrorMsg('Нужно согласиться с офертой и политикой обработки персональных данных.');
       return;
     }
 
@@ -503,6 +509,25 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     />
                   </div>
                 </div>
+
+                <label className="flex items-start gap-2 px-2 py-1 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={e => setAgreedToTerms(e.target.checked)}
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30 cursor-pointer"
+                  />
+                  <span className="text-[10.5px] leading-snug text-slate-500 dark:text-slate-400">
+                    Я согласен с{' '}
+                    <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:text-blue-500">
+                      публичной офертой
+                    </a>
+                    {' '}и{' '}
+                    <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:text-blue-500">
+                      политикой обработки персональных данных
+                    </a>
+                  </span>
+                </label>
 
                 <button
                   type="submit"

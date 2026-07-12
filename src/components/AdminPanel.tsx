@@ -364,9 +364,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     sbpPhone: '+79998881122',
     instructions: 'Для мгновенной оплаты приложите карту к терминалу или отсканируйте SberPay QR-код',
     companyName: 'ИП Оганнисян Д.В.',
-    companyInn: '352512345678',
-    companyOgrn: '316352500012345',
-    companyAddress: 'г. Вологда, Северное шоссе, д. 18',
+    companyInn: '501110120673',
+    companyOgrn: '324774600314137',
+    companyAddress: 'г. Раменское, Московская область, Северное шоссе, д. 18',
     refundPolicy: 'Срок возврата денежных средств при отказе от услуг печати до начала производства составляет 1 рабочий день. При обнаружении брака возможен полный перерасчет или перепечатка.',
   };
   const [bankId, setBankId] = useState(initialPayConfig.bankId);
@@ -376,9 +376,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const [sbpPhone, setSbpPhone] = useState(initialPayConfig.sbpPhone || '');
   const [instructions, setInstructions] = useState(initialPayConfig.instructions || '');
   const [companyName, setCompanyName] = useState(initialPayConfig.companyName || 'ИП Оганнисян Д.В.');
-  const [companyInn, setCompanyInn] = useState(initialPayConfig.companyInn || '352512345678');
-  const [companyOgrn, setCompanyOgrn] = useState(initialPayConfig.companyOgrn || '316352500012345');
-  const [companyAddress, setCompanyAddress] = useState(initialPayConfig.companyAddress || 'г. Вологда, Северное шоссе, д. 18');
+  const [companyInn, setCompanyInn] = useState(initialPayConfig.companyInn || '501110120673');
+  const [companyOgrn, setCompanyOgrn] = useState(initialPayConfig.companyOgrn || '324774600314137');
+  const [companyAddress, setCompanyAddress] = useState(initialPayConfig.companyAddress || 'г. Раменское, Московская область, Северное шоссе, д. 18');
   const [refundPolicy, setRefundPolicy] = useState(initialPayConfig.refundPolicy || 'Срок возврата денежных средств при отказе от услуг печати до начала производства составляет 1 рабочий день. При обнаружении брака возможен полный перерасчет или перепечатка.');
 
   const [savingSettings, setSavingSettings] = useState(false);
