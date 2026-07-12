@@ -1775,7 +1775,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
           {/* TAB 2: OPERATOR CHAT CHANNELS PANEL — 1:1 по коду Grok */}
           {activeTab === 'chat' && (
-            <div className={`grok-chat-app ${activeChatUserId ? 'chat-open' : ''}`}>
+            <div className={`grok-chat-app ${activeChatUserId ? 'chat-open' : ''} ${showClientInfoPanel && activeChatClient ? 'profile-open' : ''}`}>
               <aside className="grok-sidebar grok-glass">
                 <div className="grok-sidebar-header">Чаты ({clientsOnly.length})</div>
                 <div className="grok-chat-list">
@@ -1957,11 +1957,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 )}
               </main>
 
-              {/* Профиль клиента — оверлей + выезжающая панель, 1:1 по коду Grok */}
+              {/* Профиль клиента — третья колонка грида рядом с чатом (как в Telegram),
+                  а не оверлей поверх сообщений */}
               {showClientInfoPanel && activeChatClient && (
-                <>
-                  <div onClick={() => setShowClientInfoPanel(false)} className="fixed inset-0 z-40" />
-                  <aside className="grok-profile-panel grok-glass-panel open" style={{ background: '#16171c' }}>
+                <aside className="grok-profile-panel grok-glass-panel open" style={{ background: '#16171c' }}>
                     <button type="button" className="grok-panel-close" onClick={() => setShowClientInfoPanel(false)} aria-label="Закрыть">×</button>
                     <div className="grok-panel-hero">
                       <div className="grok-avatar-btn grok-avatar-md" style={{ margin: '0 auto 14px' }}>
@@ -1981,8 +1980,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         <span className="grok-icon">🗑</span> Очистить историю
                       </button>
                     </div>
-                  </aside>
-                </>
+                </aside>
               )}
             </div>
           )}

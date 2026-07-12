@@ -2544,11 +2544,21 @@ button.glass-card::after,
   --radius: 16px;
   display: grid;
   grid-template-columns: 280px 1fr;
+  transition: grid-template-columns 0.28s cubic-bezier(.4,0,.2,1);
   height: 600px;
   background: var(--bg);
   border-radius: 24px;
   overflow: hidden;
   position: relative;
+}
+/* Профиль клиента открыт — третья колонка грида, чат сужается вместо
+   того, чтобы профиль перекрывал сообщения оверлеем (было плохо видно
+   переписку позади полупрозрачной панели). Только на десктопе — на
+   мобильном профиль занимает весь экран (см. media query ниже). */
+@media (min-width: 901px) {
+  .grok-chat-app.profile-open {
+    grid-template-columns: 280px 1fr 320px;
+  }
 }
 #admin-dashboard-root .grok-chat-app,
 #admin-dashboard-root .grok-chat-app * {
@@ -2665,11 +2675,11 @@ button.glass-card::after,
 }
 .grok-overlay.visible { opacity: 1; pointer-events: auto; }
 .grok-profile-panel {
-  position: absolute; top: 0; right: 0; width: 320px; max-width: 100%; height: 100%; z-index: 70;
+  min-width: 0; height: 100%;
   display: flex; flex-direction: column; overflow-y: auto;
   background: var(--bg-elevated) !important;
+  border-left: 1px solid var(--glass-border);
   animation: slideInRight 0.28s cubic-bezier(.4,0,.2,1);
-  border-radius: 0 24px 24px 0;
 }
 .grok-panel-close {
   align-self: flex-end; margin: 12px 12px 0; width: 36px; height: 36px; border-radius: 50%;
@@ -2694,6 +2704,11 @@ button.glass-card::after,
   .grok-chat-app .grok-main { display: none; }
   .grok-chat-app.chat-open .grok-sidebar { display: none; }
   .grok-chat-app.chat-open .grok-main { display: flex; }
+  /* Профиль клиента на мобильном — отдельный полноэкранный шаг, а не
+     колонка рядом (там просто нет места на маленьком экране) */
+  .grok-chat-app.profile-open .grok-sidebar,
+  .grok-chat-app.profile-open .grok-main { display: none; }
+  .grok-chat-app.profile-open .grok-profile-panel { display: flex; }
 }
 
 /* ============================================
