@@ -65,6 +65,11 @@ export default function App() {
   // Storage database state (defaults to offline structure before Firebase sync)
   const [database, setDatabase] = useState<DatabaseState>(() => getInitialDatabase());
 
+  // Стал ли database хоть раз реальным снимком с сервера — до этого момента
+  // это просто локальный кэш из localStorage (может быть устаревшим), и
+  // счётчики вроде бейджа непрочитанных уведомлений не должны на нём мигать.
+  const [hasSyncedFromServer, setHasSyncedFromServer] = useState(false);
+
   // Restore and keep authentication session synced in real-time
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
@@ -94,6 +99,7 @@ export default function App() {
   // Sync collections in real-time if a session is alive
   useEffect(() => {
     if (!user) return;
+    setHasSyncedFromServer(false);
 
     const unsubscribeCollection = subscribeToFirebaseCollections(user, (syncedUpdates) => {
       setDatabase((prev) => {
@@ -161,6 +167,8 @@ export default function App() {
           saveCurrentUser(refreshedSelf);
         }
       }
+
+      setHasSyncedFromServer(true);
     });
 
     return () => unsubscribeCollection();
@@ -374,12 +382,13 @@ export default function App() {
                 onUpdateDatabase={handleUpdateDatabase}
               />
             ) : (
-              <Dashboard 
+              <Dashboard
                 user={user}
                 onLogout={handleLogout}
                 database={database}
                 onUpdateDatabase={handleUpdateDatabase}
                 onDeleteAccount={handleDeleteAccount}
+                hasSyncedFromServer={hasSyncedFromServer}
               />
             )}
           </motion.div>

@@ -226,9 +226,10 @@ interface DashboardProps {
     users?: User[];
   }) => void;
   onDeleteAccount: (userId: string) => void;
+  hasSyncedFromServer?: boolean;
 }
 
-export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDeleteAccount }: DashboardProps) {
+export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDeleteAccount, hasSyncedFromServer = true }: DashboardProps) {
   // Firestore-правила сверяют userId/senderId записей именно с request.auth.uid
   // текущей сессии — читаем его напрямую из Firebase Auth на момент записи,
   // а не из React-пропа user.id, на случай если тот успел устареть (например,
@@ -806,7 +807,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   // Unread badge indicators
   const unreadChatsCount = userChats.filter(c => c.senderRole === 'admin' && !c.readByClient).length;
-  const unreadNotificationsCount = userNotifications.filter(n => !n.read).length;
+  // До первого реального снимка с сервера database ещё может быть
+  // устаревшим локальным кэшем — не показываем счётчик, чтобы не мигало
+  // старым числом на долю секунды при каждой загрузке страницы.
+  const unreadNotificationsCount = hasSyncedFromServer ? userNotifications.filter(n => !n.read).length : 0;
 
   // Auto-scroll chat to bottom. Раньше это делалось фиксированными таймерами
   // (400/1000/2000мс) — угадывание задержки ненадёжно: стикеры (webm-видео) и
