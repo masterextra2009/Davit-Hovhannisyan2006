@@ -1354,6 +1354,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         size: f.size,
         url: f.url || '',
         paperType: f.paperType || 'plain',
+        format: f.format || 'a4',
         printColor: f.printColor || 'bw',
         fileCopies: f.fileCopies || 1,
         photoSize: f.photoSize || null,
@@ -1361,6 +1362,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         formatGroup: f.formatGroup || 'other',
         pageCount: f.pageCount || 1,
         colorFillPercent: f.colorFillPercent || 0,
+        collageCount: f.paperType === 'collage' ? (f.collageCount || 0) : null,
+        collagePaper: f.paperType === 'collage' ? (f.collagePaper || 'plain') : null,
       }))
     };
     // Оплата при получении — без похода в ЮKassa: заказ сразу пишется в базу
