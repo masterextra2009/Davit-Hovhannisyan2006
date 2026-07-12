@@ -1491,9 +1491,15 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               <span className={`text-[10px] uppercase font-bold px-2 px-2.5 py-0.5 rounded-md ${getStatusColor(order.status)}`}>
                                 {getStatusLabel(order.status)}
                               </span>
-                              <span className={`text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md ${getPaymentStatusColor(order.paymentStatus)}`}>
-                                {getPaymentStatusLabel(order.paymentStatus)}
-                              </span>
+                              {order.paymentStatus === 'unpaid' && order.paymentMethod === 'При получении (Наличные/Карта)' ? (
+                                <span className="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
+                                  💵 Оплата при получении
+                                </span>
+                              ) : (
+                                <span className={`text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md ${getPaymentStatusColor(order.paymentStatus)}`}>
+                                  {getPaymentStatusLabel(order.paymentStatus)}
+                                </span>
+                              )}
                               {orderToConfirmDelete === order.id ? (
                                 <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 p-1 rounded-lg border border-rose-100 dark:border-rose-900/40">
                                   <span className="text-[9px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить заказ?</span>
