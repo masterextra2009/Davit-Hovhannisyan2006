@@ -2934,71 +2934,78 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         onMouseLeave={handleServiceCardTiltReset}
                         className="service-glass-row rounded-2xl flex flex-col relative overflow-hidden"
                       >
-                        {/* Фото услуги — залито от самого верха карточки, без полей по бокам;
-                            статус/удалить теперь плавают поверх фото, а не отдельной строкой */}
-                        <label className="service-glass-card-media relative h-36 shrink-0 cursor-pointer group block">
-                          <div className="service-card-glow absolute inset-0 pointer-events-none" />
-                          {/* Статус + удалить — поверх фото */}
-                          <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5">
+                        {/* Фото услуги — залито от самого верха карточки, без полей по бокам.
+                            Кнопки статус/удалить вынесены ИЗ label в отдельный слой рядом —
+                            раньше они были внутри label и перехватывали клик, из-за чего
+                            рядом с ними нельзя было открыть выбор файла для замены фото. */}
+                        <div className="relative h-36 shrink-0">
+                          <label className="service-glass-card-media relative h-full w-full cursor-pointer group block">
+                            <div className="service-card-glow absolute inset-0 pointer-events-none" />
+                            {svc.imageUrl ? (
+                              <img
+                                src={svc.imageUrl}
+                                alt={svc.title}
+                                loading="lazy"
+                                className="w-full h-full object-cover"
+                                style={{ transform: `scale(${svc.imageScale || 1})` }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center gap-1">
+                                {svc.iconUrl ? (
+                                  <img src={svc.iconUrl} alt="" loading="lazy" className="w-10 h-10 object-contain" />
+                                ) : (
+                                  <span className="text-3xl">{svc.emoji}</span>
+                                )}
+                                <span className="text-[9px] text-white/30 font-bold text-center leading-tight">загрузить фото</span>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
+                              <span className="text-white text-xs font-bold">📷 Заменить</span>
+                            </div>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const formData = new FormData();
+                                formData.append('photo', file);
+                                try {
+                                  const res = await fetch('https://sever-18.ru/api/service-upload.php', {
+                                    method: 'POST',
+                                    body: formData,
+                                  });
+                                  const data = await res.json();
+                                  if (data.url) {
+                                    handleUpdateService(svc.id, 'imageUrl', data.url);
+                                  }
+                                } catch {
+                                  alert('Ошибка загрузки фото');
+                                }
+                              }}
+                            />
+                          </label>
+
+                          {/* Статус + удалить — отдельный слой поверх фото, не внутри label */}
+                          <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 pointer-events-none">
                             <button
-                              onClick={(e) => { e.preventDefault(); handleUpdateService(svc.id, 'isActive', !svc.isActive); }}
+                              type="button"
+                              onClick={() => handleUpdateService(svc.id, 'isActive', !svc.isActive)}
                               title={svc.isActive ? 'Скрыть от клиентов' : 'Показать клиентам'}
-                              className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs backdrop-blur-sm transition cursor-pointer ${svc.isActive ? 'bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/40' : 'bg-black/40 text-white/50 hover:bg-black/55'}`}
+                              className={`pointer-events-auto w-7 h-7 rounded-lg flex items-center justify-center text-xs backdrop-blur-sm transition cursor-pointer ${svc.isActive ? 'bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/40' : 'bg-black/40 text-white/50 hover:bg-black/55'}`}
                             >
                               {svc.isActive ? '👁' : '🙈'}
                             </button>
                             <button
-                              onClick={(e) => { e.preventDefault(); handleDeleteService(svc.id, svc.title); }}
-                              className="w-7 h-7 rounded-lg bg-black/40 text-rose-400 hover:bg-rose-500/40 hover:text-white backdrop-blur-sm flex items-center justify-center transition cursor-pointer"
+                              type="button"
+                              onClick={() => handleDeleteService(svc.id, svc.title)}
+                              className="pointer-events-auto w-7 h-7 rounded-lg bg-black/40 text-rose-400 hover:bg-rose-500/40 hover:text-white backdrop-blur-sm flex items-center justify-center transition cursor-pointer"
                             >
                               <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
-                          {svc.imageUrl ? (
-                            <img
-                              src={svc.imageUrl}
-                              alt={svc.title}
-                              loading="lazy"
-                              className="w-full h-full object-cover"
-                              style={{ transform: `scale(${svc.imageScale || 1})` }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-                              {svc.iconUrl ? (
-                                <img src={svc.iconUrl} alt="" loading="lazy" className="w-10 h-10 object-contain" />
-                              ) : (
-                                <span className="text-3xl">{svc.emoji}</span>
-                              )}
-                              <span className="text-[9px] text-white/30 font-bold text-center leading-tight">загрузить фото</span>
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
-                            <span className="text-white text-xs font-bold">📷 Заменить</span>
-                          </div>
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            className="hidden"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              const formData = new FormData();
-                              formData.append('photo', file);
-                              try {
-                                const res = await fetch('https://sever-18.ru/api/service-upload.php', {
-                                  method: 'POST',
-                                  body: formData,
-                                });
-                                const data = await res.json();
-                                if (data.url) {
-                                  handleUpdateService(svc.id, 'imageUrl', data.url);
-                                }
-                              } catch {
-                                alert('Ошибка загрузки фото');
-                              }
-                            }}
-                          />
-                        </label>
+                        </div>
 
                         <div className="p-2.5 pt-2 space-y-1.5">
                           <div className="flex items-center gap-1.5">
