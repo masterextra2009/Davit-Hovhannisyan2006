@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, PaymentConfig, Service } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
@@ -24,6 +24,66 @@ import { db, doc, setDoc, deleteDoc } from '../firebase';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import JSZip from 'jszip';
+
+// Тонкое кольцо прогресса для карточек статистики — одна метрика, один цвет,
+// закруглённый конец дуги (см. dataviz: тонкие марки, скруглённые концы).
+function MiniRing({ percent, colorClass }: { percent: number; colorClass: string }) {
+  const r = 15;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(100, percent));
+  const offset = c - (clamped / 100) * c;
+  return (
+    <svg width="38" height="38" viewBox="0 0 40 40" className="shrink-0 -rotate-90">
+      <circle cx="20" cy="20" r={r} fill="none" strokeWidth="4" className="stroke-slate-150 dark:stroke-slate-800" />
+      <circle
+        cx="20" cy="20" r={r} fill="none" strokeWidth="4" strokeLinecap="round"
+        strokeDasharray={c} strokeDashoffset={offset}
+        className={`${colorClass} transition-all duration-700 ease-out`}
+      />
+    </svg>
+  );
+}
+
+// Мини-полоски за последние 7 дней — тот же визуальный язык, что уже
+// использовался для "Заходы на сайт", теперь переиспользуется для выручки
+// и новых клиентов.
+function MiniSparkline({ data, colorClass }: { data: { date: string; value: number }[]; colorClass: string }) {
+  const max = Math.max(...data.map(d => d.value), 1);
+  const today = getLocalDateKey();
+  return (
+    <div className="flex items-end gap-1 h-8 mt-2">
+      {data.map((d, i) => {
+        const height = Math.max(3, Math.round((d.value / max) * 32));
+        const isToday = d.date === today;
+        return (
+          <div key={i} className="flex-1" title={`${d.date}: ${d.value}`}>
+            <div
+              className={`w-full rounded-sm transition-all ${isToday ? colorClass : 'bg-slate-300 dark:bg-slate-700'}`}
+              style={{ height: `${height}px` }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function buildLast7Days<T>(items: T[], getDate: (item: T) => string, getValue: (item: T) => number = () => 1): { date: string; value: number }[] {
+  const days: { date: string; value: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = getLocalDateKey(d);
+    days.push({ date: key, value: 0 });
+  }
+  const byDate = new Map(days.map(d => [d.date, d]));
+  items.forEach(item => {
+    const key = getLocalDateKey(new Date(getDate(item)));
+    const entry = byDate.get(key);
+    if (entry) entry.value += getValue(item);
+  });
+  return days;
+}
 
 interface AdminPanelProps {
   adminUser: User;
@@ -1081,6 +1141,24 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const pendingCount = database.orders.filter(o => o.status === 'pending').length;
   const inPrintCount = database.orders.filter(o => o.status === 'printing').length;
   const readyCount = database.orders.filter(o => o.status === 'ready').length;
+
+  // Данные для графиков в карточках статистики — 7 дней, тот же язык, что
+  // уже был у "Заходы на сайт".
+  const revenueHistory = useMemo(() => buildLast7Days(
+    database.orders.filter(o => o.paymentStatus === 'paid'),
+    o => o.orderDate,
+    o => o.totalCost
+  ), [database.orders]);
+
+  const newClientsHistory = useMemo(() => buildLast7Days(
+    clientsOnly,
+    u => u.createdAt
+  ), [clientsOnly]);
+
+  const printedCount = database.orders.filter(o => o.status === 'printed').length;
+  const completedPercent = database.orders.length > 0 ? Math.round((printedCount / database.orders.length) * 100) : 0;
+  const activeOrdersCount = pendingCount + inPrintCount + readyCount;
+  const printingPercent = activeOrdersCount > 0 ? Math.round((inPrintCount / activeOrdersCount) * 100) : 0;
 
   // File Format Analytics Count
   let fileFormatGroupsStats = {
@@ -2385,7 +2463,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <TrendingUp className="w-5 h-5" />
                     </div>
                   </div>
-                  <div className="text-[10px] text-emerald-600 font-bold mt-2">
+                  <MiniSparkline data={revenueHistory} colorClass="bg-indigo-500" />
+                  <div className="text-[10px] text-emerald-600 font-bold mt-1.5">
                     &uarr; 100% зачисление на банковский ПК
                   </div>
                 </div>
@@ -2396,12 +2475,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Всего Заказов</span>
                       <p className="text-2xl font-black text-slate-800 dark:text-white">{database.orders.length} шт.</p>
                     </div>
-                    <div className="p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-500 rounded-2xl">
-                      <FileCheck className="w-5 h-5 animate-pulse" />
+                    <div className="relative flex items-center justify-center">
+                      <MiniRing percent={completedPercent} colorClass="stroke-emerald-500" />
+                      <span className="absolute text-[9px] font-black text-emerald-600 dark:text-emerald-400">{completedPercent}%</span>
                     </div>
                   </div>
                   <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold mt-2">
-                    Из них: {database.orders.filter(o => o.status === 'printed').length} выполненных
+                    Из них: {printedCount} выполненных
                   </div>
                 </div>
 
@@ -2415,7 +2495,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <Users className="w-5 h-5" />
                     </div>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-2">
+                  <MiniSparkline data={newClientsHistory} colorClass="bg-slate-500" />
+                  <div className="text-[10px] text-slate-400 mt-1.5">
                     Учетных записей защищено SSL
                   </div>
                 </div>
@@ -2424,14 +2505,15 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">В Печатной Работе</span>
-                      <p className="text-2xl font-black text-indigo-755 dark:text-indigo-400">{database.orders.filter(o => o.status === 'printing').length} задач</p>
+                      <p className="text-2xl font-black text-indigo-755 dark:text-indigo-400">{inPrintCount} задач</p>
                     </div>
-                    <div className="p-2.5 bg-slate-550/10 text-indigo-600 dark:text-indigo-400 rounded-2xl">
-                      <Printer className="w-5 h-5 animate-spin" />
+                    <div className="relative flex items-center justify-center">
+                      <MiniRing percent={printingPercent} colorClass="stroke-indigo-500" />
+                      <Printer className="w-4 h-4 absolute text-indigo-600 dark:text-indigo-400 animate-pulse" />
                     </div>
                   </div>
                   <div className="text-[10px] text-slate-400 mt-2">
-                    Заказов ожидает: {database.orders.filter(o => o.status === 'pending').length} проверку
+                    Заказов ожидает: {pendingCount} проверку
                   </div>
                 </div>
 
