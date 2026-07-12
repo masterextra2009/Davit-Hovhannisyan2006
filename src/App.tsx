@@ -150,7 +150,11 @@ export default function App() {
       // current user's own doc (e.g. admin gifting a promo code) never reach
       // the components that actually read `user.promoCode` etc., since they'd
       // stay frozen at whatever `user` was at login until a manual refresh.
-      if (syncedUpdates.users) {
+      // auth.currentUser check guards against a snapshot callback that was
+      // already in flight resolving AFTER sign-out — without it, a stale
+      // update here could re-set the logged-out user right back, making
+      // "Выйти" appear to require a second click to actually stick.
+      if (syncedUpdates.users && auth.currentUser) {
         const refreshedSelf = syncedUpdates.users.find(u => u.id === user.id);
         if (refreshedSelf) {
           setUser(refreshedSelf);
@@ -160,7 +164,14 @@ export default function App() {
     });
 
     return () => unsubscribeCollection();
-  }, [user]);
+    // Зависим только от id/role, а не от всего объекта user — user
+    // пересоздаётся при каждом обновлении профиля (например, пинг
+    // "онлайн"-статуса каждые несколько секунд), а раньше эффект зависел
+    // от [user] целиком, из-за чего подписка на Firestore постоянно рвалась
+    // и пересоздавалась, и live-обновления (например, смена статуса заказа
+    // админом) могли не долетать до открытой вкладки клиента.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.role]);
 
   // Update central state and replicate updates to Firebase Firestore
   const handleUpdateDatabase = (updates: Partial<DatabaseState>) => {

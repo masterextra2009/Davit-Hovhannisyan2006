@@ -1974,6 +1974,8 @@ body {
 
 .service-glass-card-media {
   border-radius: 20px 20px 0 0;
+  overflow: hidden;
+  background: rgba(255,255,255,0.04);
 }
 
 /* Фото услуги — статичное, без "вылета" при наведении (эффект убран по

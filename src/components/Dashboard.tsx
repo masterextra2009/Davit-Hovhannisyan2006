@@ -26,7 +26,7 @@ import {
   getClientTierForUser, isWorkingHours, showBrowserNotification
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
-import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase } from '../firebaseUtils';
+import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Synthesized high-quality feedback sound chimes using Web Audio API
@@ -813,11 +813,33 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   useLayoutEffect(() => {
     if (activeTab !== 'chat' || !chatBottomRef.current) return;
     chatBottomRef.current.scrollIntoView({ behavior: 'auto' });
-    const t = setTimeout(() => {
+    // Стикеры — это webm-видео, которые грузятся заметно дольше картинок,
+    // поэтому один повтор через 400мс не всегда успевал — добавлены ещё два
+    // более поздних повтора, чтобы догнать даже медленную сеть.
+    const timers = [400, 1000, 2000].map(delay => setTimeout(() => {
       chatBottomRef.current?.scrollIntoView({ behavior: 'auto' });
-    }, 400);
-    return () => clearTimeout(t);
+    }, delay));
+    return () => timers.forEach(clearTimeout);
   }, [activeTab, userChats.length]);
+
+  // Авто-удаление уведомлений старше 48 часов — тот же принцип, что и у
+  // архива выданных заказов в админке: журнал уведомлений это просто лог
+  // активности, сама информация (статус заказа, история чата) остаётся
+  // доступна в других местах, так что чистить по возрасту безопасно.
+  useEffect(() => {
+    const autoDeleteOldNotifications = async () => {
+      const now = Date.now();
+      const ms48h = 48 * 60 * 60 * 1000;
+      const toDelete = userNotifications.filter(n => (now - new Date(n.timestamp).getTime()) > ms48h);
+      for (const n of toDelete) {
+        try { await deleteNotificationFromFirebase(n.id); } catch {}
+      }
+      if (toDelete.length > 0) {
+        onUpdateDatabase({ notifications: database.notifications.filter(n => !toDelete.find(d => d.id === n.id)) });
+      }
+    };
+    autoDeleteOldNotifications();
+  }, [userNotifications.length]);
 
   // Mark chats as read when opening Chat tab
   useEffect(() => {
@@ -1338,7 +1360,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       status: 'pending',
       totalCost: finalTotalCost,
       paymentStatus: 'unpaid',
-      paperType: (uploadedFiles[0]?.paperType === 'photo' || uploadedFiles[0]?.paperType === 'collage') ? 'glossy' : 'standard',
+      paperType: (uploadedFiles[0]?.paperType === 'photo' || uploadedFiles[0]?.paperType === 'collage')
+        ? 'glossy'
+        : (uploadedFiles[0]?.format === 'a3' ? 'standard_a3' : 'standard'),
       paperDensity: 'regular',
       printColor: (uploadedFiles[0]?.printColor || 'bw') as 'bw' | 'color' | 'color_full',
       copies: uploadedFiles[0]?.fileCopies || 1,
@@ -3723,10 +3747,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   )}
                 </div>
 
+                {/* Правая колонка: Безопасность и Настройки + Поделиться Сервисом
+                    стопкой друг под другом — раньше "Поделиться" было отдельной
+                    строкой во всю ширину и не занимало место под первой карточкой */}
+                <div className="space-y-6">
                 {/* Secure System & Synchronization Details */}
                 <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6">
                   <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Безопасность и Настройки</h3>
-                  
+
                   <div className="space-y-4">
                     
                     {/* Social connection options */}
@@ -3849,6 +3877,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       </>
                     )}
                   </button>
+                </div>
                 </div>
 
               </div>

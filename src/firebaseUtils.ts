@@ -511,6 +511,14 @@ export async function updateNotificationInFirebase(alertId: string, updates: Par
   }
 }
 
+export async function deleteNotificationFromFirebase(alertId: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, 'notifications', alertId));
+  } catch (e) {
+    handleFirestoreError(e, OperationType.DELETE, `notifications/${alertId}`);
+  }
+}
+
 /**
  * Subscribe and keep UI state synced with Firestore in real-time
  */
