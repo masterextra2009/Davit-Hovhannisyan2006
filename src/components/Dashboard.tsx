@@ -4142,7 +4142,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         {svc.imageUrl ? (
                           <img src={svc.imageUrl} alt={svc.title}
                             loading="lazy"
-                            className="w-full h-full object-contain rounded-t-[20px] relative z-10"
+                            className="w-full h-full object-cover rounded-t-[20px] relative z-10"
+                            style={{ transform: `scale(${svc.imageScale || 1})` }}
                             onError={e => { (e.currentTarget as HTMLImageElement).style.display='none'; }}
                           />
                         ) : svc.iconUrl ? (

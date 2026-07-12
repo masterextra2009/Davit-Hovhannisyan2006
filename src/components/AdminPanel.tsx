@@ -434,6 +434,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     description: '',
     price: '',
     imageUrl: '',
+    imageScale: 1,
     iconUrl: '',
   });
   const [newServiceUploading, setNewServiceUploading] = useState(false);
@@ -500,7 +501,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       description: newServiceForm.description.trim(),
       price: newServiceForm.price.trim() || '0 ₽',
       emoji: newServiceForm.emoji || '🖨️',
-      ...(newServiceForm.imageUrl ? { imageUrl: newServiceForm.imageUrl } : {}),
+      ...(newServiceForm.imageUrl ? { imageUrl: newServiceForm.imageUrl, imageScale: newServiceForm.imageScale || 1 } : {}),
       ...(newServiceForm.iconUrl ? { iconUrl: newServiceForm.iconUrl } : {}),
       category: 'print',
       isActive: true,
@@ -508,7 +509,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     };
     setDoc(doc(db, 'services', newId), newService).catch(console.error);
     setShowAddServiceModal(false);
-    setNewServiceForm({ emoji: '🖨️', title: '', description: '', price: '', imageUrl: '', iconUrl: '' });
+    setNewServiceForm({ emoji: '🖨️', title: '', description: '', price: '', imageUrl: '', imageScale: 1, iconUrl: '' });
   };
 
   const handleUpdateService = (id: string, field: string, value: any) => {
@@ -1343,7 +1344,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         </header>
 
         {/* Desktop Header */}
-        <header className="hidden md:flex items-center justify-between px-8 py-5 glass-panel border-b-0">
+        <header className="hidden md:flex items-center justify-between px-8 py-5 glass-panel rounded-2xl border-b-0">
           <div>
             <h1 className="text-xl font-black text-white">
               {activeTab === 'orders' && 'Очередь печати документов'}
@@ -2212,71 +2213,12 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           </div>
                         );
 
-                        if (filesList.length === 0) {
-                          return (
-                            <>
-                              {statsRow}
-                              <div className="text-center py-12 space-y-3">
-                                <FileText className="w-12 h-12 text-slate-350 dark:text-slate-700 mx-auto" />
-                                <p className="text-xs text-slate-400 font-bold">У этого пользователя нет загруженных файлов.</p>
-                              </div>
-                            </>
-                          );
-                        }
-
                         return (
                           <div className="space-y-3">
                             {statsRow}
-                            <div className="text-xs text-slate-400 font-bold mb-2">
-                              Найдено {filesList.length} файлов в {userOrders.length} заказах:
+                            <div className="text-xs text-slate-400 font-bold text-center py-2">
+                              {filesList.length} {filesList.length === 1 ? 'файл' : 'файлов'} в {userOrders.length} {userOrders.length === 1 ? 'заказе' : 'заказах'}
                             </div>
-                            {filesList.map(file => (
-                              <div
-                                key={file.id}
-                                className="p-4 bg-slate-50 dark:bg-slate-950/40 border border-slate-150 dark:border-slate-850 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:border-slate-205 dark:hover:border-slate-755 transition-colors"
-                              >
-                                <div className="space-y-1 overflow-hidden">
-                                  <div className="flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
-                                    <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 block truncate max-w-[280px]" title={file.name}>
-                                      {file.name}
-                                    </span>
-                                  </div>
-                                  <div className="text-[10px] text-slate-400 flex flex-wrap gap-x-2 gap-y-0.5">
-                                    <span>{formatFileSize(file.size)}</span>
-                                    <span>&bull;</span>
-                                    <span className="uppercase">{file.formatGroup}</span>
-                                    <span>&bull;</span>
-                                    <span>Заказ <strong className="text-slate-650 dark:text-slate-300">{file.orderId}</strong> ({getStatusLabel(file.orderStatus)})</span>
-                                  </div>
-                                  <div className="text-[9px] text-slate-400">
-                                    Загружен: {formatDateTime(file.uploadedAt || file.orderDate)}
-                                  </div>
-                                </div>
-
-                                <button
-                                  onClick={() => triggerSimulatedDownload(file as any)}
-                                  disabled={downloadingFileId === file.id}
-                                  className={`w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
-                                    downloadingFileId === file.id
-                                      ? 'bg-slate-200 dark:bg-slate-800 text-slate-400'
-                                      : 'bg-indigo-650 text-white hover:bg-indigo-700'
-                                  }`}
-                                >
-                                  {downloadingFileId === file.id ? (
-                                    <>
-                                      <span className="w-3.5 h-3.5 border-2 border-slate-400 border-t-white rounded-full animate-spin" />
-                                      <span>{downloadProgress}%</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Download className="w-4.5 h-4.5" />
-                                      <span>Скачать на ПК</span>
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            ))}
                           </div>
                         );
                       })()}
@@ -2931,7 +2873,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         <label className="service-glass-card-media relative h-28 mx-2.5 mt-1 rounded-xl shrink-0 cursor-pointer group block">
                           <div className="service-card-glow absolute inset-0 pointer-events-none rounded-xl" />
                           {svc.imageUrl ? (
-                            <img src={svc.imageUrl} alt={svc.title} loading="lazy" className="w-full h-full object-contain rounded-xl" />
+                            <img
+                              src={svc.imageUrl}
+                              alt={svc.title}
+                              loading="lazy"
+                              className="w-full h-full object-cover rounded-xl"
+                              style={{ transform: `scale(${svc.imageScale || 1})` }}
+                            />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center gap-1">
                               {svc.iconUrl ? (
@@ -3064,32 +3012,70 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     </div>
 
                     <div className="p-5 space-y-4 overflow-y-auto">
-                      {/* Фото */}
-                      <label className="relative h-32 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/40 cursor-pointer flex items-center justify-center overflow-hidden block">
-                        {newServiceForm.imageUrl ? (
-                          <img src={newServiceForm.imageUrl} alt="" className="w-full h-full object-contain" />
-                        ) : (
-                          <div className="flex flex-col items-center gap-1 text-slate-400">
-                            {newServiceUploading ? (
-                              <RefreshCw className="w-6 h-6 animate-spin" />
-                            ) : (
-                              <>
-                                <span className="text-2xl">{newServiceForm.emoji}</span>
-                                <span className="text-[10px] font-bold">Загрузить фото (необязательно)</span>
-                              </>
+                      {/* Фото — пропорции 1:1 с реальной карточкой услуги у клиента (h-40,
+                          во всю ширину), чтобы превью точно показывало итоговый вид */}
+                      <div>
+                        <label className="relative h-40 rounded-t-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/40 cursor-pointer flex items-center justify-center overflow-hidden block">
+                          {newServiceForm.imageUrl ? (
+                            <img
+                              src={newServiceForm.imageUrl}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              style={{ transform: `scale(${newServiceForm.imageScale || 1})` }}
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center gap-1 text-slate-400">
+                              {newServiceUploading ? (
+                                <RefreshCw className="w-6 h-6 animate-spin" />
+                              ) : (
+                                <>
+                                  <span className="text-2xl">{newServiceForm.emoji}</span>
+                                  <span className="text-[10px] font-bold">Загрузить фото (необязательно)</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleNewServicePhotoUpload(file);
+                            }}
+                          />
+                        </label>
+                        {newServiceForm.imageUrl && (
+                          <div className="flex items-center justify-center gap-2 p-2 rounded-b-xl border border-t-0 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40">
+                            <button
+                              type="button"
+                              onClick={() => setNewServiceForm(f => ({ ...f, imageScale: Math.max(1, (f.imageScale || 1) - 0.1) }))}
+                              className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-white font-black flex items-center justify-center cursor-pointer hover:bg-slate-300 dark:hover:bg-slate-700 transition"
+                              title="Отдалить"
+                            >
+                              −
+                            </button>
+                            <span className="text-[10px] font-bold text-slate-400 w-10 text-center">{Math.round((newServiceForm.imageScale || 1) * 100)}%</span>
+                            <button
+                              type="button"
+                              onClick={() => setNewServiceForm(f => ({ ...f, imageScale: Math.min(3, (f.imageScale || 1) + 0.1) }))}
+                              className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-white font-black flex items-center justify-center cursor-pointer hover:bg-slate-300 dark:hover:bg-slate-700 transition"
+                              title="Приблизить"
+                            >
+                              +
+                            </button>
+                            {newServiceForm.imageScale !== 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setNewServiceForm(f => ({ ...f, imageScale: 1 }))}
+                                className="text-[10px] font-bold text-indigo-500 hover:text-indigo-600 cursor-pointer ml-1"
+                              >
+                                Сбросить
+                              </button>
                             )}
                           </div>
                         )}
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleNewServicePhotoUpload(file);
-                          }}
-                        />
-                      </label>
+                      </div>
 
                       <div className="flex items-center gap-2">
                         <div className="relative w-12 h-11 shrink-0">

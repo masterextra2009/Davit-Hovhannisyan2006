@@ -121,6 +121,7 @@ export interface Service {
   price: string;
   emoji: string;
   imageUrl?: string;
+  imageScale?: number;
   iconUrl?: string;
   category: string;
   isActive: boolean;
