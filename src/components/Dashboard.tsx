@@ -553,7 +553,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
-  const [selectedService, setSelectedService] = useState<{title: string; price: number} | null>(null);
+  const [selectedService, setSelectedService] = useState<{id: string; title: string; price: number} | null>(null);
   const [showTornPaperAnimation, setShowTornPaperAnimation] = useState(false);
   const [tornPromoCode, setTornPromoCode] = useState<string>('');
 
@@ -1399,6 +1399,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       notes: notes.trim(),
       binding: 'none',
       ...(finalPromo ? { promoCode: finalPromo, promoDiscount: finalDiscount } : {}),
+      ...(selectedService ? { serviceId: selectedService.id } : {}),
     };
 
     const isPersonalPromo = user.promoCode && finalPromo === user.promoCode.trim().toUpperCase();
@@ -4195,7 +4196,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         <button
                           onClick={() => {
                             const priceNum = parseInt(svc.price.replace(/[^0-9]/g, ''), 10) || 0;
-                            setSelectedService({ title: svc.title, price: priceNum });
+                            setSelectedService({ id: svc.id, title: svc.title, price: priceNum });
                             setNotes(`Услуга: ${svc.title} — ${svc.price}`);
                             setActiveTab('upload');
                           }}

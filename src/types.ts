@@ -76,6 +76,10 @@ export interface Order {
   binding?: 'none' | 'staple' | 'file' | 'spring_plastic' | 'spring_metal' | 'hard_cover';
   promoCode?: string;
   promoDiscount?: number;
+  // Заполняется только для заказов "только услуга" (из витрины услуг, без
+  // загруженных файлов) — id услуги в коллекции services, чтобы сервер мог
+  // сам проверить актуальную цену вместо доверия totalCost от клиента.
+  serviceId?: string;
   // Брак / отказ — независим от основного статуса, т.к. заказ может быть
   // забракован на любой стадии, а не только в конце линейного процесса.
   rejected?: boolean;
