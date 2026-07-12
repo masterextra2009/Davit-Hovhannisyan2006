@@ -2844,40 +2844,40 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <p className="font-bold text-center">Витрина пуста — нажми «+ Добавить» чтобы создать первую карточку</p>
                     </div>
                   )}
-                  <div className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-6 gap-2.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                     {(database.services || []).map((svc) => (
                       <div
                         key={svc.id}
                         onMouseMove={handleServiceCardTilt}
                         onMouseLeave={handleServiceCardTiltReset}
-                        className="service-glass-row rounded-2xl flex flex-col relative"
+                        className="service-glass-row rounded-2xl flex flex-col relative overflow-hidden"
                       >
-                        {/* Статус + удалить */}
-                        <div className="flex items-center justify-end gap-1.5 p-1.5 pb-0">
-                          <button
-                            onClick={() => handleUpdateService(svc.id, 'isActive', !svc.isActive)}
-                            title={svc.isActive ? 'Скрыть от клиентов' : 'Показать клиентам'}
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition cursor-pointer ${svc.isActive ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-white/5 text-white/30 hover:bg-white/10'}`}
-                          >
-                            {svc.isActive ? '👁' : '🙈'}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteService(svc.id, svc.title)}
-                            className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 flex items-center justify-center transition cursor-pointer"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-
-                        {/* Фото услуги */}
-                        <label className="service-glass-card-media relative h-28 mx-2.5 mt-1 rounded-xl shrink-0 cursor-pointer group block">
-                          <div className="service-card-glow absolute inset-0 pointer-events-none rounded-xl" />
+                        {/* Фото услуги — залито от самого верха карточки, без полей по бокам;
+                            статус/удалить теперь плавают поверх фото, а не отдельной строкой */}
+                        <label className="service-glass-card-media relative h-36 shrink-0 cursor-pointer group block">
+                          <div className="service-card-glow absolute inset-0 pointer-events-none" />
+                          {/* Статус + удалить — поверх фото */}
+                          <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5">
+                            <button
+                              onClick={(e) => { e.preventDefault(); handleUpdateService(svc.id, 'isActive', !svc.isActive); }}
+                              title={svc.isActive ? 'Скрыть от клиентов' : 'Показать клиентам'}
+                              className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs backdrop-blur-sm transition cursor-pointer ${svc.isActive ? 'bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/40' : 'bg-black/40 text-white/50 hover:bg-black/55'}`}
+                            >
+                              {svc.isActive ? '👁' : '🙈'}
+                            </button>
+                            <button
+                              onClick={(e) => { e.preventDefault(); handleDeleteService(svc.id, svc.title); }}
+                              className="w-7 h-7 rounded-lg bg-black/40 text-rose-400 hover:bg-rose-500/40 hover:text-white backdrop-blur-sm flex items-center justify-center transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                           {svc.imageUrl ? (
                             <img
                               src={svc.imageUrl}
                               alt={svc.title}
                               loading="lazy"
-                              className="w-full h-full object-cover rounded-xl"
+                              className="w-full h-full object-cover"
                               style={{ transform: `scale(${svc.imageScale || 1})` }}
                             />
                           ) : (
@@ -2890,7 +2890,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               <span className="text-[9px] text-white/30 font-bold text-center leading-tight">загрузить фото</span>
                             </div>
                           )}
-                          <div className="absolute inset-0 rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
                             <span className="text-white text-xs font-bold">📷 Заменить</span>
                           </div>
                           <input
