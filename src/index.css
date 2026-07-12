@@ -2518,11 +2518,13 @@ button.glass-card::after,
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* Защита панели эмодзи от общего правила читаемости в админке */
-#admin-dashboard-root .emoji-picker-panel {
+/* Защита панели эмодзи от общего правила читаемости в админке и кабинете клиента */
+#admin-dashboard-root .emoji-picker-panel,
+#client-dashboard-root .emoji-picker-panel {
   background: rgba(255,255,255,0.92) !important;
 }
-.dark #admin-dashboard-root .emoji-picker-panel {
+.dark #admin-dashboard-root .emoji-picker-panel,
+.dark #client-dashboard-root .emoji-picker-panel {
   background: rgba(20,22,35,0.94) !important;
 }
 

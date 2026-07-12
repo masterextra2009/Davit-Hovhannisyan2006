@@ -1938,18 +1938,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <span className="hidden sm:inline z-10">Услуги</span>
           </button>
 
-          {/* Заметная кнопка подключения Telegram-уведомлений — скрывается, когда уже подключено */}
+          {/* Кнопка подключения Telegram-уведомлений — скрывается, когда уже подключено */}
           {!user.telegramChatId && (
             <button
               onClick={() => setShowTelegramModal(true)}
-              className="relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-black rounded-2xl transition-transform hover:-translate-y-0.5 active:translate-y-0 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer text-white mt-1 animate-pulse-slow"
-              style={{
-                background: 'linear-gradient(135deg, #38bdf8, #0ea5e9 60%, #0284c7)',
-                boxShadow: '0 6px 20px -6px rgba(14,165,233,0.6), inset 0 1px 0 rgba(255,255,255,0.25)',
-              }}
+              className="relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer text-[#cbd5e1] hover:bg-slate-800/40 hover:text-white"
               title="Подключить уведомления в Telegram о статусе заказа"
             >
-              <div className="glass-icon-capsule shrink-0" style={{ background: 'rgba(255,255,255,0.2)' }}>
+              <div className="glass-icon-capsule capsule-glow-cyan shrink-0 opacity-90">
                 <Send className="w-4.5 h-4.5 text-white icon-3d-svg" />
               </div>
               <span className="hidden sm:inline z-10">Уведомления в Telegram</span>
