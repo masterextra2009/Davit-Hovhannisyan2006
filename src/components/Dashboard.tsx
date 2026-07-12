@@ -824,16 +824,29 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     const scrollToBottom = () => {
       container.scrollTop = container.scrollHeight;
     };
+    // Синхронно и сразу — покрывает случай "сообщения уже загружены к
+    // моменту открытия вкладки" (обычно так и есть, подписка на Firestore
+    // живёт в App.tsx с самого входа в кабинет, а не с открытия чата).
     scrollToBottom();
+    // И ещё раз на следующем тике — на случай, если браузер ещё не
+    // пересчитал итоговую scrollHeight к моменту синхронного вызова выше.
+    const rafId = requestAnimationFrame(scrollToBottom);
 
     // Наблюдаем за ВНУТРЕННИМ контейнером сообщений (растёт вместе с
     // контентом), а не за внешним прокручиваемым — у внешнего своя
     // фиксированная высота (flex-1), она не меняется при добавлении
     // сообщений, поэтому ResizeObserver на нём никогда бы не сработал.
+    // Ловит асинхронную догрузку картинок/видео-стикеров ПОСЛЕ рендера.
     const observer = new ResizeObserver(scrollToBottom);
     observer.observe(content);
-    return () => observer.disconnect();
-  }, [activeTab]);
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
+    // userChats.length — отдельный триггер на случай, если пришло новое
+    // сообщение, пока вкладка чата уже открыта (ResizeObserver это тоже
+    // должен ловить, но два независимых механизма надёжнее одного).
+  }, [activeTab, userChats.length]);
 
   // Авто-удаление уведомлений старше 48 часов — тот же принцип, что и у
   // архива выданных заказов в админке: журнал уведомлений это просто лог
