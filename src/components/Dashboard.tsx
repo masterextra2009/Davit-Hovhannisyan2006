@@ -1938,6 +1938,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
 
         {/* Nav Links */}
+        <div className="relative flex-1 min-w-0 md:contents">
         <nav className="sidebar-nav flex md:flex-col flex-1 gap-1 md:gap-1.5 justify-start md:justify-start w-full relative overflow-x-auto overflow-y-hidden scrollbar-hide">
           <button
             onClick={() => setActiveTab('upload')}
@@ -2111,6 +2112,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           )}
 
         </nav>
+
+        {/* Подсказка "тут можно листать вбок" — на телефоне скроллбар у нав-бара
+            намеренно скрыт (см. scrollbar-hide выше), без этого затемнения справа
+            пункты меню, не влезающие на экран (например "Услуги"), выглядели как
+            будто их вообще нет, а не как "прокрути, чтобы увидеть ещё". */}
+        <div className="md:hidden absolute top-0 right-0 bottom-0 w-8 pointer-events-none bg-gradient-to-l from-[#0b0b16] to-transparent" />
+        </div>
 
         {/* Short info bottom */}
         <div className="hidden md:block border-t border-slate-850 pt-5 mt-auto">
@@ -3659,7 +3667,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               key={idx}
                               type="button"
                               onClick={() => setEditAvatarUrl(urlPreset)}
-                              className={`w-10 h-10 rounded-xl object-cover overflow-hidden border-2 transition cursor-pointer ${
+                              className={`w-11 h-11 rounded-xl object-cover overflow-hidden border-2 transition cursor-pointer ${
                                 editAvatarUrl === urlPreset ? 'border-indigo-600 scale-105 shadow-md' : 'border-transparent hover:scale-102'
                               }`}
                             >

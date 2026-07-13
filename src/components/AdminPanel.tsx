@@ -1305,10 +1305,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         </div>
 
         {/* Links Navigation */}
-        <nav className="sidebar-nav flex md:flex-col flex-1 gap-2 md:gap-2 justify-around md:justify-start w-full">
+        <nav className="sidebar-nav flex md:flex-col flex-1 gap-2 md:gap-2 justify-start md:justify-start w-full overflow-x-auto overflow-y-hidden overscroll-contain">
           <button
             onClick={() => setActiveTab('orders')}
-            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial relative ${
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial relative ${
               activeTab === 'orders' 
                 ? 'nav-holo-active bg-white/10 text-white font-black' 
                 : 'text-white/55 hover:bg-white/5 hover:text-white'
@@ -1329,7 +1329,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
           <button
             onClick={() => setActiveTab('chat')}
-            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial relative ${
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial relative ${
               activeTab === 'chat' 
                 ? 'nav-holo-active bg-white/10 text-white font-black' 
                 : 'text-white/55 hover:bg-white/5 hover:text-white'
@@ -1350,7 +1350,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
           <button
             onClick={() => setActiveTab('feedback')}
-            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial relative ${
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial relative ${
               activeTab === 'feedback'
                 ? 'nav-holo-active bg-white/10 text-white font-black'
                 : 'text-white/55 hover:bg-white/5 hover:text-white'
@@ -1371,7 +1371,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
           <button
             onClick={() => setActiveTab('users')}
-            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial ${
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
               activeTab === 'users' 
                 ? 'nav-holo-active bg-white/10 text-white font-black' 
                 : 'text-white/55 hover:bg-white/5 hover:text-white'
@@ -1385,7 +1385,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial ${
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
               activeTab === 'analytics' 
                 ? 'nav-holo-active bg-white/10 text-white font-black' 
                 : 'text-white/55 hover:bg-white/5 hover:text-white'
@@ -1399,7 +1399,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
           <button
             onClick={() => setActiveTab('services')}
-            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial ${
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
               activeTab === 'services'
                 ? 'nav-holo-active bg-white/10 text-white font-black'
                 : 'text-white/55 hover:bg-white/5 hover:text-white'
@@ -1413,7 +1413,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
           <button
             onClick={() => setActiveTab('settings')}
-            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial ${
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
               activeTab === 'settings' 
                 ? 'nav-holo-active bg-white/10 text-white font-black' 
                 : 'text-white/55 hover:bg-white/5 hover:text-white'
@@ -1427,7 +1427,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
           <button
             onClick={() => setActiveTab('archive')}
-            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial ${
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
               activeTab === 'archive'
                 ? 'nav-holo-active bg-white/10 text-white font-black'
                 : 'text-white/55 hover:bg-white/5 hover:text-white'
@@ -1551,8 +1551,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-                <div className="filter-pill-wrap">
-                  <span className="text-xs font-bold text-slate-500 self-center mr-2 hidden lg:inline px-2">Фильтр:</span>
+                <div className="filter-pill-wrap max-w-full overflow-x-auto overscroll-contain">
+                  <span className="text-xs font-bold text-slate-500 self-center mr-2 hidden lg:inline px-2 shrink-0">Фильтр:</span>
                   {[
                     { id: 'all', label: 'Все заказы' },
                     { id: 'pending', label: 'Ожидают' },
@@ -1563,7 +1563,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     <button
                       key={btn.id}
                       onClick={() => setStatusFilter(btn.id as any)}
-                      className={`filter-pill-btn transition-all ${
+                      className={`filter-pill-btn transition-all shrink-0 ${
                         statusFilter === btn.id
                           ? 'glass-pill-active'
                           : ''
@@ -2145,7 +2145,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         <div className="flex sm:flex-col gap-2 shrink-0">
                           <button
                             onClick={() => { setActiveTab('chat'); setActiveChatUserId(fb.userId); }}
-                            className="flex items-center justify-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition"
+                            className="flex items-center justify-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-4 py-3.5 rounded-xl transition"
                           >
                             <MessageSquare className="w-3.5 h-3.5" /> Ответить
                           </button>
@@ -2162,13 +2162,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               setGivingPromoCode('');
                               setGivingPromoDiscount(client.promoDiscount || 5);
                             }}
-                            className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition"
+                            className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-3.5 rounded-xl transition"
                           >
                             <Gift className="w-3.5 h-3.5" /> Подарить скидку
                           </button>
                           <button
                             onClick={() => deleteFeedbackFromFirebase(fb.id)}
-                            className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-bold text-xs px-4 py-2 rounded-xl transition"
+                            className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-bold text-xs px-4 py-3.5 rounded-xl transition"
                           >
                             <Trash2 className="w-3.5 h-3.5" /> Удалить
                           </button>

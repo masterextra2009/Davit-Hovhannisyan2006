@@ -396,7 +396,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     <button
                       type="button"
                       onClick={() => { setMode('forgot'); resetMessages(); }}
-                      className="text-[10px] font-black text-blue-600 hover:text-blue-500 dark:text-blue-400 uppercase tracking-wider"
+                      className="text-[11px] font-black text-blue-600 hover:text-blue-500 dark:text-blue-400 uppercase tracking-wider py-2.5 -my-2.5 px-1 -mx-1"
                     >
                       Забыли пароль?
                     </button>
@@ -417,7 +417,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                   </div>
                 </div>
 
-                <label className="flex items-center gap-2 cursor-pointer select-none -mt-1 pl-1">
+                <label className="flex items-center gap-2 cursor-pointer select-none -ml-1 py-2 px-1">
                   <input
                     type="checkbox"
                     defaultChecked
