@@ -118,6 +118,15 @@ export interface PaymentConfig {
   instructions?: string;
 }
 
+export interface Feedback {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  message: string;
+  timestamp: string;
+}
+
 export interface Service {
   id: string;
   title: string;
@@ -141,4 +150,5 @@ export interface DatabaseState {
   paymentConfig?: PaymentConfig;
   siteVisits?: number;
   siteVisitsHistory?: { date: string; count: number }[];
+  feedback?: Feedback[];
 }

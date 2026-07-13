@@ -108,6 +108,16 @@ service cloud.firestore {
       allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
+    // Пожелания/замечания от клиентов (форма в личном кабинете) — клиент
+    // может только создать своё сообщение, читает и отвечает (через чат)
+    // только админ. Ответ идёт не сюда, а в chatMessages — этот документ
+    // одноразовый и не редактируется.
+    match /feedback/{feedbackId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
     // Витрина услуг в личном кабинете клиента — читают все вошедшие
     // пользователи, редактирует только админ.
     match /services/{serviceId} {

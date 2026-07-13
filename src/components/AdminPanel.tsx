@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
-import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, PaymentConfig, Service } from '../types';
+import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, PaymentConfig, Service, Feedback } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
 import logoImg from '../assets/logo.webp';
@@ -12,14 +12,14 @@ import {
   FileText, Users, Clock, MessageSquare, Download, CheckCircle, 
   Send, RefreshCw, BarChart3, Trash2, Edit3, Save, FileSpreadsheet, 
   Printer, ArrowRight, TrendingUp, DollarSign, Files, Eye, HelpCircle,
-  BellRing, LogOut, FileCheck, Settings, Camera, Image as ImageIcon, Key, CreditCard, Check, ShieldAlert, X, ShieldCheck, Gift, Search, Archive, ChevronLeft, Mail, Phone, User as UserIconLucide, Upload
+  BellRing, LogOut, FileCheck, Settings, Camera, Image as ImageIcon, Key, CreditCard, Check, ShieldAlert, X, ShieldCheck, Gift, Search, Archive, ChevronLeft, Mail, Phone, User as UserIconLucide, Upload, Lightbulb
 } from 'lucide-react';
 import {
   formatFileSize, formatDateTime, getStatusLabel,
   getStatusColor, getPaymentStatusLabel, getPaymentStatusColor,
   exportToCSV, printInvoiceHTML, calculateOrderCost, getLocalDateKey
 } from '../utils';
-import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase } from '../firebaseUtils';
+import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase } from '../firebaseUtils';
 import { db, doc, setDoc, deleteDoc } from '../firebase';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
@@ -96,6 +96,7 @@ interface AdminPanelProps {
     services?: Service[];
     paymentConfig?: PaymentConfig;
     siteVisits?: number;
+    feedback?: Feedback[];
   };
   onUpdateDatabase: (updatedData: {
     orders?: Order[];
@@ -108,7 +109,7 @@ interface AdminPanelProps {
 
 export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: AdminPanelProps) {
   // Navigation
-  const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'users' | 'analytics' | 'settings' | 'archive' | 'services'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services'>('orders');
 
   // 3D tilt effect on sidebar icon hover (mouse tracking) — matches Dashboard client style
   useEffect(() => {
@@ -1348,6 +1349,27 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           </button>
 
           <button
+            onClick={() => setActiveTab('feedback')}
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial relative ${
+              activeTab === 'feedback'
+                ? 'nav-holo-active bg-white/10 text-white font-black'
+                : 'text-white/55 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <div className="relative shrink-0">
+              <div className={`glass-icon-capsule glass-icon-orange w-9 h-9 ${activeTab === 'feedback' ? 'glass-icon-active' : ''}`}>
+                <Lightbulb className="w-4.5 h-4.5 text-white" />
+              </div>
+              {(database.feedback || []).length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 border border-white shadow-md">
+                  {(database.feedback || []).length}
+                </span>
+              )}
+            </div>
+            <span className="hidden sm:inline">Отзывы</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('users')}
             className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start flex-1 md:flex-initial ${
               activeTab === 'users' 
@@ -1469,6 +1491,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <h1 className="text-xl font-black text-white">
               {activeTab === 'orders' && 'Очередь печати документов'}
               {activeTab === 'chat' && 'Оперативная чат-линия клиентов'}
+              {activeTab === 'feedback' && 'Пожелания и замечания клиентов'}
               {activeTab === 'users' && 'Управление пользователями & Конфиденциальность'}
               {activeTab === 'analytics' && 'Статистика копи-центра в реальном времени'}
               {activeTab === 'settings' && 'Редактирование профиля & Интеграция банка'}
@@ -1476,6 +1499,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <p className="text-xs text-white/60 mt-1">
               {activeTab === 'orders' && 'Управляйте приоритетами очередей принтера Epson, изменяйте статусы готовности, выгружайте CSV накладные.'}
               {activeTab === 'chat' && 'Контролируйте ветки диалогов всех активных клиентов вашего копи-точки.'}
+              {activeTab === 'feedback' && 'Сообщения из формы "Есть пожелание или замечание?" в кабинете клиента.'}
               {activeTab === 'users' && 'Просмотр контактов, редактирование профилей и полное удаление согласно регламенту.'}
               {activeTab === 'analytics' && 'Сводная аналитика выручки, распределение графиков популярности расширений.'}
               {activeTab === 'settings' && 'Настройка вашего профиля администратора, выбор аватаров и банковский СБП терминал.'}
@@ -2094,6 +2118,49 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     </div>
                 </aside>
               )}
+            </div>
+          )}
+
+          {/* TAB: CLIENT FEEDBACK — форма "Есть пожелание или замечание?" из кабинета клиента */}
+          {activeTab === 'feedback' && (
+            <div className="space-y-6">
+              <div className="glass-panel rounded-3xl p-6">
+                <h3 className="text-sm font-black text-white uppercase tracking-wider mb-1">Пожелания и замечания</h3>
+                <p className="text-[10px] text-white/50 mb-6">Ответ уходит клиенту обычным сообщением в чате.</p>
+
+                {(database.feedback || []).length === 0 ? (
+                  <p className="text-xs text-white/50 text-center py-10">Пока ничего не прислали.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {(database.feedback || []).map(fb => (
+                      <div key={fb.id} className="glass-card rounded-2xl p-4 flex flex-col sm:flex-row justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-extrabold text-white text-xs">{fb.userName}</span>
+                            <span className="text-[10px] text-white/40">{fb.userEmail}</span>
+                            <span className="text-[10px] text-white/40">&bull; {formatDateTime(fb.timestamp)}</span>
+                          </div>
+                          <p className="text-sm text-white/85 mt-2 whitespace-pre-wrap break-words">{fb.message}</p>
+                        </div>
+                        <div className="flex sm:flex-col gap-2 shrink-0">
+                          <button
+                            onClick={() => { setActiveTab('chat'); setActiveChatUserId(fb.userId); }}
+                            className="flex items-center justify-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" /> Ответить
+                          </button>
+                          <button
+                            onClick={() => deleteFeedbackFromFirebase(fb.id)}
+                            className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-bold text-xs px-4 py-2 rounded-xl transition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Удалить
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

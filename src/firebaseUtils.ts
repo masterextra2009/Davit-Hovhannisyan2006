@@ -30,7 +30,7 @@ import {
   runTransaction
 } from './firebase';
 import type { User as FirebaseAuthUser } from 'firebase/auth';
-import { User, Order, ChatMessage, Notification, Service, DatabaseState } from './types';
+import { User, Order, ChatMessage, Notification, Service, Feedback, DatabaseState } from './types';
 
 // На нестабильной (особенно мобильной) сети запрос может зависнуть без ошибки
 // и без ответа — обрываем его по таймауту, чтобы UI не застревал навсегда.
@@ -491,6 +491,28 @@ export async function updateChatMessageInFirebase(msgId: string, updates: Partia
 }
 
 /**
+ * Клиентская форма "Есть пожелание или замечание?" в личном кабинете —
+ * одноразовое сообщение, читает и отвечает на него админ (ответ уходит
+ * не сюда, а обычным сообщением в chatMessages).
+ */
+export async function sendFeedbackToFirebase(feedback: Feedback): Promise<void> {
+  const ref = doc(db, 'feedback', feedback.id);
+  try {
+    await setDoc(ref, feedback);
+  } catch (e) {
+    handleFirestoreError(e, OperationType.WRITE, `feedback/${feedback.id}`);
+  }
+}
+
+export async function deleteFeedbackFromFirebase(feedbackId: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, 'feedback', feedbackId));
+  } catch (e) {
+    handleFirestoreError(e, OperationType.DELETE, `feedback/${feedbackId}`);
+  }
+}
+
+/**
  * Handle Notifications
  */
 export async function sendNotificationToFirebase(alert: Notification): Promise<void> {
@@ -660,7 +682,17 @@ export function subscribeToFirebaseCollections(
   }, 'services');
   unsubscribes.push(unsubServices);
 
-  // 6. Listen to Site Visit Stats (admin only — public writes, admin-only reads)
+  // 6. Listen to client Feedback (admin only — clients can create but not read)
+  if (isAdminUser) {
+    const unsubFeedback = resilientOnSnapshot(collection(db, 'feedback'), (snap: any) => {
+      const feedback: Feedback[] = [];
+      snap.forEach((doc: any) => feedback.push(doc.data() as Feedback));
+      onSync({ feedback: feedback.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) });
+    }, 'feedback');
+    unsubscribes.push(unsubFeedback);
+  }
+
+  // 7. Listen to Site Visit Stats (admin only — public writes, admin-only reads)
   if (isAdminUser) {
     const unsubStats = resilientOnSnapshot(doc(db, 'stats', 'visits'), (docSnap: any) => {
       if (docSnap.exists()) {
