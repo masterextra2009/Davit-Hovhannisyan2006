@@ -1030,9 +1030,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       return;
     }
     setUploadError(null);
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 МБ — заявлено на лендинге, но раньше нигде не проверялось
+    const oversizedNames: string[] = [];
     const newFiles: PrintFile[] = [];
     for (let i = 0; i < filesList.length; i++) {
       const file = filesList[i];
+      if (file.size > MAX_FILE_SIZE) {
+        oversizedNames.push(file.name);
+        continue;
+      }
       const formatGroup = getFileFormatGroup(file.name);
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       const fileId = 'file_' + Date.now() + '_' + i + '_' + Math.floor(Math.random() * 1000);
@@ -1074,6 +1080,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       uploadFileToFirebaseStorage(file, fileId);
     }
 
+    if (oversizedNames.length > 0) {
+      setUploadError(
+        `Файл${oversizedNames.length > 1 ? 'ы' : ''} слишком больш${oversizedNames.length > 1 ? 'ие' : 'ой'} (максимум 100 МБ): ${oversizedNames.join(', ')}`
+      );
+    }
+
+    if (newFiles.length === 0) return;
+
     setPendingUploads(prev => [...prev, ...newFiles]);
 
     // Create system notification for uploaded file
@@ -1081,7 +1095,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       id: 'n_up_' + Date.now(),
       userId: user.id,
       title: 'Успешная загрузка',
-      body: `Загружено файлов: ${filesList.length} шт. Добавьте параметры печати для заказа.`,
+      body: `Загружено файлов: ${newFiles.length} шт. Добавьте параметры печати для заказа.`,
       timestamp: new Date().toISOString(),
       read: false,
       type: 'profile'
