@@ -669,11 +669,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [confettiActive, setConfettiActive] = useState(false);
 
-  // "Есть пожелание или замечание?" — временный блок обратной связи в кабинете
+  // "Есть пожелание или замечание?" — временный блок обратной связи в кабинете.
+  // feedbackSent живёт в localStorage (не в Firestore) — просто чтобы бейджик
+  // "Ждём подарок" не пропадал при перезагрузке страницы, пока админ не
+  // подарил промокод; ничего критичного не сломается, если это когда-нибудь
+  // потеряется (просто снова покажется пустая форма).
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSending, setFeedbackSending] = useState(false);
-  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState(() => localStorage.getItem(`feedback_sent_${user.id}`) === '1');
   const [feedbackDismissed, setFeedbackDismissed] = useState(false);
+  const [feedbackCelebrate, setFeedbackCelebrate] = useState(false);
 
   // Live chat state
   const [chatInput, setChatInput] = useState('');
@@ -1728,6 +1733,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       });
       setFeedbackText('');
       setFeedbackSent(true);
+      localStorage.setItem(`feedback_sent_${user.id}`, '1');
+
+      // Праздничный момент на весь экран — конфетти + большое "спасибо"
+      playOrderSuccessSound();
+      setConfettiActive(true);
+      setFeedbackCelebrate(true);
+      setTimeout(() => setConfettiActive(false), 5000);
+      setTimeout(() => setFeedbackCelebrate(false), 3200);
     } catch (err) {
       console.error('Failed to send feedback:', err);
     } finally {
@@ -2291,9 +2304,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     Напишите, что улучшить или предложить — в благодарность дарим промокод на скидку! Мы обязательно прочитаем и ответим вам в чате.
                   </p>
 
-                  {feedbackSent ? (
-                    <div className="flex items-center gap-2 text-white text-sm font-bold py-2 mt-2">
-                      <CheckCircle className="w-4 h-4" /> Спасибо! Мы получили ваше сообщение — ждите промокод в чате 🎁
+                  {feedbackSent && !user.promoCode ? (
+                    <div className="flex items-center gap-2 text-white text-sm font-bold py-2 mt-2 animate-pulse">
+                      <Clock className="w-4 h-4" /> Ждём подарок за ваш отзыв...
                     </div>
                   ) : (
                     <form onSubmit={handleSendFeedback} className="flex flex-col sm:flex-row gap-2 mt-3">
@@ -5327,6 +5340,36 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           })}
         </div>
       )}
+
+      {/* "СПАСИБО" ЗА ОТЗЫВ — праздничный оверлей на весь экран поверх конфетти */}
+      <AnimatePresence>
+        {feedbackCelebrate && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none px-4"
+          >
+            <motion.div
+              initial={{ scale: 0.6, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+              className="text-center"
+            >
+              <motion.div
+                animate={{ rotate: [0, -8, 8, -8, 0] }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                className="inline-flex p-5 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-full shadow-2xl shadow-fuchsia-500/40 mb-4"
+              >
+                <Sparkles className="w-10 h-10 text-white" />
+              </motion.div>
+              <h2 className="text-3xl sm:text-4xl font-black text-white drop-shadow-lg">Спасибо! 💜</h2>
+              <p className="text-sm sm:text-base text-white/90 font-bold mt-2 drop-shadow-lg">Вы помогаете нам стать лучше</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* GIFT PROMO MODAL FOR CLIENT */}
       {/* Онбординг для новых клиентов */}
