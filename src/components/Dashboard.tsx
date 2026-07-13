@@ -4442,10 +4442,20 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               {/* Header */}
               <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex items-center gap-3 bg-slate-50/50 dark:bg-slate-950/30 shrink-0">
                 <img src={printerInkIcon} alt="" className="w-10 h-10 shrink-0" />
-                <div className="overflow-hidden">
+                <div className="overflow-hidden flex-1">
                   <h3 className="text-sm font-black text-slate-800 dark:text-white">Настройте параметры печати</h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{file.name}</p>
                 </div>
+                {file.url ? (
+                  <span className="shrink-0 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-emerald-500">
+                    <CheckCircle className="w-3.5 h-3.5" /> Загружен
+                  </span>
+                ) : (
+                  <span className="shrink-0 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-indigo-500">
+                    <span className="w-3 h-3 rounded-full border-2 border-indigo-300 border-t-indigo-600 animate-spin" />
+                    Загрузка...
+                  </span>
+                )}
               </div>
 
               {/* Body */}
