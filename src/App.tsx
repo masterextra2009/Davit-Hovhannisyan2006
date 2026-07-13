@@ -101,10 +101,17 @@ export default function App() {
     if (!user) return;
     setHasSyncedFromServer(false);
 
+    // Первый snapshot после подписки сравнивается с устаревшим localStorage-
+    // кэшем в `prev`, а не с реальным предыдущим состоянием — если в кэше не
+    // было какого-то сообщения/статуса (другое устройство, очищенный кэш),
+    // диффинг ошибочно считал его «новым» и уведомление всплывало заново при
+    // каждом входе. Пропускаем диффинг на первом snapshot этой подписки.
+    let isFirstSyncCallback = true;
+
     const unsubscribeCollection = subscribeToFirebaseCollections(user, (syncedUpdates) => {
       setDatabase((prev) => {
         // 1. Check for incoming new chat messages
-        if (syncedUpdates.chatMessages && prev.chatMessages && prev.chatMessages.length > 0) {
+        if (!isFirstSyncCallback && syncedUpdates.chatMessages && prev.chatMessages && prev.chatMessages.length > 0) {
           const newMsgs = syncedUpdates.chatMessages.filter(
             m => !prev.chatMessages.some(pm => pm.id === m.id)
           );
@@ -122,7 +129,7 @@ export default function App() {
         }
 
         // 2. Check for order status readiness updates
-        if (syncedUpdates.orders && prev.orders && prev.orders.length > 0) {
+        if (!isFirstSyncCallback && syncedUpdates.orders && prev.orders && prev.orders.length > 0) {
           syncedUpdates.orders.forEach(updatedOrder => {
             const prevOrder = prev.orders.find(po => po.id === updatedOrder.id);
             if (prevOrder && prevOrder.status !== updatedOrder.status) {
@@ -150,6 +157,8 @@ export default function App() {
         saveDatabase(nextState);
         return nextState;
       });
+
+      isFirstSyncCallback = false;
 
       // The `user` state (passed as a prop to Dashboard/AdminPanel) is separate
       // from `database.users` — without this, live Firestore changes to the

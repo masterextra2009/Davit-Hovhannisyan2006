@@ -548,8 +548,46 @@ export async function trackSiteVisit(): Promise<void> {
   }
 }
 
+/**
+ * onSnapshot умирает НАВСЕГДА при первой же ошибке (сетевой сбой, временный
+ * permission-denied и т.п.) — Firestore SDK сам не переподписывается для
+ * большинства типов ошибок. До этой обёртки любой единичный сбой означал,
+ * что вкладка переставала получать live-обновления (новые заказы, статусы,
+ * сообщения чата) до ручной перезагрузки страницы — именно это и было
+ * первопричиной жалобы "надо постоянно обновлять, чтобы что-то увидеть".
+ * Оборачиваем каждую подписку: при ошибке логируем и через паузу тихо
+ * пересоздаём слушатель заново, вместо того чтобы просто "умирать".
+ */
+function resilientOnSnapshot<T>(
+  target: any,
+  onNext: (snap: T) => void,
+  path: string
+): () => void {
+  let stopped = false;
+  let unsub: (() => void) | null = null;
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const start = () => {
+    if (stopped) return;
+    unsub = onSnapshot(target as any, onNext as any, (err) => {
+      console.error(`Firestore live-listener error on "${path}", reconnecting in 4s:`, err);
+      unsub = null;
+      if (!stopped) {
+        retryTimer = setTimeout(start, 4000);
+      }
+    });
+  };
+  start();
+
+  return () => {
+    stopped = true;
+    if (retryTimer) clearTimeout(retryTimer);
+    if (unsub) unsub();
+  };
+}
+
 export function subscribeToFirebaseCollections(
-  currentUser: User, 
+  currentUser: User,
   onSync: (state: Partial<DatabaseState>) => void
 ): () => void {
   const unsubscribes: (() => void)[] = [];
@@ -559,39 +597,33 @@ export function subscribeToFirebaseCollections(
   // 1. Listen to users
   if (isAdminUser) {
     const qUsers = collection(db, 'users');
-    const unsub = onSnapshot(qUsers, (snap) => {
+    const unsub = resilientOnSnapshot(qUsers, (snap: any) => {
       const users: User[] = [];
-      snap.forEach(doc => users.push(doc.data() as User));
+      snap.forEach((doc: any) => users.push(doc.data() as User));
       onSync({ users });
-    }, (err) => {
-      handleFirestoreError(err, OperationType.LIST, 'users');
-    });
+    }, 'users');
     unsubscribes.push(unsub);
   } else {
     // Client only listens to their own profile changes
-    const unsub = onSnapshot(doc(db, 'users', currentUser.id), (docSnap) => {
+    const unsub = resilientOnSnapshot(doc(db, 'users', currentUser.id), (docSnap: any) => {
       if (docSnap.exists()) {
         onSync({ users: [docSnap.data() as User] });
       }
-    }, (err) => {
-      handleFirestoreError(err, OperationType.GET, `users/${currentUser.id}`);
-    });
+    }, `users/${currentUser.id}`);
     unsubscribes.push(unsub);
   }
 
   // 2. Listen to Orders
   const colOrders = collection(db, 'orders');
-  const qOrders = isAdminUser 
-    ? colOrders 
+  const qOrders = isAdminUser
+    ? colOrders
     : query(colOrders, where('userId', '==', currentUser.id));
 
-  const unsubOrders = onSnapshot(qOrders, (snap) => {
+  const unsubOrders = resilientOnSnapshot(qOrders, (snap: any) => {
     const orders: Order[] = [];
-    snap.forEach(doc => orders.push(doc.data() as Order));
+    snap.forEach((doc: any) => orders.push(doc.data() as Order));
     onSync({ orders: orders.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()) });
-  }, (err) => {
-    handleFirestoreError(err, OperationType.LIST, 'orders');
-  });
+  }, 'orders');
   unsubscribes.push(unsubOrders);
 
   // 3. Listen to Chat Messages
@@ -600,13 +632,11 @@ export function subscribeToFirebaseCollections(
     ? colChats
     : query(colChats, where('userId', '==', currentUser.id));
 
-  const unsubChats = onSnapshot(qChats, (snap) => {
+  const unsubChats = resilientOnSnapshot(qChats, (snap: any) => {
     const chatMessages: ChatMessage[] = [];
-    snap.forEach(doc => chatMessages.push(doc.data() as ChatMessage));
+    snap.forEach((doc: any) => chatMessages.push(doc.data() as ChatMessage));
     onSync({ chatMessages: chatMessages.sort((b, a) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) });
-  }, (err) => {
-    handleFirestoreError(err, OperationType.LIST, 'chatMessages');
-  });
+  }, 'chatMessages');
   unsubscribes.push(unsubChats);
 
   // 4. Listen to Notifications
@@ -615,28 +645,24 @@ export function subscribeToFirebaseCollections(
     ? colAlerts
     : query(colAlerts, where('userId', '==', currentUser.id));
 
-  const unsubAlerts = onSnapshot(qAlerts, (snap) => {
+  const unsubAlerts = resilientOnSnapshot(qAlerts, (snap: any) => {
     const notifications: Notification[] = [];
-    snap.forEach(doc => notifications.push(doc.data() as Notification));
+    snap.forEach((doc: any) => notifications.push(doc.data() as Notification));
     onSync({ notifications: notifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) });
-  }, (err) => {
-    handleFirestoreError(err, OperationType.LIST, 'notifications');
-  });
+  }, 'notifications');
   unsubscribes.push(unsubAlerts);
 
   // 5. Listen to Services Showcase (visible to any signed-in user, editable by admin only)
-  const unsubServices = onSnapshot(collection(db, 'services'), (snap) => {
+  const unsubServices = resilientOnSnapshot(collection(db, 'services'), (snap: any) => {
     const services: Service[] = [];
-    snap.forEach(doc => services.push(doc.data() as Service));
+    snap.forEach((doc: any) => services.push(doc.data() as Service));
     onSync({ services: services.sort((a, b) => a.order - b.order) });
-  }, (err) => {
-    handleFirestoreError(err, OperationType.LIST, 'services');
-  });
+  }, 'services');
   unsubscribes.push(unsubServices);
 
   // 6. Listen to Site Visit Stats (admin only — public writes, admin-only reads)
   if (isAdminUser) {
-    const unsubStats = onSnapshot(doc(db, 'stats', 'visits'), (docSnap) => {
+    const unsubStats = resilientOnSnapshot(doc(db, 'stats', 'visits'), (docSnap: any) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as any;
         const historyMap: Record<string, number> = data.history || {};
@@ -645,9 +671,7 @@ export function subscribeToFirebaseCollections(
           .map(date => ({ date, count: historyMap[date] }));
         onSync({ siteVisits: data.total || 0, siteVisitsHistory });
       }
-    }, (err) => {
-      handleFirestoreError(err, OperationType.GET, 'stats/visits');
-    });
+    }, 'stats/visits');
     unsubscribes.push(unsubStats);
   }
 
