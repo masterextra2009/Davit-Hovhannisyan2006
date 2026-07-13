@@ -114,7 +114,7 @@ export async function registerUserWithFirebase(email: string, password: string,f
       phone: phone.trim(),
       role: isExplicitAdmin ? 'admin' : role,
       createdAt: new Date().toISOString(),
-      avatarUrl: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 999999)}?w=100&auto=format&fit=crop&q=80`,
+      avatarUrl: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
     };
 
     // Write profile document in Firestore
