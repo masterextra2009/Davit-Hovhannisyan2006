@@ -139,59 +139,6 @@
         padding: 0;
       }
 
-      /* Premium Launch screen loader for smooth loading */
-      .pwa-splash {
-        position: fixed;
-        inset: 0;
-        background-color: #090514; /* Deep cyber void background */
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 99999;
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-      }
-      .pwa-splash-logo {
-        position: relative;
-        width: 80px;
-        height: 80px;
-        background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
-        border-radius: 22px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 32px;
-        color: #ffffff;
-        box-shadow: 0 10px 30px rgba(124, 58, 237, 0.3);
-        margin-bottom: 24px;
-        animation: pwa-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-      }
-      .pwa-spinner {
-        width: 32px;
-        height: 32px;
-        border: 2.5px solid rgba(167, 139, 250, 0.15);
-        border-top: 2.5px solid #a78bfa;
-        border-radius: 50%;
-        animation: pwa-spin 0.75s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        margin-bottom: 16px;
-      }
-      .pwa-text {
-        font-size: 11px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.25em;
-        color: #c084fc;
-        opacity: 0.9;
-        user-select: none;
-      }
-      @keyframes pwa-spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      @keyframes pwa-pulse {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.04); opacity: 0.93; }
-      }
     </style>
 
     <!-- Service Worker registration script -->
@@ -242,13 +189,7 @@
   </head>
   <body>
     <noscript><img src="https://mc.yandex.ru/watch/110476444" style="position:absolute; left:-9999px;" alt="" /></noscript>
-    <div id="root">
-      <div class="pwa-splash">
-        <div class="pwa-splash-logo">🖨️</div>
-        <div class="pwa-spinner"></div>
-        <div class="pwa-text">Загрузка Копи-Центра...</div>
-      </div>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
