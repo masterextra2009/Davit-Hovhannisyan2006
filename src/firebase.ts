@@ -16,22 +16,24 @@ import {
   signInWithCustomToken,
   type User as FirebaseUser
 } from 'firebase/auth';
-import { 
+import {
   initializeFirestore,
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  collection, 
-  getDocs, 
-  query, 
-  where, 
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  collection,
+  getDocs,
+  query,
+  where,
   onSnapshot,
   getDocFromServer,
   addDoc,
   deleteDoc,
   increment,
-  runTransaction
+  runTransaction,
+  enableNetwork,
+  disableNetwork
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -70,6 +72,8 @@ export {
   deleteDoc,
   increment,
   runTransaction,
+  enableNetwork,
+  disableNetwork,
   ref,
   uploadBytes,
   getDownloadURL

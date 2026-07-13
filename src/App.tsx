@@ -17,7 +17,7 @@ import { LandingPage } from './components/LandingPage';
 import { PaymentReceiptScreen } from './components/PaymentReceiptScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, FileText } from 'lucide-react';
-import { auth, onAuthStateChanged } from './firebase';
+import { auth, onAuthStateChanged, db, enableNetwork } from './firebase';
 import {
   subscribeToFirebaseCollections,
   seedInitialDataIfRequired,
@@ -180,7 +180,26 @@ export default function App() {
       setHasSyncedFromServer(true);
     });
 
-    return () => unsubscribeCollection();
+    // Явно подталкиваем Firestore переподключиться, когда вкладка снова
+    // становится видимой (была свёрнута/в фоне долгое время — браузер мог
+    // придушить сетевую активность) или когда у устройства вернулся интернет
+    // после разрыва — не полагаемся только на то, что SDK сам вовремя это
+    // заметит. Дополняет reconnect-логику внутри onSnapshot-обёртки в
+    // firebaseUtils.ts (та чинит уже случившийся обрыв, эта — упреждает его).
+    const nudgeReconnect = () => {
+      enableNetwork(db).catch(() => {});
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') nudgeReconnect();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', nudgeReconnect);
+
+    return () => {
+      unsubscribeCollection();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', nudgeReconnect);
+    };
     // Зависим только от id/role, а не от всего объекта user — user
     // пересоздаётся при каждом обновлении профиля (например, пинг
     // "онлайн"-статуса каждые несколько секунд), а раньше эффект зависел
