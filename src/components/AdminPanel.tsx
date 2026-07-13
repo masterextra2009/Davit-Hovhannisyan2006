@@ -2150,6 +2150,23 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             <MessageSquare className="w-3.5 h-3.5" /> Ответить
                           </button>
                           <button
+                            onClick={() => {
+                              const client = database.users.find(u => u.id === fb.userId);
+                              if (!client) return;
+                              // Модалка подарка промокода отрисовывается только внутри
+                              // вкладки "Клиентская База" (activeTab === 'users') — без
+                              // переключения вкладки promoGiftUser выставится, но окно
+                              // физически не смонтируется и не появится на экране.
+                              setActiveTab('users');
+                              setPromoGiftUser(client);
+                              setGivingPromoCode('');
+                              setGivingPromoDiscount(client.promoDiscount || 5);
+                            }}
+                            className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition"
+                          >
+                            <Gift className="w-3.5 h-3.5" /> Подарить скидку
+                          </button>
+                          <button
                             onClick={() => deleteFeedbackFromFirebase(fb.id)}
                             className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-bold text-xs px-4 py-2 rounded-xl transition"
                           >

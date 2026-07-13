@@ -2264,45 +2264,59 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           )}
 
           {!feedbackDismissed && (
-            <div className="glass-panel rounded-3xl p-5 relative">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 text-white rounded-3xl p-5 border border-fuchsia-400/30 shadow-lg shadow-fuchsia-500/20 relative overflow-hidden animate-pulse-slow"
+            >
+              {/* background decorative shapes — тот же приём, что и у баннера с промокодом */}
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
+
               <button
                 onClick={() => setFeedbackDismissed(true)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition"
+                className="absolute top-4 right-4 text-white/70 hover:text-white transition z-10"
                 aria-label="Скрыть"
               >
                 <X className="w-4 h-4" />
               </button>
-              <div className="flex items-center gap-2 mb-1">
-                <MessageSquare className="w-4 h-4 text-sky-500 shrink-0" />
-                <h4 className="text-sm font-black text-slate-800 dark:text-white">Есть пожелание или замечание?</h4>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                Напишите, что бы вы хотели улучшить или предложить — мы обязательно прочитаем и ответим вам в чате.
-              </p>
-              {feedbackSent ? (
-                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-sm font-bold py-2">
-                  <CheckCircle className="w-4 h-4" /> Спасибо! Мы получили ваше сообщение.
+
+              <div className="flex items-start gap-3 relative z-10">
+                <div className="p-3 bg-white/10 rounded-2xl border border-white/20 shrink-0 animate-bounce">
+                  <Gift className="w-6 h-6" />
                 </div>
-              ) : (
-                <form onSubmit={handleSendFeedback} className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="text"
-                    value={feedbackText}
-                    onChange={(e) => setFeedbackText(e.target.value)}
-                    placeholder="Ваше пожелание или замечание..."
-                    maxLength={1000}
-                    className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-2.5 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!feedbackText.trim() || feedbackSending}
-                    className="flex items-center justify-center gap-1.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shrink-0"
-                  >
-                    <Send className="w-3.5 h-3.5" /> {feedbackSending ? 'Отправка...' : 'Отправить'}
-                  </button>
-                </form>
-              )}
-            </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-black uppercase tracking-wider">Есть пожелание или замечание? 💡</h4>
+                  <p className="text-xs text-white/85 mt-1 font-medium">
+                    Напишите, что улучшить или предложить — в благодарность дарим промокод на скидку! Мы обязательно прочитаем и ответим вам в чате.
+                  </p>
+
+                  {feedbackSent ? (
+                    <div className="flex items-center gap-2 text-white text-sm font-bold py-2 mt-2">
+                      <CheckCircle className="w-4 h-4" /> Спасибо! Мы получили ваше сообщение — ждите промокод в чате 🎁
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSendFeedback} className="flex flex-col sm:flex-row gap-2 mt-3">
+                      <input
+                        type="text"
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        placeholder="Ваше пожелание или замечание..."
+                        maxLength={1000}
+                        className="flex-1 bg-white/10 border border-white/25 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/60 focus:outline-none focus:ring-2 focus:ring-white/40"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!feedbackText.trim() || feedbackSending}
+                        className="flex items-center justify-center gap-1.5 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-fuchsia-700 font-black text-xs px-5 py-2.5 rounded-xl shadow-md transition shrink-0 cursor-pointer"
+                      >
+                        <Send className="w-3.5 h-3.5" /> {feedbackSending ? 'Отправка...' : 'Отправить'}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
+            </motion.div>
           )}
 
           <AnimatePresence mode="wait">
