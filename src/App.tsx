@@ -3,19 +3,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { User, DatabaseState } from './types';
-import { 
-  getInitialDatabase, saveDatabase, 
+import {
+  getInitialDatabase, saveDatabase,
   getCurrentUser, saveCurrentUser,
   playNotificationSound, showBrowserNotification
 } from './utils';
 import { AuthScreen } from './components/AuthScreen';
-import { Dashboard } from './components/Dashboard';
-import { AdminPanel } from './components/AdminPanel';
 import { LandingPage } from './components/LandingPage';
 import { PaymentReceiptScreen } from './components/PaymentReceiptScreen';
 import { motion, AnimatePresence } from 'motion/react';
+
+// Кабинет клиента и админ-панель — самый тяжёлый код приложения, но нужен
+// только после входа. Ленивая загрузка держит их вне общего бандла, чтобы
+// анонимные посетители лендинга не качали их зря.
+const Dashboard = lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
+const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
+
+function AppSectionLoader() {
+  return (
+    <div className="min-h-dvh flex items-center justify-center bg-[#02050f]">
+      <span className="w-8 h-8 rounded-full border-2 border-indigo-300/40 border-t-indigo-500 animate-spin" />
+    </div>
+  );
+}
 import { Sparkles, FileText } from 'lucide-react';
 import { auth, onAuthStateChanged, db, enableNetwork } from './firebase';
 import {
@@ -403,21 +415,25 @@ export default function App() {
                 onRegisterUser={handleRegisterUser}
               />
             ) : user.role === 'admin' ? (
-              <AdminPanel 
-                adminUser={user}
-                onLogout={handleLogout}
-                database={database}
-                onUpdateDatabase={handleUpdateDatabase}
-              />
+              <Suspense fallback={<AppSectionLoader />}>
+                <AdminPanel
+                  adminUser={user}
+                  onLogout={handleLogout}
+                  database={database}
+                  onUpdateDatabase={handleUpdateDatabase}
+                />
+              </Suspense>
             ) : (
-              <Dashboard
-                user={user}
-                onLogout={handleLogout}
-                database={database}
-                onUpdateDatabase={handleUpdateDatabase}
-                onDeleteAccount={handleDeleteAccount}
-                hasSyncedFromServer={hasSyncedFromServer}
-              />
+              <Suspense fallback={<AppSectionLoader />}>
+                <Dashboard
+                  user={user}
+                  onLogout={handleLogout}
+                  database={database}
+                  onUpdateDatabase={handleUpdateDatabase}
+                  onDeleteAccount={handleDeleteAccount}
+                  hasSyncedFromServer={hasSyncedFromServer}
+                />
+              </Suspense>
             )}
           </motion.div>
         )}
