@@ -240,6 +240,11 @@ interface DashboardProps {
 }
 
 export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDeleteAccount, hasSyncedFromServer = true }: DashboardProps) {
+  // На iOS Web Share Target API не поддерживается Safari в принципе (ограничение
+  // самой Apple) — "Поделиться" в другое приложение сюда файл не занесёт.
+  // Показываем честную подсказку вместо того, чтобы человек ждал автоматики.
+  const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
   // Firestore-правила сверяют userId/senderId записей именно с request.auth.uid
   // текущей сессии — читаем его напрямую из Firebase Auth на момент записи,
   // а не из React-пропа user.id, на случай если тот успел устареть (например,
@@ -2447,6 +2452,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </div>
                   <span>Шаг 1. Перетащите файлы</span>
                 </h3>
+
+                {isIOSDevice && (
+                  <div className="bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300 p-4 rounded-2xl border border-indigo-150 dark:border-indigo-900/30 text-xs flex gap-3">
+                    <Smartphone className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>На iPhone кнопка "Поделиться" в другие приложения нашу форму заказа пока не откроет — просто выберите файл из галереи здесь, ниже.</span>
+                  </div>
+                )}
 
                 {!isWorkingHours() && (
                   <div className="bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 p-5 rounded-2xl border border-rose-150 dark:border-rose-900/30 text-xs flex gap-3 shadow-sm">
