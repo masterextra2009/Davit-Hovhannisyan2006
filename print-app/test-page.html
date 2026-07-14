@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; color: #000; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .sub { color: #444; margin-bottom: 24px; }
+    .bars { display: flex; gap: 8px; margin: 20px 0; }
+    .bar { width: 60px; height: 40px; border-radius: 4px; }
+    .ok { font-size: 18px; margin-top: 24px; }
+    .date { margin-top: 30px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>Фото-Север — тестовая страница</h1>
+  <div class="sub">sever-18.ru · г. Раменское</div>
+
+  <p>Если вы видите этот лист — печать работает. ✅</p>
+
+  <div class="bars">
+    <div class="bar" style="background:#000;"></div>
+    <div class="bar" style="background:#888;"></div>
+    <div class="bar" style="background:#e11d48;"></div>
+    <div class="bar" style="background:#16a34a;"></div>
+    <div class="bar" style="background:#2563eb;"></div>
+    <div class="bar" style="background:#f59e0b;"></div>
+  </div>
+  <p style="font-size:13px;color:#666;">Полоски выше — проверка цветной печати (чёрный, серый, красный, зелёный, синий, жёлтый).</p>
+
+  <div class="date" id="date"></div>
+
+  <script>
+    document.getElementById('date').textContent =
+      'Напечатано: ' + new Date().toLocaleString('ru-RU');
+  </script>
+</body>
+</html>

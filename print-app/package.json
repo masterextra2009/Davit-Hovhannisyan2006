@@ -1,0 +1,27 @@
+{
+  "name": "foto-sever-print",
+  "version": "1.0.0",
+  "description": "Фото-Север — управление печатью",
+  "main": "main.js",
+  "author": "Фото-Север",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^43.1.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "ru.sever18.print",
+    "productName": "ФотоСевер-Печать",
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}

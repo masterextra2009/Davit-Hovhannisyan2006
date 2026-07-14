@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Фото-Север — Печать</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #12122e;
+      color: #ffffff;
+      padding: 28px;
+      min-height: 100vh;
+    }
+    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+    .logo {
+      width: 40px; height: 40px; border-radius: 10px; background: #6366f1;
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+    }
+    h1 { font-size: 20px; font-weight: 600; }
+    .subtitle { color: #b9b9d4; font-size: 13px; margin: 4px 0 22px 52px; }
+
+    .find-btn {
+      background: #6366f1; color: #fff; border: none; border-radius: 12px;
+      padding: 13px 22px; font-size: 15px; font-weight: 500; cursor: pointer;
+      margin-bottom: 20px; transition: background .15s;
+    }
+    .find-btn:hover { background: #7c7ff5; }
+
+    .printer {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px; padding: 16px 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .printer-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .printer-name { font-size: 15px; font-weight: 500; }
+    .printer-status { font-size: 12px; color: #b9b9d4; }
+    .badge {
+      display: inline-block; font-size: 11px; color: #7dffb0;
+      background: rgba(125,255,176,0.12); padding: 2px 8px; border-radius: 6px;
+      margin-left: 8px;
+    }
+    .print-btn {
+      background: rgba(99,102,241,0.25); color: #fff;
+      border: 1px solid #6366f1; border-radius: 10px;
+      padding: 9px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
+      white-space: nowrap; flex-shrink: 0; transition: background .15s;
+    }
+    .print-btn:hover { background: rgba(99,102,241,0.45); }
+    .empty { color: #b9b9d4; font-size: 14px; margin-top: 8px; }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #1e1e46; border: 1px solid rgba(255,255,255,0.15);
+      padding: 12px 20px; border-radius: 12px; font-size: 14px;
+      opacity: 0; transition: opacity .25s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">📷</div>
+    <h1>Фото-Север — Печать</h1>
+  </div>
+  <div class="subtitle">Список принтеров и печать тестовой страницы</div>
+
+  <button class="find-btn" id="findBtn">🔍 Найти принтеры</button>
+
+  <div id="list"></div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const findBtn = document.getElementById('findBtn');
+    const list = document.getElementById('list');
+    const toast = document.getElementById('toast');
+
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    async function loadPrinters() {
+      list.innerHTML = '<div class="empty">Ищу принтеры…</div>';
+      const printers = await window.printerAPI.listPrinters();
+
+      if (!printers.length) {
+        list.innerHTML = '<div class="empty">Принтеры не найдены. Проверьте, что они включены и настроены в Windows.</div>';
+        return;
+      }
+
+      list.innerHTML = '';
+      printers.forEach((p) => {
+        const row = document.createElement('div');
+        row.className = 'printer';
+        row.innerHTML = `
+          <div class="printer-info">
+            <div class="printer-name">${p.displayName}${p.isDefault ? '<span class="badge">по умолчанию</span>' : ''}</div>
+            <div class="printer-status">Системное имя: ${p.name}</div>
+          </div>
+          <button class="print-btn">🖨 Печать теста</button>
+        `;
+        row.querySelector('.print-btn').addEventListener('click', async () => {
+          showToast('Отправляю на печать: ' + p.displayName);
+          const res = await window.printerAPI.printTest(p.name);
+          if (res.success) {
+            showToast('✅ Отправлено на ' + p.displayName);
+          } else {
+            showToast('⚠️ Не удалось: ' + (res.failureReason || 'ошибка'));
+          }
+        });
+        list.appendChild(row);
+      });
+    }
+
+    findBtn.addEventListener('click', loadPrinters);
+  </script>
+</body>
+</html>
