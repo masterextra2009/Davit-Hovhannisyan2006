@@ -23,7 +23,7 @@ import {
   calculateOrderCost, getFileFormatGroup, formatFileSize, 
   formatDateTime, getStatusLabel, getStatusColor, 
   getPaymentStatusLabel, getPaymentStatusColor, printInvoiceHTML,
-  getClientTierForUser, isWorkingHours, showBrowserNotification
+  getClientTierForUser, isWorkingHours, showBrowserNotification, trackAnalyticsEvent
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
 import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase } from '../firebaseUtils';
@@ -1485,6 +1485,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       setOrderAcceptPhase('loading');
       try {
         await withTimeout(setDoc(doc(db, 'orders', orderId), onReceiptOrder), 15000);
+        trackAnalyticsEvent('order_created');
         onUpdateDatabase({ orders: [onReceiptOrder, ...database.orders], users: updatedUsers });
         setUploadedFiles([]);
         setNotes('');
@@ -1522,6 +1523,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         // суммы платежа), значит документ обязан уже существовать к этому
         // моменту, а не только после успешного ответа ЮKassa.
         await withTimeout(setDoc(doc(db, 'orders', orderId), pendingOrder), 15000);
+        trackAnalyticsEvent('order_created');
 
         const res = await withTimeout(
           fetch('https://sever-18.ru/api/payment-create.php', {

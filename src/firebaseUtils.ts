@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getLocalDateKey } from './utils';
+import { getLocalDateKey, trackAnalyticsEvent } from './utils';
 import {
   auth,
   db,
@@ -125,6 +125,7 @@ export async function registerUserWithFirebase(email: string, password: string,f
       handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
     }
 
+    trackAnalyticsEvent('registration');
     return newUser;
   } catch (error) {
     console.error('Firebase Auth registration error:', error);
@@ -243,6 +244,7 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
   } catch (e) {
     handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
   }
+  trackAnalyticsEvent('registration');
   return newUser;
 }
 

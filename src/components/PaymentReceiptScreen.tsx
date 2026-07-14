@@ -8,6 +8,7 @@ import { CheckCircle2, Loader2, Printer } from 'lucide-react';
 import { motion } from 'motion/react';
 import { db, doc, getDoc } from '../firebase';
 import { Order } from '../types';
+import { trackAnalyticsEvent } from '../utils';
 
 interface Props {
   orderId: string;
@@ -44,6 +45,7 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
         if (cancelled) return;
         if (snap.exists()) {
           setOrder(snap.data() as Order);
+          trackAnalyticsEvent('payment_success');
         } else {
           setNotFound(true);
         }

@@ -5,6 +5,29 @@
 
 import { DatabaseState, User, Order, ChatMessage, Notification as AppNotification, FileFormatGroup, OrderStatus, PaymentStatus, PrintFile } from './types';
 
+// ID счётчика Яндекс.Метрики — тот же, что вшит в index.html
+const YANDEX_METRIKA_ID = 110476444;
+
+/**
+ * Отправляет событие ключевого действия (регистрация/заказ/оплата) в
+ * Яндекс.Метрику (reachGoal) и Google Analytics (gtag event). Обёрнуто в
+ * try/catch и проверку наличия window.ym/window.gtag — блокировщики рекламы
+ * их часто вырезают, это не должно ронять реальное действие пользователя.
+ */
+export function trackAnalyticsEvent(eventName: string): void {
+  try {
+    const w = window as any;
+    if (typeof w.ym === 'function') {
+      w.ym(YANDEX_METRIKA_ID, 'reachGoal', eventName);
+    }
+    if (typeof w.gtag === 'function') {
+      w.gtag('event', eventName);
+    }
+  } catch (err) {
+    console.warn('Analytics event tracking failed:', err);
+  }
+}
+
 // Broadcaster to keep tabs in sync
 const SYNC_CHANNEL_NAME = 'print_shop_sync_channel';
 let syncChannel: BroadcastChannel | null = null;
