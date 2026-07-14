@@ -1305,7 +1305,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         </div>
 
         {/* Links Navigation */}
-        <nav className="sidebar-nav flex md:flex-col flex-1 gap-2 md:gap-2 justify-start md:justify-start w-full overflow-x-auto overflow-y-hidden overscroll-contain">
+        <nav className="sidebar-nav flex md:flex-col flex-1 min-h-0 gap-2 md:gap-2 justify-start md:justify-start w-full overflow-x-auto overflow-y-hidden md:overflow-x-hidden md:overflow-y-auto overscroll-contain">
           <button
             onClick={() => setActiveTab('orders')}
             className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial relative ${
