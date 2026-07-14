@@ -9,6 +9,7 @@ import {
   Phone, MapPin, Clock, ArrowRight, Upload, Sliders, PackageCheck,
   FileText, Printer, Send, ShieldCheck, ExternalLink
 } from 'lucide-react';
+import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
 
 interface LandingPageProps {
   onEnter: () => void;
@@ -256,6 +257,9 @@ export function LandingPage({ onEnter }: LandingPageProps) {
             <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Контакты</div>
             <a href="tel:+79680508800" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors"><Phone className="w-3.5 h-3.5" /> +7 (968) 050-88-00</a>
             <a href="https://t.me/photosever18" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors"><Send className="w-3.5 h-3.5" /> @photosever18</a>
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-[#25D366] transition-colors">
+              <WhatsAppIcon className="w-3.5 h-3.5" /> WhatsApp
+            </a>
             <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> Северное шоссе, 18, Раменское</div>
             <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Пн–Пт 9:00–19:00 · Сб–Вс 10:00–19:00</div>
           </div>

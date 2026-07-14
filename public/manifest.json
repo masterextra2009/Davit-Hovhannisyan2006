@@ -44,7 +44,7 @@
       "files": [
         {
           "name": "files",
-          "accept": ["image/*", "application/pdf", ".doc", ".docx", ".zip", ".rar"]
+          "accept": ["image/*", "application/pdf", ".doc", ".docx", ".zip", ".rar", ".heic"]
         }
       ]
     }
