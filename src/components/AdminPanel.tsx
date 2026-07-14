@@ -20,7 +20,7 @@ import {
   exportToCSV, printInvoiceHTML, calculateOrderCost, getLocalDateKey
 } from '../utils';
 import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase } from '../firebaseUtils';
-import { db, doc, setDoc, deleteDoc } from '../firebase';
+import { db, doc, setDoc, deleteDoc, getDoc } from '../firebase';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import JSZip from 'jszip';
@@ -385,6 +385,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const [savingSettings, setSavingSettings] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  const [exportingBackup, setExportingBackup] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
   // Admin notification toast
   const [adminToast, setAdminToast] = useState<{type: 'order'|'chat'; text: string} | null>(null);
   // null = ещё не видели ни одного реального снимка данных из Firestore.
@@ -683,6 +686,51 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
     }, 600);
+  };
+
+  // Ручной экспорт всей базы (заказы/клиенты/чат/etc.) в один JSON-файл на
+  // диск администратора. Проект на бесплатном тарифе Firebase Spark, где
+  // нет автоматических запланированных бэкапов Firestore (это требует
+  // платного Blaze) — до апгрейда тарифа это единственная защита от потери
+  // всех данных при случайном удалении/сбое. Читает данные, уже загруженные
+  // в состояние приложения (без лишних Firestore-запросов), плюс отдельно
+  // счётчик посещений и заказов, которых нет в общем database-объекте.
+  const handleExportBackup = async () => {
+    setExportingBackup(true);
+    setExportError(null);
+    try {
+      const [statsSnap, countersSnap] = await Promise.all([
+        getDoc(doc(db, 'stats', 'visits')),
+        getDoc(doc(db, 'counters', 'orders')),
+      ]);
+
+      const backup = {
+        exportedAt: new Date().toISOString(),
+        users: database.users,
+        orders: database.orders,
+        chatMessages: database.chatMessages,
+        notifications: database.notifications,
+        services: database.services || [],
+        feedback: database.feedback || [],
+        stats: statsSnap.exists() ? statsSnap.data() : null,
+        counters: countersSnap.exists() ? countersSnap.data() : null,
+      };
+
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sever18-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Backup export failed:', err);
+      setExportError('Не удалось создать резервную копию. Проверьте интернет и попробуйте ещё раз.');
+    } finally {
+      setExportingBackup(false);
+    }
   };
 
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -3057,6 +3105,46 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               </div>
 
               {/* Status Alert and Central Save Button */}
+              <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-4">
+                <div>
+                  <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
+                    <Download className="text-indigo-650 w-5 h-5" /> Резервная копия базы данных
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                    Скачивает JSON-файл со всеми заказами, клиентами, перепиской и уведомлениями на этот момент.
+                    На бесплатном тарифе Firebase нет автоматических бэкапов — сохраняйте файл в надёжное место
+                    (облако/почта самому себе) периодически, чтобы не потерять данные при сбое.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <button
+                    onClick={handleExportBackup}
+                    disabled={exportingBackup}
+                    className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 w-full sm:w-auto justify-center ${
+                      exportingBackup
+                        ? 'bg-indigo-400 text-white cursor-not-allowed shadow-none'
+                        : 'btn-holo-glass cursor-pointer'
+                    }`}
+                    style={exportingBackup ? undefined : { color: '#1e293b' }}
+                  >
+                    {exportingBackup ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Собираем файл...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4" />
+                        <span>Скачать резервную копию</span>
+                      </>
+                    )}
+                  </button>
+                  {exportError && (
+                    <span className="text-xs font-bold text-rose-600">{exportError}</span>
+                  )}
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 glass-panel rounded-3xl">
                 <div>
                   <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Сохранить общие настройки системы</h4>
