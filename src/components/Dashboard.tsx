@@ -3852,7 +3852,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               <div className="flex justify-between text-[9px] font-bold text-slate-400">
                                 <span>{tier.name}</span>
                                 {paidTotal < 50000 ? (
-                                  <span className="text-indigo-600 dark:text-indigo-400">До статуса {goalLabel}: {(nextGoal - paidTotal).toLocaleString()} ₽</span>
+                                  <span className="text-indigo-600 dark:text-indigo-400">До статуса {goalLabel}: {(nextGoal - paidTotal).toLocaleString('ru-RU')} ₽</span>
                                 ) : (
                                   <span className="text-amber-500 flex items-center gap-1"><Sparkles className="w-3 h-3" /> Приоритетная VIP-печать включена</span>
                                 )}

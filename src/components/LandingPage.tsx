@@ -56,7 +56,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
           <div className="flex items-center gap-3">
             <a href="tel:+79680508800" className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-white/70 hover:text-orange-500 transition-colors p-2.5 -m-2.5 sm:p-0 sm:m-0">
               <Phone className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" />
-              <span className="hidden sm:inline">8 (968) 050-88-00</span>
+              <span className="hidden sm:inline">+7 (968) 050-88-00</span>
             </a>
             <button
               onClick={onEnter}
@@ -107,7 +107,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
             <div className="flex items-start gap-2">
               <Phone className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
               <div>
-                <div className="text-xs font-bold">8 (968) 050-88-00</div>
+                <div className="text-xs font-bold">+7 (968) 050-88-00</div>
                 <div className="text-[10px] text-slate-400">Звоните</div>
               </div>
             </div>
@@ -254,7 +254,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
 
           <div className="space-y-1.5">
             <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Контакты</div>
-            <a href="tel:+79680508800" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors"><Phone className="w-3.5 h-3.5" /> 8 (968) 050-88-00</a>
+            <a href="tel:+79680508800" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors"><Phone className="w-3.5 h-3.5" /> +7 (968) 050-88-00</a>
             <a href="https://t.me/photosever18" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors"><Send className="w-3.5 h-3.5" /> @photosever18</a>
             <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> Северное шоссе, 18, Раменское</div>
             <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Пн–Пт 9:00–19:00 · Сб–Вс 10:00–19:00</div>

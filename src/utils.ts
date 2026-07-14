@@ -339,6 +339,7 @@ export function formatDateTime(isoString: string): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Europe/Moscow',
   });
 }
 
@@ -601,7 +602,7 @@ export function printInvoiceHTML(order: Order) {
           </div>
           <div style="text-align: right;">
             <div style="font-size: 16px; font-weight: bold; color: #475569;">${order.id}</div>
-            <div style="font-size: 12px; color: #666; margin-top: 4px;">Дата: ${new Date(order.orderDate).toLocaleDateString('ru-RU')}</div>
+            <div style="font-size: 12px; color: #666; margin-top: 4px;">Дата: ${new Date(order.orderDate).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}</div>
           </div>
         </div>
 

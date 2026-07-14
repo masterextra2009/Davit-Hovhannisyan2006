@@ -2109,7 +2109,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <div className="grok-panel-action"><span className="grok-icon">✉️</span> {activeChatClient.email}</div>
                       <div className="grok-panel-action"><span className="grok-icon">📞</span> {activeChatClient.phone || 'Не указан'}</div>
                       <div className="grok-panel-action"><span className="grok-icon">📦</span> Заказов: {database.orders.filter(o => o.userId === activeChatClient.id).length} шт.</div>
-                      <div className="grok-panel-action"><span className="grok-icon">📅</span> С нами с {new Date(activeChatClient.createdAt).toLocaleDateString('ru-RU')}</div>
+                      <div className="grok-panel-action"><span className="grok-icon">📅</span> С нами с {new Date(activeChatClient.createdAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}</div>
                     </div>
                     <div className="grok-panel-section grok-glass">
                       <button type="button" className="grok-panel-action" onClick={() => { handleClearChatHistory(activeChatUserId); setShowClientInfoPanel(false); }}>
@@ -2304,7 +2304,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             )}
                           </td>
 
-                          <td className="py-3 px-4 text-slate-400 text-[11px]">{new Date(cli.createdAt).toLocaleDateString('ru-RU')}</td>
+                          <td className="py-3 px-4 text-slate-400 text-[11px]">{new Date(cli.createdAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}</td>
 
                           <td className="py-3 px-4 text-center font-bold">
                             <span className={`px-2.5 py-1 rounded-full text-[11px] ${
@@ -2938,7 +2938,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
                         <div className="text-right">
                           <span className="text-xs font-black text-emerald-600 block">+ ₽{payLog.totalCost}</span>
-                          <span className="text-[9px] text-slate-400 block">{new Date(payLog.orderDate).toLocaleDateString('ru-RU')}</span>
+                          <span className="text-[9px] text-slate-400 block">{new Date(payLog.orderDate).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}</span>
                         </div>
                       </div>
                     ))}
@@ -3562,7 +3562,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     const q = archiveSearch.trim().toLowerCase();
                     if (!q) return true;
                     const completedAt = new Date(o.completedAt || o.orderDate);
-                    const dateStr = completedAt.toLocaleDateString('ru-RU');
+                    const dateStr = completedAt.toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' });
                     return (
                       String(o.totalCost).includes(q) ||
                       (o.userName || '').toLowerCase().includes(q) ||
@@ -3603,7 +3603,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             </div>
                             <p className="text-white/60 text-xs mt-0.5">{order.userName} · {order.userEmail}</p>
                             <p className="text-white/40 text-xs mt-1">
-                              Выдан: {completedAt.toLocaleDateString('ru-RU')} в {completedAt.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}
+                              Выдан: {completedAt.toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })} в {completedAt.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'})}
                             </p>
                             <p className="text-amber-400/80 text-[10px] mt-0.5 font-bold">
                               🗑 Автоудаление через {daysLeft} {daysLeft === 1 ? 'день' : daysLeft < 5 ? 'дня' : 'дней'}
