@@ -99,48 +99,57 @@ function playOrderSuccessSound() {
   }
 }
 
-// Helper function to count PDF pages client-side using cross-references scanner
+// Резервный подсчёт страниц PDF через сырой regex-скан байтов файла.
+// Не видит /Count, если он лежит внутри сжатого потока объектов (ObjStm) —
+// используется только если pdf.js не смог разобрать файл (например, повреждённый PDF).
+function countPdfPagesFallback(arrayBuffer: ArrayBuffer): number {
+  const textDecoder = new TextDecoder('utf-8');
+  const text = textDecoder.decode(new Uint8Array(arrayBuffer));
+  const pagesMatches = text.match(/\/Type\s*\/Pages\s*\/Count\s*(\d+)/g);
+  if (pagesMatches && pagesMatches.length > 0) {
+    const counts = pagesMatches.map(m => {
+      const numMatch = m.match(/\d+/);
+      return numMatch ? parseInt(numMatch[0], 10) : 1;
+    });
+    return Math.max(...counts);
+  }
+  const countMatches = text.match(/\/Count\s*(\d+)/g);
+  if (countMatches && countMatches.length > 0) {
+    const counts = countMatches.map(m => {
+      const numMatch = m.match(/\d+/);
+      return numMatch ? parseInt(numMatch[0], 10) : 1;
+    }).filter(c => c < 100000);
+    if (counts.length > 0) {
+      return Math.max(...counts);
+    }
+  }
+  return 1;
+}
+
+// Подсчёт страниц PDF через pdf.js (тот же движок, что рендерит PDF в Chrome/Firefox) —
+// в отличие от regex-скана корректно читает и PDF со сжатыми потоками объектов
+// (ObjStm/XRefStm), которые regex-версия молча принимала за "1 страницу" и занижала цену.
+// Библиотека грузится динамически, только когда клиент реально загружает PDF-файл,
+// чтобы не раздувать общий бандл для остальных посетителей.
 async function countPdfPages(file: File): Promise<number> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        const arrayBuffer = e.target?.result as ArrayBuffer;
-        if (!arrayBuffer) {
-          resolve(1);
-          return;
-        }
-        const textDecoder = new TextDecoder('utf-8');
-        const text = textDecoder.decode(new Uint8Array(arrayBuffer));
-        // Search for Pages count attribute
-        const pagesMatches = text.match(/\/Type\s*\/Pages\s*\/Count\s*(\d+)/g);
-        if (pagesMatches && pagesMatches.length > 0) {
-          const counts = pagesMatches.map(m => {
-            const numMatch = m.match(/\d+/);
-            return numMatch ? parseInt(numMatch[0], 10) : 1;
-          });
-          resolve(Math.max(...counts));
-          return;
-        }
-        const countMatches = text.match(/\/Count\s*(\d+)/g);
-        if (countMatches && countMatches.length > 0) {
-          const counts = countMatches.map(m => {
-            const numMatch = m.match(/\d+/);
-            return numMatch ? parseInt(numMatch[0], 10) : 1;
-          }).filter(c => c < 100000);
-          if (counts.length > 0) {
-            resolve(Math.max(...counts));
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('PDF Count pages error:', err);
-      }
-      resolve(1);
-    };
-    reader.onerror = () => resolve(1);
-    reader.readAsArrayBuffer(file);
-  });
+  const arrayBuffer = await file.arrayBuffer();
+  try {
+    const pdfjs = await import('pdfjs-dist');
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url
+    ).toString();
+    const pdf = await pdfjs.getDocument({ data: arrayBuffer.slice(0) }).promise;
+    return pdf.numPages;
+  } catch (err) {
+    console.warn('pdf.js page count failed, falling back to regex scan:', err);
+    try {
+      return countPdfPagesFallback(arrayBuffer);
+    } catch (fallbackErr) {
+      console.warn('PDF Count pages error:', fallbackErr);
+      return 1;
+    }
+  }
 }
 
 // Analyse color fill % from an image URL using Canvas API (0-100)
