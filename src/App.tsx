@@ -39,6 +39,10 @@ import {
   trackSiteVisit
 } from './firebaseUtils';
 
+// Заглушка "технические работы" на весь сайт. true = показывать её всем посетителям
+// вместо обычного сайта. Поставь false и задеплой, когда работы закончены.
+const MAINTENANCE_MODE = true;
+
 export default function App() {
   // Premium splash state for high-end feel
   const [showSplash, setShowSplash] = useState(true);
@@ -276,6 +280,20 @@ export default function App() {
     setUser(null);
     saveCurrentUser(null);
   };
+
+  // Временная заглушка "технические работы" — чтобы вернуть сайт как есть,
+  // просто поставь MAINTENANCE_MODE обратно в false.
+  if (MAINTENANCE_MODE) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center bg-[#02050f] text-white text-center p-6">
+        <div>
+          <FileText className="w-10 h-10 text-indigo-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-black mb-3">Ведутся технические работы</h1>
+          <p className="text-white/70">Спасибо за понимание — скоро вернёмся.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="print-shop-root-container" className="font-sans antialiased text-slate-800 dark:text-slate-100">

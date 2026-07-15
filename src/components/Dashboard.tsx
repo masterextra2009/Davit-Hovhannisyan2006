@@ -254,6 +254,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   // Navigation
   const [activeTab, setActiveTab] = useState<'upload' | 'orders' | 'chat' | 'profile' | 'contacts' | 'services'>('upload');
+  // На телефоне кабинет открывается с отдельного экрана "Главная" (крупные плитки);
+  // переход в раздел скрывает плитки и показывает контент activeTab. На десктопе не используется —
+  // там сайдбар и контент видны одновременно всегда.
+  const [mobileHome, setMobileHome] = useState(true);
   const [dismissedRatings, setDismissedRatings] = React.useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('dismissed_ratings') || '[]')); } catch { return new Set(); }
   });
@@ -1501,6 +1505,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         setPromoError(null);
         setSelectedService(null);
         setActiveTab('orders');
+        setMobileHome(false);
         setOrderAcceptPhase('success');
         setTimeout(() => setOrderAcceptPhase('idle'), 1400);
         playPlaceOrderSound();
@@ -1556,6 +1561,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           setPromoError(null);
           setSelectedService(null);
           setActiveTab('orders');
+          setMobileHome(false);
           setOrderAcceptPhase('success');
           await new Promise(r => setTimeout(r, 900));
           window.location.href = data.paymentUrl;
@@ -1569,6 +1575,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           setPromoCode('');
           setPromoError(null);
           setActiveTab('orders');
+          setMobileHome(false);
           setPayingOrder(pendingOrder);
           setOrderAcceptPhase('success');
           setTimeout(() => setOrderAcceptPhase('idle'), 1400);
@@ -1834,6 +1841,90 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     }
   };
 
+  // Конфиг пунктов меню — общий для десктопного сайдбара (в <aside>) и мобильного
+  // экрана "Главная" с плитками (в <main>), чтобы они не расходились при правках.
+  const navItems: {
+    key: string;
+    label: string;
+    icon: typeof Upload;
+    glow: string;
+    isActive: boolean;
+    onClick: () => void;
+    badge?: React.ReactNode;
+  }[] = [
+    {
+      key: 'upload',
+      label: 'Загрузка и Заказ',
+      icon: Upload,
+      glow: 'capsule-glow-purple',
+      isActive: activeTab === 'upload',
+      onClick: () => setActiveTab('upload'),
+    },
+    {
+      key: 'orders',
+      label: 'Мои Заказы',
+      icon: Clock,
+      glow: 'capsule-glow-indigo',
+      isActive: activeTab === 'orders',
+      onClick: () => setActiveTab('orders'),
+      badge: userOrders.some(o => o.status === 'ready') ? (
+        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-emerald-500 z-10 animate-pulse border border-white shadow-[0_0_6px_2px_rgba(16,185,129,0.55)]" />
+      ) : userOrders.some(o => o.status !== 'printed') ? (
+        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-[#ef4444] z-10 animate-ping border border-white" />
+      ) : null,
+    },
+    {
+      key: 'chat',
+      label: 'Чат с печатником',
+      icon: MessageSquare,
+      glow: 'capsule-glow-green',
+      isActive: activeTab === 'chat',
+      onClick: () => setActiveTab('chat'),
+      badge: unreadChatsCount > 0 ? (
+        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 animate-bounce border border-white shadow-md">
+          {unreadChatsCount}
+        </span>
+      ) : null,
+    },
+    {
+      key: 'profile',
+      label: 'Кабинет & Инфо',
+      icon: UserCheck,
+      glow: 'capsule-glow-rainbow',
+      isActive: activeTab === 'profile',
+      onClick: () => { setActiveTab('profile'); handleMarkNotificationsRead(); },
+      badge: unreadNotificationsCount > 0 ? (
+        <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-20 border border-white shadow-md">
+          {unreadNotificationsCount}
+        </span>
+      ) : null,
+    },
+    {
+      key: 'contacts',
+      label: 'Контакты',
+      icon: Phone,
+      glow: 'capsule-glow-cyan',
+      isActive: activeTab === 'contacts',
+      onClick: () => setActiveTab('contacts'),
+    },
+    {
+      key: 'services',
+      label: 'Услуги',
+      icon: Printer,
+      glow: 'capsule-glow-orange',
+      isActive: activeTab === 'services',
+      onClick: () => setActiveTab('services'),
+    },
+    ...(!user.telegramChatId ? [{
+      key: 'telegram',
+      label: 'Уведомления в Telegram',
+      icon: Send,
+      glow: 'capsule-glow-cyan',
+      isActive: false,
+      onClick: () => setShowTelegramModal(true),
+    }] : []),
+  ];
+
   return (
     <div id="client-dashboard-root" className="liquid-glass-bg min-h-dvh md:h-dvh text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative overflow-x-hidden overflow-y-auto md:overflow-hidden">
       
@@ -1956,11 +2047,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
       )}
 
-      {/* LEFT NAVIGATION COLUMN - Responsive Responsive Sidebar */}
-      <aside className="w-full md:w-64 shrink-0 flex flex-row md:flex-col justify-between p-3 md:py-6 md:px-4 transition-colors relative z-10" style={{background:"rgba(255,255,255,0.06)",backdropFilter:"blur(40px)",borderRight:"1px solid rgba(255,255,255,0.1)",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
-        
+      {/* LEFT NAVIGATION COLUMN — только десктоп. На телефоне вместо сайдбара
+          используется отдельный экран "Главная" внутри <main> (см. ниже). */}
+      <aside className="hidden md:flex md:w-64 shrink-0 md:flex-col justify-between md:py-6 md:px-4 transition-colors relative z-10" style={{background:"rgba(255,255,255,0.06)",backdropFilter:"blur(40px)",borderRight:"1px solid rgba(255,255,255,0.1)",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
+
         {/* Brand / Mini Logo */}
-        <div className="hidden md:flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-8">
           <img src={logoImg} alt="Фото-Север" className="w-10 h-10 shrink-0 object-contain drop-shadow-lg" />
           <div>
             <h2 className="text-md font-bold tracking-tight text-white leading-tight">Фото-Север</h2>
@@ -1968,191 +2060,35 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </div>
         </div>
 
-        {/* Nav Links */}
-        <div className="relative flex-1 min-w-0 md:contents">
-        <nav className="sidebar-nav flex md:flex-col flex-1 gap-1 md:gap-1.5 justify-start md:justify-start w-full relative overflow-x-auto overflow-y-hidden scrollbar-hide">
-          <button
-            onClick={() => setActiveTab('upload')}
-            className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${
-              activeTab === 'upload' 
-                ? 'font-black' 
-                : 'hover:text-white'
-            }`}
-            style={{
-              color: activeTab === 'upload' ? '#e8f000' : 'rgba(255,255,255,0.55)',
-            }}
-          >
-            {activeTab === 'upload' && (
-              <motion.div 
-                layoutId="active-sidebar-pill"
-                className="absolute inset-0 rounded-2xl -z-10 nav-holo-pill" style={{background:"rgba(255,255,255,0.14)",backdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.25)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.3), 0 4px 16px rgba(0,0,0,0.15)"}}
-                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-              />
-            )}
-            <div className={`glass-icon-capsule capsule-glow-purple shrink-0 ${activeTab === 'upload' ? 'scale-105' : 'opacity-90'}`}>
-              <Upload className="w-4.5 h-4.5 text-white icon-3d-svg" />
-            </div>
-            <span className="hidden sm:inline z-10">Загрузка и Заказ</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${
-              activeTab === 'orders' 
-                ? 'font-black' 
-                : 'hover:text-white'
-            }`}
-            style={{
-              color: activeTab === 'orders' ? '#e8f000' : 'rgba(255,255,255,0.55)',
-            }}
-          >
-            {activeTab === 'orders' && (
-              <motion.div 
-                layoutId="active-sidebar-pill"
-                className="absolute inset-0 rounded-2xl -z-10 nav-holo-pill" style={{background:"rgba(255,255,255,0.14)",backdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.25)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.3), 0 4px 16px rgba(0,0,0,0.15)"}}
-                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-              />
-            )}
-            <div className={`glass-icon-capsule capsule-glow-indigo shrink-0 relative ${activeTab === 'orders' ? 'scale-105' : 'opacity-90'}`}>
-              <Clock className="w-4.5 h-4.5 text-white icon-3d-svg" />
-              {userOrders.some(o => o.status === 'ready') ? (
-                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-emerald-500 z-10 animate-pulse border border-white shadow-[0_0_6px_2px_rgba(16,185,129,0.55)]" />
-              ) : userOrders.some(o => o.status !== 'printed') ? (
-                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-[#ef4444] z-10 animate-ping border border-white" />
-              ) : null}
-            </div>
-            <span className="hidden sm:inline z-10">Мои Заказы</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${
-              activeTab === 'chat' 
-                ? 'font-black' 
-                : 'hover:text-white'
-            }`}
-            style={{
-              color: activeTab === 'chat' ? '#e8f000' : 'rgba(255,255,255,0.55)',
-            }}
-          >
-            {activeTab === 'chat' && (
-              <motion.div 
-                layoutId="active-sidebar-pill"
-                className="absolute inset-0 rounded-2xl -z-10 nav-holo-pill" style={{background:"rgba(255,255,255,0.14)",backdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.25)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.3), 0 4px 16px rgba(0,0,0,0.15)"}}
-                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-              />
-            )}
-            <div className="relative shrink-0">
-              <div className={`glass-icon-capsule capsule-glow-green ${activeTab === 'chat' ? 'scale-105' : 'opacity-90'}`}>
-                <MessageSquare className="w-4.5 h-4.5 text-white icon-3d-svg" />
-              </div>
-              {unreadChatsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 animate-bounce border border-white shadow-md">
-                  {unreadChatsCount}
-                </span>
-              )}
-            </div>
-            <span className="hidden sm:inline z-10">Чат с печатником</span>
-          </button>
-
-          <button
-            onClick={() => { setActiveTab('profile'); handleMarkNotificationsRead(); }}
-            className={`relative flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${
-              activeTab === 'profile' 
-                ? 'text-white font-black' 
-                : 'text-[#cbd5e1] hover:bg-slate-800/40 hover:text-white'
-            }`}
-          >
-            {activeTab === 'profile' && (
-              <motion.div 
-                layoutId="active-sidebar-pill"
-                className="absolute inset-0 rounded-2xl -z-10 nav-holo-pill" style={{background:"rgba(255,255,255,0.14)",backdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.25)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.3), 0 4px 16px rgba(0,0,0,0.15)"}}
-                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-              />
-            )}
-            <div className="relative shrink-0">
-              <div className={`glass-icon-capsule capsule-glow-rainbow ${activeTab === 'profile' ? 'scale-105' : 'opacity-90'}`}>
-                <UserCheck className="w-4.5 h-4.5 text-white icon-3d-svg" />
-              </div>
-              {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-20 border border-white shadow-md">
-                  {unreadNotificationsCount}
-                </span>
-              )}
-            </div>
-            <span className="hidden sm:inline z-10">Кабинет & Инфо</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('contacts')}
-            className={`relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${
-              activeTab === 'contacts' 
-                ? 'font-black' 
-                : 'hover:text-white'
-            }`}
-            style={{
-              color: activeTab === 'contacts' ? '#e8f000' : 'rgba(255,255,255,0.55)',
-            }}
-          >
-            {activeTab === 'contacts' && (
-              <motion.div 
-                layoutId="active-sidebar-pill"
-                className="absolute inset-0 rounded-2xl -z-10 nav-holo-pill" style={{background:"rgba(255,255,255,0.14)",backdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.25)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.3), 0 4px 16px rgba(0,0,0,0.15)"}}
-                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-              />
-            )}
-            <div className={`glass-icon-capsule capsule-glow-cyan shrink-0 ${activeTab === 'contacts' ? 'scale-105' : 'opacity-90'}`}>
-              <Phone className="w-4.5 h-4.5 text-white icon-3d-svg" />
-            </div>
-            <span className="hidden sm:inline z-10">Контакты</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('services')}
-            className={`relative flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer ${
-              activeTab === 'services'
-                ? 'text-white font-black'
-                : 'text-[#cbd5e1] hover:bg-slate-800/40 hover:text-white'
-            }`}
-          >
-            {activeTab === 'services' && (
-              <motion.div
-                layoutId="active-sidebar-pill"
-                className="absolute inset-0 rounded-2xl -z-10 nav-holo-pill" style={{background:"rgba(255,255,255,0.14)",backdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.25)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.3), 0 4px 16px rgba(0,0,0,0.15)"}}
-                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-              />
-            )}
-            <div className={`glass-icon-capsule capsule-glow-orange shrink-0 ${activeTab === 'services' ? 'scale-105' : 'opacity-90'}`}>
-              <Printer className="w-4.5 h-4.5 text-white icon-3d-svg" />
-            </div>
-            <span className="hidden sm:inline z-10">Услуги</span>
-          </button>
-
-          {/* Кнопка подключения Telegram-уведомлений — скрывается, когда уже подключено */}
-          {!user.telegramChatId && (
+        <nav className="sidebar-nav flex flex-col flex-1 gap-1.5 justify-start w-full relative">
+          {navItems.map(item => (
             <button
-              onClick={() => setShowTelegramModal(true)}
-              className="relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial cursor-pointer text-[#cbd5e1] hover:bg-slate-800/40 hover:text-white"
-              title="Подключить уведомления в Telegram о статусе заказа"
+              key={item.key}
+              onClick={item.onClick}
+              title={item.key === 'telegram' ? 'Подключить уведомления в Telegram о статусе заказа' : undefined}
+              className={`relative flex items-center gap-3 px-3 py-3 text-sm font-semibold rounded-2xl transition-all duration-200 justify-start cursor-pointer ${
+                item.isActive ? 'font-black' : 'hover:text-white'
+              }`}
+              style={{ color: item.isActive ? '#e8f000' : 'rgba(255,255,255,0.55)' }}
             >
-              <div className="glass-icon-capsule capsule-glow-cyan shrink-0 opacity-90">
-                <Send className="w-4.5 h-4.5 text-white icon-3d-svg" />
+              {item.isActive && (
+                <motion.div
+                  layoutId="active-sidebar-pill"
+                  className="absolute inset-0 rounded-2xl -z-10 nav-holo-pill" style={{background:"rgba(255,255,255,0.14)",backdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.25)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.3), 0 4px 16px rgba(0,0,0,0.15)"}}
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                />
+              )}
+              <div className={`relative glass-icon-capsule ${item.glow} shrink-0 ${item.isActive ? 'scale-105' : 'opacity-90'}`}>
+                <item.icon className="w-4.5 h-4.5 text-white icon-3d-svg" />
+                {item.badge}
               </div>
-              <span className="hidden sm:inline z-10">Уведомления в Telegram</span>
+              <span className="z-10">{item.label}</span>
             </button>
-          )}
-
+          ))}
         </nav>
 
-        {/* Подсказка "тут можно листать вбок" — на телефоне скроллбар у нав-бара
-            намеренно скрыт (см. scrollbar-hide выше), без этого затемнения справа
-            пункты меню, не влезающие на экран (например "Услуги"), выглядели как
-            будто их вообще нет, а не как "прокрути, чтобы увидеть ещё". */}
-        <div className="md:hidden absolute top-0 right-0 bottom-0 w-8 pointer-events-none bg-gradient-to-l from-[#0b0b16] to-transparent" />
-        </div>
-
         {/* Short info bottom */}
-        <div className="hidden md:block border-t border-slate-850 pt-5 mt-auto">
+        <div className="border-t border-slate-850 pt-5 mt-auto">
           <div className="flex items-center gap-3">
             <UserAvatar
               user={user}
@@ -2186,9 +2122,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         {/* Top bar on small / medium devices for header */}
         <header id="dashboard-header" className="md:hidden flex items-center justify-between px-4 py-3 glass-panel rounded-2xl">
           <div className="flex items-center gap-2">
-            {activeTab !== 'upload' ? (
+            {!mobileHome ? (
               <button
-                onClick={() => setActiveTab('upload')}
+                onClick={() => setMobileHome(true)}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition cursor-pointer shrink-0"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
@@ -2214,6 +2150,31 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             </button>
           </div>
         </header>
+
+        {/* Мобильная "Главная" — крупные подписанные плитки. Показывается вместо контента
+            раздела, пока mobileHome === true; тап по плитке уводит в раздел и прячет плитки. */}
+        {mobileHome && (
+          <div className="md:hidden glass-panel rounded-2xl p-4 flex flex-col gap-4">
+            <nav className="mobile-tile-nav grid grid-cols-3 gap-2 w-full">
+              {navItems.map(item => (
+                <button
+                  key={item.key}
+                  onClick={() => { item.onClick(); if (item.key !== 'telegram') setMobileHome(false); }}
+                  className="relative flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl transition-all duration-200 cursor-pointer"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  <div className={`relative glass-icon-capsule ${item.glow} opacity-90`}>
+                    <item.icon className="w-5 h-5 text-white icon-3d-svg" />
+                    {item.badge}
+                  </div>
+                  <span className="text-[10.5px] font-semibold text-center leading-tight text-white/85">
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        )}
 
         <header className="hidden md:flex items-center justify-between px-8 py-5 glass-panel rounded-2xl">
           <div className="flex items-center gap-4">
@@ -2269,8 +2230,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </div>
         </header>
 
-        {/* WORKSPACE SECTIONS */}
-        <div className="flex-1 p-4 md:p-8 space-y-6 max-w-6xl w-full mx-auto min-h-0 flex flex-col md:overflow-hidden">
+        {/* WORKSPACE SECTIONS — на телефоне скрыт, пока показана "Главная" с плитками */}
+        <div className={`flex-1 p-4 md:p-8 space-y-6 max-w-6xl w-full mx-auto min-h-0 ${mobileHome ? 'hidden md:flex' : 'flex'} flex-col md:overflow-hidden`}>
           {user.promoCode && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
