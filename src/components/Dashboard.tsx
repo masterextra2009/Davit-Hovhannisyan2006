@@ -2905,7 +2905,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             )}
           </div>
           <div className="flex items-center gap-2">
-            <LiveClock showSeconds={false} bare />
             <ThemeToggle />
             <button
               onClick={onLogout}
