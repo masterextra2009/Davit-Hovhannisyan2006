@@ -2927,7 +2927,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           };
 
           return (
-            <div className="md:hidden p-2 pt-6 relative">
+            <div className="md:hidden p-2 pt-6 relative isolate">
               {/* Обои под часами и плитками, как на экране блокировки телефона —
                   своя картинка под каждую тему, переключаются классом .dark. */}
               <div
