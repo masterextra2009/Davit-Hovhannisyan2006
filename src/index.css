@@ -2079,9 +2079,9 @@ body {
    ============================================ */
 
 .glass-icon-capsule {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 46px;
+  height: 46px;
+  border-radius: 22.5%;
   background: rgba(255,255,255,0.15);
   border: 1px solid rgba(255,255,255,0.85);
   box-shadow:
@@ -2102,7 +2102,7 @@ body {
   position: absolute;
   top: 0; left: 8%; right: 8%; height: 40%;
   background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 100%);
-  border-radius: 10px 10px 50% 50%;
+  border-radius: 22.5% 22.5% 50% 50%;
   pointer-events: none;
 }
 
@@ -2126,19 +2126,355 @@ button:hover .glass-icon-capsule {
   border-color: rgba(255,255,255,0.4);
 }
 
-/* Свечение под активной иконкой */
+/* Цветные глянцевые капсулы для иконок меню (были объявлены в разметке, но без
+   стилей — иконки оставались белыми/бесцветными). Насыщенный градиент + свечение
+   в тон, белый глиф иконки поверх — тот самый "глянцевый 3D-значок" вид. */
+.glass-icon-capsule.capsule-glow-purple {
+  background: linear-gradient(145deg, #c084fc 0%, #9333ea 100%);
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.glass-icon-capsule.capsule-glow-indigo {
+  background: linear-gradient(145deg, #818cf8 0%, #4338ca 100%);
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.glass-icon-capsule.capsule-glow-green {
+  background: linear-gradient(145deg, #4ade80 0%, #16a34a 100%);
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.glass-icon-capsule.capsule-glow-orange {
+  background: linear-gradient(145deg, #fb923c 0%, #ea580c 100%);
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.glass-icon-capsule.capsule-glow-cyan {
+  background: linear-gradient(145deg, #22d3ee 0%, #0e7490 100%);
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.glass-icon-capsule.capsule-glow-rainbow {
+  background: linear-gradient(145deg, #f472b6 0%, #a855f7 50%, #6366f1 100%);
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.glass-icon-capsule[class*="capsule-glow-"] svg {
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));
+}
+/* Тёмная тема ниже по каскаду сбрасывает background/border с !important — перебиваем
+   тем же приоритетом и более специфичным селектором, иначе цвет не проходит. */
+.dark .glass-icon-capsule.capsule-glow-purple {
+  background: linear-gradient(145deg, #c084fc 0%, #9333ea 100%) !important;
+  border: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5) !important;
+}
+.dark .glass-icon-capsule.capsule-glow-indigo {
+  background: linear-gradient(145deg, #818cf8 0%, #4338ca 100%) !important;
+  border: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5) !important;
+}
+.dark .glass-icon-capsule.capsule-glow-green {
+  background: linear-gradient(145deg, #4ade80 0%, #16a34a 100%) !important;
+  border: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5) !important;
+}
+.dark .glass-icon-capsule.capsule-glow-orange {
+  background: linear-gradient(145deg, #fb923c 0%, #ea580c 100%) !important;
+  border: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5) !important;
+}
+.dark .glass-icon-capsule.capsule-glow-cyan {
+  background: linear-gradient(145deg, #22d3ee 0%, #0e7490 100%) !important;
+  border: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5) !important;
+}
+.dark .glass-icon-capsule.capsule-glow-rainbow {
+  background: linear-gradient(145deg, #f472b6 0%, #a855f7 50%, #6366f1 100%) !important;
+  border: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5) !important;
+}
+.dark .glass-icon-capsule[class*="capsule-glow-"] svg {
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25)) !important;
+  opacity: 1 !important;
+}
+
+/* Свечение под активной иконкой — отключено по просьбе: убрать цветную
+   размытую тень под капсулами, оставить только сам цвет иконки. */
 .glass-icon-capsule.scale-105::after {
-  content: '';
+  content: none;
+}
+
+/* Стеклянная иконка с бегущим бликом по кромке — прозрачная "стеклянная" капсула,
+   цвет только у самого глифа иконки внутри (передаётся через color на SVG). */
+@keyframes beam-spin {
+  to { transform: rotate(360deg); }
+}
+.glass-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(150deg,
+    rgba(255,255,255,.22),
+    rgba(255,255,255,.06) 40%,
+    rgba(255,255,255,.02) 60%,
+    rgba(255,255,255,.14));
+  backdrop-filter: blur(0px);
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,.65),
+    inset 0 -3px 6px rgba(255,255,255,.25),
+    0 18px 40px rgba(0,0,0,.55);
+  overflow: hidden;
+  flex-shrink: 0;
+  color: #f2f7ff;
+}
+/* Бегущий блик по кромке — вырезается маской: content-box исключается из
+   полного прямоугольника, остаётся видимым только тонкое кольцо (padding).
+   Все четыре строки с mask обязательны — сокращать до двух или объединять
+   с инлайн-keyword ("content-box exclude" внутри -webkit-mask) нельзя: старый
+   -webkit-mask не поддерживает встроенный composite-keyword, из-за чего
+   правило могло отбрасываться целиком в Safari/вебвью — отсюда и был баг
+   "луч на всю плитку вместо тонкого кольца". */
+.glass-icon .beam {
   position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 28px;
-  height: 10px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(99,102,241,0.6) 0%, transparent 70%);
-  filter: blur(5px);
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  overflow: hidden;
   pointer-events: none;
+  z-index: 2;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+.glass-icon .beam i {
+  position: absolute;
+  inset: -60%;
+  background: conic-gradient(from 0deg,
+    transparent 0deg,
+    rgba(255,255,255,0.95) 45deg,
+    transparent 99deg);
+  animation: beam-spin 3.2s linear infinite;
+}
+.glass-icon svg {
+  position: relative;
+  z-index: 3;
+  color: #f2f7ff;
+  stroke-width: 1.0;
+  filter: drop-shadow(0 3px 8px rgba(0,0,0,.45));
+}
+
+/* Цветной режим плиток на "Главной" (colored=true в GlassIcon) — цветной фон
+   капсулы (см. .capsule-glow-* ниже, переиспользует те же градиенты, что и
+   в старом .glass-icon-capsule), сам глиф иконки остаётся белым — только
+   добавляем тот же объём, что и .icon-3d-svg по проекту (тёмная тень снизу-
+   справа + светлый блик сверху-слева), чтобы белая иконка не была плоской
+   на цветном фоне. */
+.glass-icon.colored svg {
+  filter:
+    drop-shadow(0px 2px 1.5px rgba(0,0,0,0.5))
+    drop-shadow(0px 0.5px 0.5px rgba(255,255,255,0.4));
+}
+
+/* Линза из стекла позади иконки — сама иконка остаётся тонкой белой линией
+   (как в ТЗ), но теперь сидит на маленьком стеклянном "окошке" поверх цветного
+   фона капсулы: тот же приём (полупрозрачный градиент + блик сверху + лёгкая
+   тень снизу), что и у самой капсулы .glass-icon, только в миниатюре. */
+.glass-icon .icon-glass-lens {
+  position: absolute;
+  width: 68%;
+  height: 68%;
+  border-radius: 50%;
+  background: linear-gradient(160deg,
+    rgba(255,255,255,.38),
+    rgba(255,255,255,.10) 55%,
+    rgba(255,255,255,.20));
+  box-shadow:
+    inset 0 1px 2px rgba(255,255,255,.65),
+    inset 0 -2px 4px rgba(0,0,0,.18);
+  z-index: 2;
+}
+.glass-icon.colored.capsule-glow-purple {
+  background: linear-gradient(145deg, #c084fc 0%, #9333ea 100%);
+}
+.glass-icon.colored.capsule-glow-indigo {
+  background: linear-gradient(145deg, #818cf8 0%, #4338ca 100%);
+}
+.glass-icon.colored.capsule-glow-green {
+  background: linear-gradient(145deg, #4ade80 0%, #16a34a 100%);
+}
+.glass-icon.colored.capsule-glow-orange {
+  background: linear-gradient(145deg, #fb923c 0%, #ea580c 100%);
+}
+.glass-icon.colored.capsule-glow-cyan {
+  background: linear-gradient(145deg, #22d3ee 0%, #0e7490 100%);
+}
+.glass-icon.colored.capsule-glow-rainbow {
+  background: linear-gradient(145deg, #f472b6 0%, #a855f7 50%, #6366f1 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-icon .beam i { animation: none; opacity: 0.35; }
+}
+
+/* Светлая тема: фон кабинета светло-серо-голубой (см. .liquid-glass-bg без .dark),
+   и белый глиф/белое стекло на нём почти не читается. Числа для тёмной темы выше
+   не трогаем (утверждены) — здесь отдельный, более контрастный вариант капсулы:
+   тёмное затемнённое стекло, чтобы белый блик и сам значок снова было видно. */
+:root:not(.dark) .glass-icon:not(.colored) {
+  background: linear-gradient(150deg,
+    rgba(15,23,42,.82),
+    rgba(15,23,42,.68) 40%,
+    rgba(15,23,42,.58) 60%,
+    rgba(15,23,42,.74));
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,.18),
+    inset 0 -3px 6px rgba(0,0,0,.35),
+    0 10px 22px rgba(15,23,42,.35);
+  color: #f2f7ff;
+}
+:root:not(.dark) .glass-icon svg {
+  color: #f2f7ff;
+}
+
+/* Заливка и обводка нижней панели навигации — в тёмной теме едва заметное
+   стекло поверх тёмного фона страницы; в светлой теме та же полупрозрачность
+   на светлом фоне была бы почти невидима, поэтому берём затемнённое стекло
+   с более заметной тенью — панель читается чётко в обеих темах. */
+.nav-fill {
+  background: rgba(255,255,255,0.07);
+  box-shadow: 0 8px 28px rgba(0,0,0,.25);
+}
+:root:not(.dark) .nav-fill {
+  background: rgba(15,23,42,0.55);
+  box-shadow: 0 10px 30px rgba(15,23,42,.28), inset 0 1px 0 rgba(255,255,255,.12);
+}
+.nav-outline {
+  stroke: rgba(255,255,255,0.12);
+}
+:root:not(.dark) .nav-outline {
+  stroke: rgba(255,255,255,0.16);
+}
+
+/* Кнопка загрузки на мобильной нижней панели — лежит в вырезе панели (см. nav в
+   Dashboard.tsx), поэтому позиционируется абсолютно (left/top/transform заданы инлайн).
+   Диск с кольцом из 11 сегментов и бегущим по кольцу лучом — заменяет прежнюю
+   сплошную фиолетовую кнопку. Фон диска прозрачный (видно панель под ним),
+   цвет — только у самой иконки внутри (см. .disc > svg), это единственное
+   место в проекте, где цветной глиф разрешён (см. ТЗ про .glass-icon — там
+   цвета по-прежнему нет и не будет). */
+.disc {
+  position: absolute;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(150deg, rgba(255,255,255,.20),
+    rgba(255,255,255,.05) 40%, rgba(255,255,255,.02) 60%, rgba(255,255,255,.13));
+  backdrop-filter: blur(0px);
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,.6),
+    inset 0 -3px 6px rgba(255,255,255,.22),
+    0 18px 40px rgba(0,0,0,.45);
+  transform: translate(-50%, -50%);
+  transition: transform 0.15s ease;
+}
+/* Светлая тема: тот же диск, но заметно затемнённое стекло вместо еле видного
+   белого — иначе на светлой панели/странице он практически пропадает. */
+:root:not(.dark) .disc {
+  background: linear-gradient(150deg, rgba(15,23,42,.55),
+    rgba(15,23,42,.40) 40%, rgba(15,23,42,.30) 60%, rgba(15,23,42,.48));
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,.35),
+    inset 0 -3px 6px rgba(0,0,0,.25),
+    0 18px 40px rgba(15,23,42,.35);
+}
+.disc:active {
+  transform: translate(-50%, -50%) scale(0.9);
+}
+
+/* Заметный тактильный отклик при нажатии на кнопки нижней панели — сдвинутые
+   иконки (часы/телефон) держат свой сдвиг и в нажатом состоянии, просто
+   добавляется scale, а не отдельным инлайн-transform (который бы конфликтовал
+   с этим же CSS-правилом). */
+.nav-shift-left {
+  transform: translateX(-8px);
+  transition: transform 0.15s ease;
+}
+.nav-shift-left:active {
+  transform: translateX(-8px) scale(0.88);
+}
+.nav-shift-right {
+  transform: translateX(8px);
+  transition: transform 0.15s ease;
+}
+.nav-shift-right:active {
+  transform: translateX(8px) scale(0.88);
+}
+
+/* Один сегмент кольца, всего 11 (см. навигацию по кругу в Dashboard.tsx —
+   каждый повёрнут на i * 32.7deg и сдвинут translateY(-17.83px) от центра —
+   это те же 47px, что в оригинале, пересчитанные под диск 66px вместо 174px). */
+.disc .seg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6.83px;
+  height: 9.48px;
+  margin-left: -3.41px;
+  margin-top: -4.74px;
+  border-radius: 2.62px;
+  background: linear-gradient(160deg, rgba(255,255,255,.34), rgba(255,255,255,.10));
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.7), inset 0 -1px 2px rgba(0,0,0,.15);
+  z-index: 2;
+}
+
+/* Луч, идущий строго по кольцу — маска вырезает кольцевую полосу (радиусы
+   пересчитаны тем же коэффициентом 66/174, что и сегменты), вращающийся
+   conic-gradient виден только внутри неё. */
+.disc .ringbeam {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+  -webkit-mask: radial-gradient(circle at center,
+    transparent 11.95px, #000 12.33px, #000 23.71px, transparent 24.09px);
+  mask: radial-gradient(circle at center,
+    transparent 11.95px, #000 12.33px, #000 23.71px, transparent 24.09px);
+}
+.disc .ringbeam i {
+  position: absolute;
+  inset: -60%;
+  background: conic-gradient(from 0deg, transparent 0deg,
+    rgba(190,190,218,0.95) 110deg, transparent 242deg);
+  animation: beam-spin 2.6s linear infinite;
+  mix-blend-mode: plus-lighter;
+}
+
+/* Цветной глиф + тот же приём "3D-объёма", что и .icon-3d-svg в проекте
+   (тёмная тень снизу-справа + светлый блик сверху-слева), совмещённый со
+   свечением из исходного дизайна — оба эффекта в одном filter, иначе
+   .icon-3d-svg как отдельный класс проиграл бы по специфичности CSS. */
+.disc > svg {
+  position: relative;
+  z-index: 4;
+  width: 31px;
+  height: 31px;
+  filter:
+    drop-shadow(0 2px 5px rgba(0,0,0,.4))
+    drop-shadow(0px 2px 1.5px rgba(0,0,0,0.65))
+    drop-shadow(0px 0.5px 0.5px rgba(255,255,255,0.15));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disc .ringbeam i { animation: none; opacity: .35; }
 }
 
 /* ============================================
@@ -2366,35 +2702,93 @@ button:hover .glass-icon-capsule {
   transform: translateY(0) scale(0.96);
 }
 
+/* Общий "стеклянный" вид кнопок кабинета клиента — тот же визуальный язык,
+   что и у .glass-icon (мягкий диагональный блик + светлая внутренняя тень +
+   лёгкая внешняя тень для объёма), но как добавочный слой поверх ЛЮБОГО
+   существующего фона кнопки — не переопределяет background/border-color,
+   поэтому не ломает уже завязанную на цвет логику "выбрано/не выбрано" у
+   кнопок-переключателей (Ч/Б, Формат и т.п.), только добавляет стекло сверху. */
+.btn-glass-sheen {
+  position: relative;
+  isolation: isolate;
+  /* backdrop-filter намеренно не используется здесь: в паре с filter (например,
+     grayscale на иконке принтера внутри) в некоторых браузерах даёт известный
+     баг рендеринга — вложенный элемент с фильтром закрашивается сплошным
+     чёрным вместо реального содержимого. */
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -2px 4px rgba(0,0,0,.12),
+    0 4px 14px rgba(0,0,0,.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-glass-sheen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(155deg, rgba(255,255,255,.14) 0%, transparent 45%);
+  pointer-events: none;
+  z-index: -1;
+}
+.btn-glass-sheen:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.btn-glass-sheen:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+.btn-glass-sheen:disabled {
+  box-shadow: none;
+  transform: none;
+}
+
+/* Режим перестановки плиток на "Главной" (зажал — задрожали, как на iPhone).
+   Каждая плитка дрожит со случайным небольшим сдвигом фазы/задержки, чтобы
+   они не качались синхронно, как настоящий iOS-хоумскрин. */
+@keyframes tile-jiggle {
+  0%   { transform: rotate(-1.5deg); }
+  50%  { transform: rotate(1.5deg); }
+  100% { transform: rotate(-1.5deg); }
+}
+.tile-jiggle {
+  animation: tile-jiggle 0.22s ease-in-out infinite;
+  animation-delay: calc(var(--jiggle-i, 0) * 0.03s);
+}
+.tile-dragging {
+  animation: none !important;
+  z-index: 20;
+  cursor: grabbing;
+}
+
 /* Объёмная "физическая" кнопка подтверждения выбора файла — сплошной
    цветной торец снизу имитирует толщину кнопки, при нажатии кнопка
    проседает и торец скрывается, как у настоящей кнопки. */
 .btn-3d-choose {
   position: relative;
-  background: linear-gradient(180deg, #818cf8, #8b5cf6);
+  background: linear-gradient(180deg, #0d0d13, #000000);
+  border: none;
   box-shadow:
-    0 6px 0 0 #4c33b0,
-    0 16px 30px -8px rgba(99,102,241,0.6),
-    inset 0 1px 0 rgba(255,255,255,0.4),
-    inset 0 -3px 6px rgba(0,0,0,0.15);
+    0 6px 0 0 #000000,
+    0 22px 42px -10px rgba(139,92,246,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 -3px 6px rgba(0,0,0,0.5);
   transform: translateY(0);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 .btn-3d-choose:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow:
-    0 8px 0 0 #4c33b0,
-    0 20px 34px -8px rgba(99,102,241,0.65),
-    inset 0 1px 0 rgba(255,255,255,0.45),
-    inset 0 -3px 6px rgba(0,0,0,0.15);
+    0 8px 0 0 #000000,
+    0 26px 48px -8px rgba(139,92,246,0.65),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    inset 0 -3px 6px rgba(0,0,0,0.5);
 }
 .btn-3d-choose:active:not(:disabled) {
   transform: translateY(6px);
   box-shadow:
-    0 0 0 0 #4c33b0,
-    0 6px 14px -6px rgba(99,102,241,0.45),
-    inset 0 1px 0 rgba(255,255,255,0.25),
-    inset 0 -2px 4px rgba(0,0,0,0.25);
+    0 0 0 0 #000000,
+    0 10px 20px -8px rgba(139,92,246,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    inset 0 -2px 4px rgba(0,0,0,0.6);
 }
 .btn-3d-choose:disabled {
   box-shadow: none !important;
@@ -3412,10 +3806,18 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
   position: relative;
   z-index: 1;
   border-radius: 1.5rem;
-  background: linear-gradient(180deg, rgba(41, 41, 41, 0.88) 0%, rgba(18, 18, 18, 0.92) 100%) !important;
+  /* Тот же градиент, что и у .glass-icon (стеклянные иконки по кабинету) —
+     раньше тут был отдельный тёмно-серый фон, не в тон общему стилю. */
+  background: linear-gradient(150deg,
+    rgba(255,255,255,.22),
+    rgba(255,255,255,.06) 40%,
+    rgba(255,255,255,.02) 60%,
+    rgba(255,255,255,.14)) !important;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  box-shadow: inset 0 2px 2px 0 rgba(231, 196, 160, 0.3), inset 0 -2px 2px 0 rgba(0, 0, 0, 0.35) !important;
+  /* Тёплый бежевый блик (rgba(231,196,160,...)) заменён на холодный
+     фиолетовый, в тон "стеклянным" иконкам по всему кабинету. */
+  box-shadow: inset 0 2px 2px 0 rgba(167, 139, 250, 0.3), inset 0 -2px 2px 0 rgba(0, 0, 0, 0.35) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 .upload-glass-zone.is-active {
@@ -3462,12 +3864,14 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
   width: 46%;
   height: 4px;
   border-radius: 10px;
-  background: #fffef9;
+  /* Тёплая "лампа" (жёлто-оранжевые тона) заменена на холодный
+     фиолетовый — в тон .glass-icon по всему кабинету. */
+  background: #f2ecff;
   box-shadow:
-    0 0 1px 1px rgba(255, 199, 142, 0.9),
-    0 1px 2px 1px rgba(255, 148, 41, 0.45),
-    0 2px 8px 2px rgba(233, 139, 45, 0.35),
-    0 6px 16px 4px rgba(255, 158, 61, 0.28);
+    0 0 1px 1px rgba(196, 181, 253, 0.9),
+    0 1px 2px 1px rgba(167, 139, 250, 0.45),
+    0 2px 8px 2px rgba(139, 92, 246, 0.35),
+    0 6px 16px 4px rgba(167, 139, 250, 0.28);
 }
 /* Свет от лампы, падающий на поверхность карточки под ней */
 .upload-glass-zone {
@@ -3481,7 +3885,8 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
   transform: translateX(-50%);
   width: 70%;
   height: 160px;
-  background: radial-gradient(ellipse at top, rgba(255, 206, 143, 0.28) 0%, rgba(255, 186, 120, 0.12) 40%, transparent 72%);
+  /* Тёплое персиковое свечение заменено на холодное фиолетовое. */
+  background: radial-gradient(ellipse at top, rgba(167, 139, 250, 0.28) 0%, rgba(139, 92, 246, 0.12) 40%, transparent 72%);
   pointer-events: none;
   z-index: -1;
 }

@@ -17,8 +17,8 @@ import {
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 
   Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, 
   FileCheck, LogOut, Check, ArrowDown, Bell, HelpCircle, Laptop, ArrowLeft,
-  UserCheck, Layers, RefreshCw, Smartphone, Phone, Star, Trophy, Award, Share2, Copy, Mail, Gift,
-  Maximize2, Eye, ZoomIn, ZoomOut, RotateCw, Printer, X
+  Layers, RefreshCw, Smartphone, Phone, Star, Trophy, Award, Share2, Copy, Mail, Gift,
+  Maximize2, Eye, ZoomIn, ZoomOut, RotateCw, Printer, X, Home, Camera
 } from 'lucide-react';
 import { 
   calculateOrderCost, getFileFormatGroup, formatFileSize, 
@@ -239,6 +239,121 @@ interface DashboardProps {
   hasSyncedFromServer?: boolean;
 }
 
+// Иконки для стеклянных плиток "Главной" — точные пути из ТЗ (tz-fable-glass-icons-final.md,
+// часть 3). Не заменять на похожие из lucide-react — эти утверждены явно.
+function GlassPhotoIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M5 8h2.5l1.5-2h6l1.5 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/>
+      <circle cx="12" cy="13.5" r="3.5"/>
+    </svg>
+  );
+}
+function GlassPrintIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M7 8V4h10v4"/>
+      <rect x="4" y="8" width="16" height="7" rx="2"/>
+      <path d="M7 15h10v5H7z"/>
+    </svg>
+  );
+}
+function GlassA3Icon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 4h13a1 1 0 0 1 1 1v13"/>
+      <rect x="7" y="7" width="10" height="14" rx="1"/>
+    </svg>
+  );
+}
+function GlassPolaroidIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="4" y="3" width="16" height="18" rx="1"/>
+      <rect x="6.5" y="5.5" width="11" height="9" rx="0.5"/>
+    </svg>
+  );
+}
+function GlassDocumentsIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
+      <path d="M14 3v5h5M9 13h6M9 17h4"/>
+    </svg>
+  );
+}
+function GlassScanIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/>
+      <path d="M4 12h16"/>
+    </svg>
+  );
+}
+function GlassLaminationIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="7" y="4" width="14" height="17" rx="1"/>
+      <path d="M3 6h2M3 9.5h2M3 13h2M3 16.5h2M3 20h2"/>
+    </svg>
+  );
+}
+function GlassSouvenirsIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="3" y="9" width="18" height="11" rx="2"/>
+      <path d="M3 13h18M12 9v11"/>
+      <path d="M12 9c-3.5 0-5-1-5-2.5S8.5 4 12 9zM12 9c3.5 0 5-1 5-2.5S15.5 4 12 9z"/>
+    </svg>
+  );
+}
+function GlassProfileIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M5 20a7 7 0 0 1 14 0"/>
+    </svg>
+  );
+}
+function GlassUploadIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M12 17V5"/>
+      <path d="M7 10l5-5 5 5"/>
+      <path d="M5 19h14"/>
+    </svg>
+  );
+}
+
+// Форма нижней панели навигации — вырез под кнопку загрузки как часть контура.
+// Ширина панели параметризована (раньше было жёстко 336), чтобы её можно было
+// расширять/сужать одной цифрой, не пересчитывая кривые выреза вручную —
+// вырез (между c-74 и c+74) всегда остаётся той же формы и центрируется
+// относительно центра панели, куда и ставится кнопка (left: 50%).
+function navShapePath(w: number) {
+  const c = w / 2;
+  return `M0,36 Q0,24 12,24 H${c - 74} C${c - 33.3},24 ${c - 40.7},69 ${c},69 C${c + 40.7},69 ${c + 33.3},24 ${c + 74},24 H${w - 12} Q${w},24 ${w},36 V90 H0 Z`;
+}
+
+// Стеклянная иконка с бегущим бликом по кромке (см. .glass-icon в index.css).
+// Пропорции 31/124 (радиус) и 96/124 (иконка) — утверждённые в ТЗ, не менять.
+// colored=true красит саму капсулу градиентом по имени glow (см. .capsule-glow-*
+// в index.css) — глиф внутри остаётся белым, только фон плитки цветной.
+function GlassIcon({ icon: Icon, glow, size = 56, colored = false }: { icon: typeof Upload; glow?: string; size?: number; colored?: boolean }) {
+  return (
+    <span className={`glass-icon${colored ? ` colored ${glow || ''}` : ''}`} style={{ width: size, height: size, borderRadius: size * (31 / 124) }}>
+      <span className="beam"><i /></span>
+      {colored && <span className="icon-glass-lens" />}
+      <Icon
+        style={{
+          width: size * (96 / 124),
+          height: size * (96 / 124),
+        }}
+      />
+    </span>
+  );
+}
+
 export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDeleteAccount, hasSyncedFromServer = true }: DashboardProps) {
   // На iOS Web Share Target API не поддерживается Safari в принципе (ограничение
   // самой Apple) — "Поделиться" в другое приложение сюда файл не занесёт.
@@ -258,6 +373,97 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // переход в раздел скрывает плитки и показывает контент activeTab. На десктопе не используется —
   // там сайдбар и контент видны одновременно всегда.
   const [mobileHome, setMobileHome] = useState(true);
+  // Перестановка плиток на "Главной" зажатием, как на iPhone — порядок
+  // хранится персонально на устройстве (localStorage по user.id), ключи
+  // плиток не в сохранённом порядке (новые появились после последней
+  // перестановки) уходят в конец в исходном порядке между собой.
+  const [homeTileOrder, setHomeTileOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(`home_tile_order_${user.id}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [jiggleMode, setJiggleMode] = useState(false);
+  const [draggedTileKey, setDraggedTileKey] = useState<string | null>(null);
+  const tileLongPressTimerRef = useRef<number | null>(null);
+  const tilePressStartRef = useRef<{ x: number; y: number } | null>(null);
+  const tileDragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [tileDragPos, setTileDragPos] = useState<{ x: number; y: number } | null>(null);
+
+  const reorderHomeTiles = (allKeys: string[]) => {
+    setHomeTileOrder(prev => {
+      // Первый вход в перестановку — фиксируем текущий (дефолтный) порядок,
+      // чтобы дальше просто менять местами уже сохранённый список.
+      const base = prev.length ? prev : allKeys;
+      const known = base.filter(k => allKeys.includes(k));
+      const unknown = allKeys.filter(k => !known.includes(k));
+      return [...known, ...unknown];
+    });
+  };
+
+  const moveHomeTile = (draggedKey: string, overKey: string) => {
+    if (draggedKey === overKey) return;
+    setHomeTileOrder(prev => {
+      const next = [...prev];
+      const from = next.indexOf(draggedKey);
+      const to = next.indexOf(overKey);
+      if (from === -1 || to === -1) return prev;
+      next.splice(from, 1);
+      next.splice(to, 0, draggedKey);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`home_tile_order_${user.id}`, JSON.stringify(homeTileOrder));
+    } catch { /* ignore quota/availability errors — просто не сохранится порядок */ }
+  }, [homeTileOrder, user.id]);
+  // Ширина нижней панели навигации — панель теперь прижата к краям экрана (не
+  // фиксированные 348px), поэтому форму выреза под кнопку пересчитываем по
+  // реальной ширине окна, иначе кривая не совпадёт с реальными краями панели.
+  const [navWidth, setNavWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 348));
+  useEffect(() => {
+    const onResize = () => setNavWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  // Выбранная категория для вкладки "Услуги" (Печать фото / Документы / Сканирование /
+  // Ламинация / Сувениры) — null значит показывать все активные услуги, как раньше.
+  const [serviceCategoryFilter, setServiceCategoryFilter] = useState<string | null>(null);
+
+  // Категории плиток на "Главной" — реальные услуги фильтруются по ключевым словам в названии,
+  // тем же принципом, что уже используется для подбора 3D-иконки услуги (см. get3DIcon ниже).
+  // Ничего не выдумываем: если у категории пока нет ни одной активной услуги в базе, покажем
+  // честное "пока нет предложений", а не придуманные цены.
+  const serviceCategoryMatchers: Record<string, (title: string) => boolean> = {
+    photo: (t) => t.includes('фото') && !t.includes('докум'),
+    documents: (t) => t.includes('докум'),
+    scanning: (t) => t.includes('скан'),
+    lamination: (t) => t.includes('ламинац') || t.includes('переплёт') || t.includes('переплет') || t.includes('binding'),
+    souvenirs: (t) => t.includes('сувенир') || t.includes('кружк') || t.includes('магнит') || t.includes('футболк') || t.includes('керамик'),
+  };
+  const serviceCategoryLabels: Record<string, string> = {
+    photo: 'Печать фото',
+    documents: 'Документы',
+    scanning: 'Сканирование',
+    lamination: 'Переплёт',
+    souvenirs: 'Сувениры',
+  };
+  const serviceCategoryIcons: Record<string, typeof Upload> = {
+    photo: GlassPhotoIcon,
+    documents: GlassDocumentsIcon,
+    scanning: GlassScanIcon,
+    lamination: GlassLaminationIcon,
+    souvenirs: GlassSouvenirsIcon,
+  };
+  const serviceCategoryGlows: Record<string, string> = {
+    photo: 'capsule-glow-purple',
+    documents: 'capsule-glow-indigo',
+    scanning: 'capsule-glow-green',
+    lamination: 'capsule-glow-orange',
+    souvenirs: 'capsule-glow-cyan',
+  };
   const [dismissedRatings, setDismissedRatings] = React.useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('dismissed_ratings') || '[]')); } catch { return new Set(); }
   });
@@ -510,6 +716,20 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [pendingUploads, setPendingUploads] = useState<PrintFile[]>([]);
   const [activeConfigFileId, setActiveConfigFileId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Плитка "Печать фото" на Главной ставит этот флаг перед тем, как человек сам
+  // нажмёт "Выберите файлы" — следующая порция файлов сразу помечается фото
+  // (без автооткрытия системного окна выбора, это отдельно). Ref, не state —
+  // не должен вызывать лишний ререндер и должен быть актуален в момент клика.
+  const nextUploadIsPhotoRef = useRef(false);
+  // То же самое для плитки "А3" на Главной — следующий загруженный файл сразу
+  // помечается форматом А3.
+  const nextUploadIsA3Ref = useRef(false);
+  // То же самое для плитки "Полароид" — следующее загруженное фото сразу
+  // помечается фото + размер "полароид".
+  const nextUploadIsPolaroidRef = useRef(false);
+  // То же самое для плитки "Документы" — упрощает модалку (без Формата и
+  // переключателя Бумаги), т.к. смысла выбирать А3/фотобумагу тут нет.
+  const nextUploadIsDocsRef = useRef(false);
 
   // Патчим файл там, где он сейчас лежит — в pendingUploads или уже в uploadedFiles
   const patchFileState = (fileId: string, updates: Partial<PrintFile>) => {
@@ -564,6 +784,244 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [paperType, setPaperType] = useState<'standard' | 'glossy' | 'matte' | 'kraft' | 'standard_a3' | 'bw_a3'>('standard');
   const [photoSize, setPhotoSize] = useState<'10*15' | '13*18' | '15*20' | '20*30'>('10*15');
   const [previewFile, setPreviewFile] = useState<PrintFile | null>(null);
+  // Полноэкранный просмотр PDF по страницам — каждая страница рендерится в
+  // картинку через pdf.js (тот же движок, что уже используется для подсчёта
+  // страниц выше), чтобы можно было листать пальцем свайпом, как обычную
+  // галерею, а не полагаться на <iframe> со встроенным PDF-вьюером браузера
+  // (на телефонах часто либо не открывается, либо не поддерживает свайп).
+  const [previewPdfPages, setPreviewPdfPages] = useState<string[]>([]);
+  const [previewPdfLoading, setPreviewPdfLoading] = useState(false);
+  const [previewPageIndex, setPreviewPageIndex] = useState(0);
+  const previewTouchStartX = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!previewFile) {
+      setPreviewPdfPages([]);
+      setPreviewPageIndex(0);
+      return;
+    }
+    const isPdf = previewFile.type === 'application/pdf' || previewFile.name.toLowerCase().endsWith('.pdf');
+    setPreviewPageIndex(0);
+    if (!isPdf) {
+      setPreviewPdfPages([]);
+      return;
+    }
+    const url = previewFile.previewUrl || previewFile.url;
+    if (!url) {
+      setPreviewPdfPages([]);
+      return;
+    }
+    let cancelled = false;
+    setPreviewPdfLoading(true);
+    setPreviewPdfPages([]);
+    (async () => {
+      try {
+        const pdfjs = await import('pdfjs-dist');
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+          'pdfjs-dist/build/pdf.worker.min.mjs',
+          import.meta.url
+        ).toString();
+        const res = await fetch(url);
+        const arrayBuffer = await res.arrayBuffer();
+        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+        const pages: string[] = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          if (cancelled) return;
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) continue;
+          await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+          pages.push(canvas.toDataURL('image/jpeg', 0.85));
+        }
+        if (!cancelled) setPreviewPdfPages(pages);
+      } catch (err) {
+        console.error('Failed to render PDF pages for preview:', err);
+        if (!cancelled) setPreviewPdfPages([]);
+      } finally {
+        if (!cancelled) setPreviewPdfLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [previewFile]);
+
+  // "Скан" на странице услуги "Сканирование" — настоящий live-просмотр камеры
+  // через getUserMedia (работает и на телефоне, и на ПК с веб-камерой) —
+  // input[capture] реально открывает камеру только в мобильных браузерах,
+  // на десктопе (даже с подключённой камерой) он просто открывает обычный
+  // проводник. Дальше — честная базовая обработка: автоконтраст + резкость
+  // (canvas) и обрезка по центру под нужное соотношение сторон (А4 или карта
+  // вроде СНИЛС). Полноценное выравнивание перспективы и удаление бликов —
+  // это отдельная задача компьютерного зрения, тут сознательно не делается,
+  // чтобы не выдавать фильтр за то, чем он не является.
+  const scanCameraInputRef = useRef<HTMLInputElement>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const [showLiveCamera, setShowLiveCamera] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [scanRawImageUrl, setScanRawImageUrl] = useState<string | null>(null);
+  const [scanProcessedImageUrl, setScanProcessedImageUrl] = useState<string | null>(null);
+  const [scanTargetRatio, setScanTargetRatio] = useState<'a4' | 'card'>('a4');
+  const [scanProcessing, setScanProcessing] = useState(false);
+
+  const closeCamera = () => {
+    cameraStreamRef.current?.getTracks().forEach(t => t.stop());
+    cameraStreamRef.current = null;
+    setShowLiveCamera(false);
+  };
+
+  const openCamera = async () => {
+    // Показываем ПРИЧИНУ сбоя явно в интерфейсе, а не только в консоли —
+    // иначе непонятно, это отказ в разрешении, отсутствие камеры,
+    // небезопасный контекст (нужен https/localhost) или блокировка iframe
+    // (например, инструментами вроде Responsively App без allow="camera").
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('Браузер не даёт доступ к камере в этом окне (нужен https или localhost, и разрешение camera для iframe, если сайт открыт внутри другого инструмента). Открываю обычный выбор файла.');
+      scanCameraInputRef.current?.click();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      cameraStreamRef.current = stream;
+      setShowLiveCamera(true);
+    } catch (err) {
+      console.error('Camera access failed, falling back to file picker:', err);
+      const name = err instanceof Error ? err.name : 'UnknownError';
+      const reason = name === 'NotAllowedError'
+        ? 'Доступ к камере запрещён (разрешение отклонено или заблокировано настройками сайта/браузера).'
+        : name === 'NotFoundError'
+        ? 'Камера не найдена на этом устройстве.'
+        : name === 'NotReadableError'
+        ? 'Камера занята другим приложением.'
+        : `Не удалось включить камеру (${name}).`;
+      setCameraError(`${reason} Открываю обычный выбор файла.`);
+      // На части десктопных браузеров без разрешения/камеры — откатываемся
+      // на обычный выбор файла, чтобы функция не была полностью недоступна.
+      scanCameraInputRef.current?.click();
+    }
+  };
+
+  useEffect(() => {
+    if (showLiveCamera && cameraVideoRef.current && cameraStreamRef.current) {
+      cameraVideoRef.current.srcObject = cameraStreamRef.current;
+    }
+  }, [showLiveCamera]);
+
+  // Останавливаем камеру при размонтировании компонента, если вдруг осталась включённой.
+  useEffect(() => {
+    return () => { cameraStreamRef.current?.getTracks().forEach(t => t.stop()); };
+  }, []);
+
+  const captureFromCamera = () => {
+    const video = cameraVideoRef.current;
+    if (!video || !video.videoWidth) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    closeCamera();
+    setScanRawImageUrl(dataUrl);
+    processScanImage(dataUrl, scanTargetRatio);
+  };
+
+  const processScanImage = (imgUrl: string, targetRatio: 'a4' | 'card') => {
+    setScanProcessing(true);
+    const img = new Image();
+    img.onload = () => {
+      // Соотношение ширина/высота: А4 портрет ≈ 210/297, карта (СНИЛС и
+      // подобные) ≈ 85.6/54 (стандарт ISO/CR80).
+      const ratio = targetRatio === 'a4' ? 210 / 297 : 85.6 / 54;
+      let sx = 0, sy = 0, sw = img.width, sh = img.height;
+      const imgRatio = img.width / img.height;
+      if (imgRatio > ratio) {
+        sw = img.height * ratio;
+        sx = (img.width - sw) / 2;
+      } else {
+        sh = img.width / ratio;
+        sy = (img.height - sh) / 2;
+      }
+      const maxDim = 1800;
+      const outW = sw >= sh ? maxDim : Math.round(maxDim * (sw / sh));
+      const outH = sw >= sh ? Math.round(maxDim * (sh / sw)) : maxDim;
+      const canvas = document.createElement('canvas');
+      canvas.width = outW;
+      canvas.height = outH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { setScanProcessing(false); return; }
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+
+      // Автоконтраст — растягиваем самый тёмный/светлый пиксель на весь
+      // диапазон 0-255, страница бумаги становится белее, текст — темнее.
+      const imageData = ctx.getImageData(0, 0, outW, outH);
+      const data = imageData.data;
+      let min = 255, max = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        if (lum < min) min = lum;
+        if (lum > max) max = lum;
+      }
+      const range = Math.max(1, max - min);
+      for (let i = 0; i < data.length; i += 4) {
+        for (let c = 0; c < 3; c++) {
+          data[i + c] = Math.max(0, Math.min(255, ((data[i + c] - min) / range) * 255));
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      // Резкость — простая свёртка (unsharp mask) 3×3.
+      const sharpened = ctx.getImageData(0, 0, outW, outH);
+      const src = new Uint8ClampedArray(sharpened.data);
+      const kernel = [0, -1, 0, -1, 5, -1, 0, -1, 0];
+      for (let y = 1; y < outH - 1; y++) {
+        for (let x = 1; x < outW - 1; x++) {
+          for (let c = 0; c < 3; c++) {
+            let sum = 0;
+            let k = 0;
+            for (let ky = -1; ky <= 1; ky++) {
+              for (let kx = -1; kx <= 1; kx++) {
+                const idx = ((y + ky) * outW + (x + kx)) * 4 + c;
+                sum += src[idx] * kernel[k];
+                k++;
+              }
+            }
+            sharpened.data[(y * outW + x) * 4 + c] = Math.max(0, Math.min(255, sum));
+          }
+        }
+      }
+      ctx.putImageData(sharpened, 0, 0);
+
+      setScanProcessedImageUrl(canvas.toDataURL('image/jpeg', 0.9));
+      setScanProcessing(false);
+    };
+    img.src = imgUrl;
+  };
+
+  const handleScanCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setScanRawImageUrl(url);
+    processScanImage(url, scanTargetRatio);
+  };
+
+  const confirmScan = async () => {
+    if (!scanProcessedImageUrl) return;
+    const res = await fetch(scanProcessedImageUrl);
+    const blob = await res.blob();
+    const file = new File([blob], `Скан_${Date.now()}.jpg`, { type: 'image/jpeg' });
+    handleFiles([file]);
+    setScanRawImageUrl(null);
+    setScanProcessedImageUrl(null);
+    setActiveTab('upload');
+  };
+
   const [paperDensity, setPaperDensity] = useState<string>('regular');
   const [printColor, setPrintColor] = useState<'bw' | 'color' | 'color_full'>('bw');
   const [copies, setCopies] = useState<number>(1);
@@ -696,8 +1154,71 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(() => localStorage.getItem(`feedback_sent_${user.id}`) === '1');
-  const [feedbackDismissed, setFeedbackDismissed] = useState(false);
+  // Раньше крестик прятал баннер только до перезагрузки страницы (обычный
+  // React-стейт) — теперь запоминаем в localStorage, чтобы закрытие было
+  // насовсем, как и у feedbackSent выше.
+  const [feedbackDismissed, setFeedbackDismissed] = useState(() => localStorage.getItem(`feedback_dismissed_${user.id}`) === '1');
   const [feedbackCelebrate, setFeedbackCelebrate] = useState(false);
+
+  // "Заметили ошибку?" — отдельное окно от формы пожеланий выше: тут можно
+  // приложить скриншот. Файл грузится в Storage сразу при выборе (как аватар
+  // чуть ниже), а не в момент отправки — чтобы человек видел, что вложение
+  // реально загрузилось, до того как жать "Отправить".
+  const [showBugReportModal, setShowBugReportModal] = useState(false);
+  const [bugReportText, setBugReportText] = useState('');
+  const [bugReportPreviewUrl, setBugReportPreviewUrl] = useState<string | null>(null);
+  const [bugReportScreenshotUrl, setBugReportScreenshotUrl] = useState<string | null>(null);
+  const [bugReportUploading, setBugReportUploading] = useState(false);
+  const [bugReportSending, setBugReportSending] = useState(false);
+  const [bugReportSent, setBugReportSent] = useState(false);
+  const bugReportFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleBugReportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBugReportPreviewUrl(URL.createObjectURL(file));
+    setBugReportUploading(true);
+    try {
+      const fileRef = ref(storage, `bug-reports/${user.id}_${Date.now()}_${file.name}`);
+      await uploadBytes(fileRef, file);
+      const downloadUrl = await getDownloadURL(fileRef);
+      setBugReportScreenshotUrl(downloadUrl);
+    } catch (err) {
+      console.error('Error uploading bug report screenshot:', err);
+    } finally {
+      setBugReportUploading(false);
+    }
+  };
+
+  const handleSendBugReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if ((!bugReportText.trim() && !bugReportScreenshotUrl) || bugReportSending || bugReportUploading) return;
+    setBugReportSending(true);
+    try {
+      await sendFeedbackToFirebase({
+        id: 'bug_' + Date.now(),
+        userId: getLiveUserId(),
+        userName: user.fullName,
+        userEmail: user.email,
+        message: bugReportText.trim() || '(без описания, только скриншот)',
+        timestamp: new Date().toISOString(),
+        isBugReport: true,
+        ...(bugReportScreenshotUrl ? { screenshotUrl: bugReportScreenshotUrl } : {}),
+      });
+      setBugReportSent(true);
+      setTimeout(() => {
+        setShowBugReportModal(false);
+        setBugReportSent(false);
+        setBugReportText('');
+        setBugReportPreviewUrl(null);
+        setBugReportScreenshotUrl(null);
+      }, 1800);
+    } catch (err) {
+      console.error('Failed to send bug report:', err);
+    } finally {
+      setBugReportSending(false);
+    }
+  };
 
   // Live chat state
   const [chatInput, setChatInput] = useState('');
@@ -1052,6 +1573,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 МБ — заявлено на лендинге, но раньше нигде не проверялось
     const oversizedNames: string[] = [];
     const newFiles: PrintFile[] = [];
+    // Расходуем флаги ровно один раз — на эту порцию файлов, дальше снова обычный режим.
+    const forcePhoto = nextUploadIsPhotoRef.current;
+    nextUploadIsPhotoRef.current = false;
+    const forceA3 = nextUploadIsA3Ref.current;
+    nextUploadIsA3Ref.current = false;
+    const forcePolaroid = nextUploadIsPolaroidRef.current;
+    nextUploadIsPolaroidRef.current = false;
+    const simplifiedDocs = nextUploadIsDocsRef.current;
+    nextUploadIsDocsRef.current = false;
     for (let i = 0; i < filesList.length; i++) {
       const file = filesList[i];
       if (file.size > MAX_FILE_SIZE) {
@@ -1071,6 +1601,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         }
       }
 
+      const isImage = file.type.startsWith('image/') || formatGroup === 'image';
+
       newFiles.push({
         id: fileId,
         name: file.name,
@@ -1079,7 +1611,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         uploadedAt: new Date().toISOString(),
         formatGroup,
         pageCount: isPdf ? undefined : 1,
-        previewUrl: previewUrl || undefined
+        previewUrl: previewUrl || undefined,
+        ...(forcePhoto && isImage ? { paperType: 'photo', photoSize: '10x15', photoBorder: 'borderless', printColor: 'color' } : {}),
+        ...(forcePolaroid && isImage ? { paperType: 'photo', photoSize: 'polaroid', photoBorder: 'borderless', printColor: 'color' } : {}),
+        ...(forceA3 && !isImage ? { format: 'a3' } : {}),
+        ...(simplifiedDocs && !isImage ? { simplifiedDocsMode: true } : {}),
       });
 
       if (isPdf) {
@@ -1855,7 +2391,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     {
       key: 'upload',
       label: 'Загрузка и Заказ',
-      icon: Upload,
+      icon: GlassUploadIcon,
       glow: 'capsule-glow-purple',
       isActive: activeTab === 'upload',
       onClick: () => setActiveTab('upload'),
@@ -1888,14 +2424,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     },
     {
       key: 'profile',
-      label: 'Кабинет & Инфо',
-      icon: UserCheck,
+      label: 'Личный кабинет',
+      icon: GlassProfileIcon,
       glow: 'capsule-glow-rainbow',
       isActive: activeTab === 'profile',
       onClick: () => { setActiveTab('profile'); handleMarkNotificationsRead(); },
-      badge: unreadNotificationsCount > 0 ? (
+      // На мобильной "Главной" эта плитка одна отвечает и за кабинет, и за чат,
+      // и за контакты — бейдж суммирует непрочитанные уведомления и чат.
+      badge: (unreadNotificationsCount + unreadChatsCount) > 0 ? (
         <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-20 border border-white shadow-md">
-          {unreadNotificationsCount}
+          {unreadNotificationsCount + unreadChatsCount}
         </span>
       ) : null,
     },
@@ -1910,14 +2448,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     {
       key: 'services',
       label: 'Услуги',
-      icon: Printer,
+      icon: GlassPrintIcon,
       glow: 'capsule-glow-orange',
       isActive: activeTab === 'services',
       onClick: () => setActiveTab('services'),
     },
     ...(!user.telegramChatId ? [{
       key: 'telegram',
-      label: 'Уведомления в Telegram',
+      label: 'Уведомления',
       icon: Send,
       glow: 'capsule-glow-cyan',
       isActive: false,
@@ -1925,9 +2463,107 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     }] : []),
   ];
 
+  // Плитки-категории услуг для мобильной "Главной" (Печать фото/Документы/Сканирование/
+  // Ламинация/Сувениры) — каждая просто открывает раздел "Услуги", отфильтрованный по
+  // категории. Реальные услуги/цены остаются полностью на стороне админки, тут ничего
+  // не выдумываем — если категория пустая, покажется честное "пока нет предложений".
+  const categoryTiles: typeof navItems = [
+    ...(Object.keys(serviceCategoryLabels) as (keyof typeof serviceCategoryLabels)[]).map(key => ({
+      key: `category-${key}`,
+      label: serviceCategoryLabels[key],
+      icon: serviceCategoryIcons[key],
+      glow: serviceCategoryGlows[key],
+      isActive: false,
+      // "Печать фото" и "Документы" — не витрина услуг, а сразу вкладка
+      // загрузки: человек сам жмёт "Выберите файлы" (никакого автооткрытия
+      // системного окна), а nextUploadIsPhotoRef заранее помечает, что именно
+      // эта порция файлов — фото, чтобы модалка сразу показала размер/рамку,
+      // а не общий выбор "какая бумага".
+      onClick: key === 'photo'
+        ? () => { nextUploadIsPhotoRef.current = true; setActiveTab('upload'); setMobileHome(false); }
+        : key === 'documents'
+        ? () => { nextUploadIsDocsRef.current = true; setActiveTab('upload'); setMobileHome(false); }
+        : () => { setServiceCategoryFilter(key); setActiveTab('services'); },
+    })),
+    {
+      key: 'category-all',
+      label: 'Услуги',
+      icon: GlassPrintIcon,
+      glow: 'capsule-glow-orange',
+      isActive: false,
+      onClick: () => { setServiceCategoryFilter(null); setActiveTab('services'); },
+    },
+    {
+      key: 'category-a3',
+      label: 'А3',
+      icon: GlassA3Icon,
+      glow: 'capsule-glow-indigo',
+      isActive: false,
+      onClick: () => { nextUploadIsA3Ref.current = true; setActiveTab('upload'); setMobileHome(false); },
+    },
+    {
+      key: 'category-polaroid',
+      label: 'Полароид',
+      icon: GlassPolaroidIcon,
+      glow: 'capsule-glow-cyan',
+      isActive: false,
+      onClick: () => { nextUploadIsPolaroidRef.current = true; setActiveTab('upload'); setMobileHome(false); },
+    },
+  ];
+
+  const homeAllTiles = [
+    ...categoryTiles,
+    ...navItems.filter(item => !['services', 'contacts', 'upload'].includes(item.key)),
+  ];
+  const homeOrderedTiles = homeTileOrder.length
+    ? [...homeAllTiles].sort((a, b) => {
+        const ia = homeTileOrder.indexOf(a.key);
+        const ib = homeTileOrder.indexOf(b.key);
+        if (ia === -1 && ib === -1) return 0;
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      })
+    : homeAllTiles;
+
+  // FLIP-анимация плавной перестановки: перед тем как порядок в DOM поменяется,
+  // запоминаем текущее положение каждой плитки (First), а после того как React
+  // перерисовал их в новом порядке (Last) — мгновенно (без transition) ставим
+  // каждой плитке transform, откатывающий её обратно в старую позицию
+  // (Invert), и уже следующим кадром включаем transition и убираем transform,
+  // так что плитка визуально "едет" из старого места в новое (Play), а не
+  // прыгает мгновенно.
+  const homeTileElsRef = useRef<Record<string, HTMLElement | null>>({});
+  const homeTileRectsRef = useRef<Record<string, DOMRect>>({});
+  useLayoutEffect(() => {
+    const newRects: Record<string, DOMRect> = {};
+    Object.entries(homeTileElsRef.current).forEach(([key, el]: [string, HTMLElement | null]) => {
+      if (el) newRects[key] = el.getBoundingClientRect();
+    });
+    const oldRects = homeTileRectsRef.current;
+    Object.entries(newRects).forEach(([key, newRect]) => {
+      const oldRect = oldRects[key];
+      const el = homeTileElsRef.current[key];
+      if (!el || !oldRect) return;
+      const dx = oldRect.left - newRect.left;
+      const dy = oldRect.top - newRect.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      // Плитку, которую сейчас реально тащит палец, не трогаем — её позиция
+      // и так следует за пальцем через отдельный inline-transform.
+      if (key === draggedTileKey) return;
+      el.style.transition = 'none';
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 0.25s ease';
+        el.style.transform = '';
+      });
+    });
+    homeTileRectsRef.current = newRects;
+  }, [homeTileOrder]);
+
   return (
     <div id="client-dashboard-root" className="liquid-glass-bg min-h-dvh md:h-dvh text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative overflow-x-hidden overflow-y-auto md:overflow-hidden">
-      
+
       {/* Neutral frosted glow accents (no color tint) */}
       
 
@@ -2116,9 +2752,92 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
       </aside>
 
+      {/* Постоянная нижняя навигация на телефоне — панель рисуется одной SVG-фигурой,
+          вырез под кнопку загрузки — часть контура (кнопка "лежит" в вырезе, а не
+          просто наложена поверх плашки). Стеклянные иконки с бегущим бликом, цвет
+          только у самого глифа. */}
+      <nav
+        className="md:hidden fixed bottom-3 left-0 right-0 z-40"
+        style={{ width: navWidth, height: 90 }}
+      >
+        {/* Заливка + блюр вырезаны точно по контуру через clip-path (те же координаты,
+            что и обводка ниже) — если браузер не понимает path() в clip-path, останется
+            просто скруглённый прямоугольник за счёт borderRadius, ничего не сломается. */}
+        <div
+          className="nav-fill absolute inset-0"
+          style={{
+            backdropFilter: 'blur(40px)',
+            WebkitBackdropFilter: 'blur(40px)',
+            borderRadius: 22,
+            clipPath: `path("${navShapePath(navWidth)}")`,
+            WebkitClipPath: `path("${navShapePath(navWidth)}")`,
+          } as React.CSSProperties}
+        />
+        <svg className="absolute inset-0 pointer-events-none" width={navWidth} height={90} viewBox={`0 0 ${navWidth} 90`}>
+          <path
+            className="nav-outline"
+            d={navShapePath(navWidth)}
+            fill="none"
+            strokeWidth={1}
+          />
+        </svg>
+
+        <div className="absolute inset-0 z-[1] grid grid-cols-5 items-end pb-3 px-5">
+          <button
+            onClick={() => setMobileHome(true)}
+            className="flex flex-col items-center cursor-pointer justify-self-center active:scale-90 transition-transform"
+          >
+            <GlassIcon icon={Home} glow="capsule-glow-purple" size={44} colored />
+          </button>
+          <button
+            onClick={() => { setActiveTab('orders'); setMobileHome(false); }}
+            className="nav-shift-left relative flex flex-col items-center cursor-pointer justify-self-center"
+          >
+            <div className="relative">
+              <GlassIcon icon={Clock} glow="capsule-glow-indigo" size={44} colored />
+              {userOrders.some(o => o.status === 'ready') ? (
+                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 z-10 animate-pulse border border-white" />
+              ) : userOrders.some(o => o.status !== 'printed') ? (
+                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#ef4444] z-10 animate-ping border border-white" />
+              ) : null}
+            </div>
+          </button>
+          <div />
+          <a
+            href="tel:+79680508800"
+            className="nav-shift-right flex flex-col items-center cursor-pointer justify-self-center"
+          >
+            <GlassIcon icon={Phone} glow="capsule-glow-green" size={44} colored />
+          </a>
+          <button
+            onClick={() => { setActiveTab('profile'); setMobileHome(false); handleMarkNotificationsRead(); }}
+            className="relative flex flex-col items-center cursor-pointer justify-self-center active:scale-90 transition-transform"
+          >
+            <div className="relative">
+              <GlassIcon icon={GlassProfileIcon} glow="capsule-glow-rainbow" size={44} colored />
+              {(unreadNotificationsCount + unreadChatsCount) > 0 && (
+                <span className="absolute -top-1 -right-1 bg-amber-500 w-3 h-3 rounded-full border border-white z-10" />
+              )}
+            </div>
+          </button>
+        </div>
+
+        <button
+          onClick={() => { setActiveTab('upload'); setMobileHome(false); }}
+          className="disc cursor-pointer"
+          style={{ left: '50%', top: 24 }}
+        >
+          {Array.from({ length: 11 }).map((_, i) => (
+            <span key={i} className="seg" style={{ transform: `rotate(${i * 32.7}deg) translateY(-17.83px)` }} />
+          ))}
+          <span className="ringbeam"><i /></span>
+          <GlassUploadIcon style={{ color: '#c4b5fd' }} />
+        </button>
+      </nav>
+
       {/* MAIN CONTENT WORKSPACE */}
-      <main className="flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/50 backdrop-blur-md relative z-10">
-        
+      <main className="flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/50 backdrop-blur-md relative z-10 pb-28 md:pb-0">
+
         {/* Top bar on small / medium devices for header */}
         <header id="dashboard-header" className="md:hidden flex items-center justify-between px-4 py-3 glass-panel rounded-2xl">
           <div className="flex items-center gap-2">
@@ -2132,15 +2851,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </button>
             ) : (
               <>
-                <div className="squircle-3d-tile tile-3d-orange w-8 h-8 shrink-0 shadow-sm">
-                  <FileText className="w-4 h-4 text-white icon-3d-svg" />
-                </div>
+                <img src={logoImg} alt="Фото-Север" className="w-8 h-8 shrink-0 object-contain drop-shadow-sm" />
                 <h1 className="text-sm font-black text-slate-900 dark:text-white leading-none font-bold">Фото-Север</h1>
               </>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <LiveClock showSeconds={false} />
+            <LiveClock showSeconds={false} bare />
             <ThemeToggle />
             <button
               onClick={onLogout}
@@ -2153,28 +2870,103 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
         {/* Мобильная "Главная" — крупные подписанные плитки. Показывается вместо контента
             раздела, пока mobileHome === true; тап по плитке уводит в раздел и прячет плитки. */}
-        {mobileHome && (
-          <div className="md:hidden glass-panel rounded-2xl p-4 flex flex-col gap-4">
-            <nav className="mobile-tile-nav grid grid-cols-3 gap-2 w-full">
-              {navItems.map(item => (
-                <button
-                  key={item.key}
-                  onClick={() => { item.onClick(); if (item.key !== 'telegram') setMobileHome(false); }}
-                  className="relative flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl transition-all duration-200 cursor-pointer"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-                >
-                  <div className={`relative glass-icon-capsule ${item.glow} opacity-90`}>
-                    <item.icon className="w-5 h-5 text-white icon-3d-svg" />
-                    {item.badge}
-                  </div>
-                  <span className="text-[10.5px] font-semibold text-center leading-tight text-white/85">
-                    {item.label}
-                  </span>
-                </button>
-              ))}
-            </nav>
-          </div>
-        )}
+        {mobileHome && (() => {
+          const cancelLongPress = () => {
+            if (tileLongPressTimerRef.current) {
+              clearTimeout(tileLongPressTimerRef.current);
+              tileLongPressTimerRef.current = null;
+            }
+          };
+
+          return (
+            <div className="md:hidden p-2 pt-8">
+              {jiggleMode && (
+                <div className="flex justify-end mb-2">
+                  <button
+                    onClick={() => setJiggleMode(false)}
+                    className="px-4 py-1.5 rounded-full bg-indigo-600 text-white text-xs font-black cursor-pointer"
+                  >
+                    Готово
+                  </button>
+                </div>
+              )}
+              <nav className="mobile-tile-nav grid grid-cols-3 gap-y-4 gap-x-2 w-full">
+                {homeOrderedTiles.map((item, i) => {
+                  const isDragged = draggedTileKey === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      data-tile-key={item.key}
+                      ref={(el) => { homeTileElsRef.current[item.key] = el; }}
+                      style={{
+                        '--jiggle-i': i,
+                        transform: isDragged && tileDragPos ? `translate(${tileDragPos.x}px, ${tileDragPos.y}px) scale(1.08)` : undefined,
+                        touchAction: jiggleMode ? 'none' : undefined,
+                      } as React.CSSProperties}
+                      onPointerDown={(e) => {
+                        if (jiggleMode) {
+                          e.preventDefault();
+                          (e.target as Element).setPointerCapture?.(e.pointerId);
+                          setDraggedTileKey(item.key);
+                          tileDragOffsetRef.current = { x: e.clientX, y: e.clientY };
+                          setTileDragPos({ x: 0, y: 0 });
+                        } else {
+                          tilePressStartRef.current = { x: e.clientX, y: e.clientY };
+                          cancelLongPress();
+                          tileLongPressTimerRef.current = window.setTimeout(() => {
+                            reorderHomeTiles(homeAllTiles.map(t => t.key));
+                            setJiggleMode(true);
+                            navigator.vibrate?.(10);
+                          }, 550);
+                        }
+                      }}
+                      onPointerMove={(e) => {
+                        if (!jiggleMode && tilePressStartRef.current) {
+                          const dx = Math.abs(e.clientX - tilePressStartRef.current.x);
+                          const dy = Math.abs(e.clientY - tilePressStartRef.current.y);
+                          if (dx > 8 || dy > 8) cancelLongPress();
+                        }
+                        if (draggedTileKey) {
+                          const dx = e.clientX - tileDragOffsetRef.current.x;
+                          const dy = e.clientY - tileDragOffsetRef.current.y;
+                          setTileDragPos({ x: dx, y: dy });
+                          const el = document.elementFromPoint(e.clientX, e.clientY);
+                          const tileEl = el?.closest('[data-tile-key]') as HTMLElement | null;
+                          const overKey = tileEl?.dataset.tileKey;
+                          if (overKey && overKey !== draggedTileKey) {
+                            moveHomeTile(draggedTileKey, overKey);
+                          }
+                        }
+                      }}
+                      onPointerUp={() => {
+                        cancelLongPress();
+                        setDraggedTileKey(null);
+                        setTileDragPos(null);
+                      }}
+                      onPointerLeave={cancelLongPress}
+                      onClick={() => {
+                        if (jiggleMode) return;
+                        item.onClick();
+                        if (item.key !== 'telegram') setMobileHome(false);
+                      }}
+                      className={`relative flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl transition-all duration-200 cursor-pointer active:scale-90 ${
+                        jiggleMode && !isDragged ? 'tile-jiggle' : ''
+                      } ${isDragged ? 'tile-dragging' : ''}`}
+                    >
+                      <div className="relative">
+                        <GlassIcon icon={item.icon} glow={item.glow} size={60} colored />
+                        {item.badge}
+                      </div>
+                      <span className="text-[12px] font-semibold text-center leading-tight text-slate-800 dark:text-white/85">
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          );
+        })()}
 
         <header className="hidden md:flex items-center justify-between px-8 py-5 glass-panel rounded-2xl">
           <div className="flex items-center gap-4">
@@ -2287,7 +3079,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
 
               <button
-                onClick={() => setFeedbackDismissed(true)}
+                onClick={() => { setFeedbackDismissed(true); localStorage.setItem(`feedback_dismissed_${user.id}`, '1'); }}
                 className="absolute top-4 right-4 text-white/70 hover:text-white transition z-10"
                 aria-label="Скрыть"
               >
@@ -2332,6 +3124,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             </motion.div>
           )}
 
+          {/* Кнопка-вход в отдельное окно баг-репорта со скриншотом — не привязана
+              к feedbackDismissed, так что остаётся доступной даже если баннер
+              с пожеланиями выше закрыт. */}
+          <button
+            onClick={() => setShowBugReportModal(true)}
+            className="w-full flex items-center justify-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 py-2 transition-colors cursor-pointer"
+          >
+            🐞 Заметили ошибку на сайте? Прикрепите скриншот
+          </button>
+
           <AnimatePresence mode="wait">
             {/* TAB 1: FILE UPLOADER & PROPERTIES */}
             {activeTab === 'upload' && (
@@ -2344,67 +3146,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1"
               >
                 
-                {/* Interactive Step Timeline Indicator */}
-                <div className="lg:col-span-12 glass-panel rounded-3xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 md:px-8 relative overflow-hidden">
-                  {/* Decorative faint background glowing pattern */}
-                  <div className="absolute top-0 right-0 w-44 h-44 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                  
-                  <div className="flex items-center gap-3.5 z-10">
-                    <div className={`w-9 h-9 rounded-2xl font-black text-xs flex items-center justify-center border transition-all duration-300 ${
-                      uploadedFiles.length > 0
-                        ? 'bg-emerald-500 text-white border-emerald-555'
-                        : 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/10'
-                    }`}>
-                      {uploadedFiles.length > 0 ? <Check className="w-4 h-4" /> : '1'}
-                    </div>
-                    <div>
-                      <h4 className="text-[11px] font-black uppercase text-slate-800 dark:text-white tracking-wider flex items-center gap-1.5">
-                        Шаг 1. Загрузка
-                        {uploadedFiles.length > 0 && <span className="text-[9px] text-emerald-500 dark:text-emerald-400 font-extrabold bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-md">ГОТОВО</span>}
-                      </h4>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-450 mt-0.5 font-bold">PDF, Скан-копии, Фото</p>
-                    </div>
-                  </div>
-
-                  <div className="hidden md:block flex-1 h-[2px] border-t-2 border-dashed border-slate-200 dark:border-slate-800 mx-4" />
-
-                  <div className="flex items-center gap-3.5 z-10">
-                    <div className={`w-9 h-9 rounded-2xl font-black text-xs flex items-center justify-center border transition-all duration-300 ${
-                      uploadedFiles.length > 0
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/10 animate-pulse'
-                        : 'bg-slate-50 dark:bg-slate-950 text-slate-400 border-slate-150 dark:border-slate-850'
-                    }`}>
-                      2
-                    </div>
-                    <div>
-                      <h4 className={`text-[11px] font-black uppercase tracking-wider ${
-                        uploadedFiles.length > 0 ? 'text-slate-800 dark:text-white' : 'text-slate-400 dark:text-slate-600'
-                      }`}>Шаг 2. Опции печати</h4>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-450 mt-0.5 font-bold">Бумага, Цвет, Переплет</p>
-                    </div>
-                  </div>
-
-                  <div className="hidden md:block flex-1 h-[2px] border-t-2 border-dashed border-slate-200 dark:border-slate-800 mx-4" />
-
-                  <div className="flex items-center gap-3.5 z-10">
-                    <div className={`w-9 h-9 rounded-2xl font-black text-xs flex items-center justify-center border transition-all duration-300 ${
-                      uploadedFiles.length > 0
-                        ? 'bg-gradient-to-br from-indigo-500 to-indigo-755 text-white border-indigo-500 shadow-sm'
-                        : 'bg-slate-50 dark:bg-slate-950 text-slate-400 border-slate-150 dark:border-slate-850'
-                    }`}>
-                      3
-                    </div>
-                    <div>
-                      <h4 className={`text-[11px] font-black uppercase tracking-wider ${
-                        uploadedFiles.length > 0 ? 'text-slate-800 dark:text-white flex items-center gap-1' : 'text-slate-400 dark:text-slate-600'
-                      }`}>
-                        Шаг 3. Итог & Чек
-                      </h4>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-450 mt-0.5 font-bold">Быстрая оплата онлайн</p>
-                    </div>
-                  </div>
-                </div>
-              
               {/* Uploader Card */}
               <div className="lg:col-span-7 glass-cozy-card p-6 md:p-8 rounded-[32px] space-y-6">
                 <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-3">
@@ -2413,13 +3154,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </div>
                   <span>Шаг 1. Перетащите файлы</span>
                 </h3>
-
-                {isIOSDevice && (
-                  <div className="bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300 p-4 rounded-2xl border border-indigo-150 dark:border-indigo-900/30 text-xs flex gap-3">
-                    <Smartphone className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>На iPhone кнопка "Поделиться" в другие приложения нашу форму заказа пока не откроет — просто выберите файл из галереи здесь, ниже.</span>
-                  </div>
-                )}
 
                 {!isWorkingHours() && (
                   <div className="bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 p-5 rounded-2xl border border-rose-150 dark:border-rose-900/30 text-xs flex gap-3 shadow-sm">
@@ -2477,12 +3211,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       accept=".zip,.rar,.7z,.doc,.docx,.pdf,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.heic,.heif,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     />
 
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                      !isWorkingHours()
-                        ? 'bg-rose-950/30 text-rose-400'
-                        : 'bg-indigo-950/40 text-indigo-400'
-                    }`}>
-                      {!isWorkingHours() ? <Clock className="w-8 h-8 animate-pulse text-rose-400" /> : <Upload className="w-8 h-8" />}
+                    {/* Тот же "диск" (кольцо из 11 сегментов + бегущий по нему луч),
+                        что и у кнопки загрузки в нижней панели — только не
+                        абсолютно спозиционирован (position:relative вместо
+                        absolute из .disc), а отцентрирован обычным margin. */}
+                    <div className="disc" style={{ position: 'relative', margin: '0 auto 1rem', transform: 'none' }}>
+                      {Array.from({ length: 11 }).map((_, i) => (
+                        <span key={i} className="seg" style={{ transform: `rotate(${i * 32.7}deg) translateY(-17.83px)` }} />
+                      ))}
+                      <span className="ringbeam"><i /></span>
+                      {!isWorkingHours()
+                        ? <Clock className="animate-pulse" style={{ color: '#fb7185' }} />
+                        : <Upload style={{ color: '#c4b5fd' }} />}
                     </div>
 
                     <p className={`text-sm font-bold ${!isWorkingHours() ? 'text-rose-400' : 'text-white'}`}>
@@ -4179,20 +4919,92 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             className="space-y-5 pb-8 md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1 w-full overflow-x-hidden"
           >
             <div className="mb-6 max-w-4xl mx-auto text-center">
-              <h2 className="text-xl font-black text-white mb-1">Наши услуги</h2>
-              <p className="text-sm text-slate-400">Всё что мы делаем в Фото-Север на Северном шоссе, 18</p>
+              <h2 className="text-xl font-black text-white mb-1">
+                {serviceCategoryFilter ? serviceCategoryLabels[serviceCategoryFilter] : 'Наши услуги'}
+              </h2>
+              {serviceCategoryFilter !== 'scanning' && (
+                <p className="text-sm text-slate-400">Всё что мы делаем в Фото-Север на Северном шоссе, 18</p>
+              )}
+              {serviceCategoryFilter && (
+                <button
+                  onClick={() => setServiceCategoryFilter(null)}
+                  className="mt-2 text-xs font-bold text-indigo-400 hover:text-indigo-300 cursor-pointer"
+                >
+                  ← Показать все услуги
+                </button>
+              )}
             </div>
 
-            {(!database.services || database.services.filter(s => s.isActive).length === 0) && (
-              <div className="text-center py-16 text-slate-400">
-                <Printer className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p className="font-bold">Витрина услуг пока пуста</p>
-                <p className="text-sm mt-1">Скоро здесь появятся все наши услуги</p>
+            {serviceCategoryFilter === 'scanning' && (
+              <div className="max-w-4xl mx-auto -mt-2 space-y-3">
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => setScanTargetRatio('a4')}
+                    className={`btn-glass-sheen px-3.5 py-2 rounded-xl text-xs font-black border cursor-pointer ${
+                      scanTargetRatio === 'a4'
+                        ? 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                    }`}
+                  >Документ А4</button>
+                  <button
+                    onClick={() => setScanTargetRatio('card')}
+                    className={`btn-glass-sheen px-3.5 py-2 rounded-xl text-xs font-black border cursor-pointer ${
+                      scanTargetRatio === 'card'
+                        ? 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                    }`}
+                  >Карта (СНИЛС и т.п.)</button>
+                </div>
+                <input
+                  ref={scanCameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleScanCapture}
+                  className="hidden"
+                  aria-label="Сфотографировать документ для сканирования"
+                />
+                <button
+                  onClick={openCamera}
+                  className="glass-icon colored capsule-glow-cyan w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span className="beam"><i /></span>
+                  <Camera className="relative z-[3] w-4 h-4" />
+                  <span className="relative z-[3]">📷 Скан</span>
+                </button>
+                <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+                  Наведите камеру на документ и сфотографируйте — подтянем контраст, добавим резкость и обрежем по центру под выбранный формат. Если получилось криво, всегда можно переснять.
+                </p>
               </div>
             )}
 
+            {/* Для "Сканирование" витрина цен не показывается — сканирование
+                теперь делается прямо в кабинете кнопкой "Скан" выше. */}
+            {serviceCategoryFilter !== 'scanning' && (() => {
+              const activeServices = (database.services || []).filter(s => s.isActive);
+              const shownServices = serviceCategoryFilter
+                ? activeServices.filter(s => serviceCategoryMatchers[serviceCategoryFilter]?.(s.title.toLowerCase()))
+                : activeServices;
+              if (shownServices.length === 0) {
+                return (
+                  <div className="text-center py-16 text-slate-400">
+                    <Printer className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="font-bold">
+                      {serviceCategoryFilter
+                        ? `Пока нет активных услуг в категории «${serviceCategoryLabels[serviceCategoryFilter]}»`
+                        : 'Витрина услуг пока пуста'}
+                    </p>
+                    <p className="text-sm mt-1">Скоро здесь появятся все наши услуги</p>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
+            {serviceCategoryFilter !== 'scanning' && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
               {(database.services || [])
+                .filter(s => !serviceCategoryFilter || serviceCategoryMatchers[serviceCategoryFilter]?.(s.title.toLowerCase()))
                 .filter(s => s.isActive)
                 .map(svc => {
                   // Генерируем 3D SVG иконку по эмодзи/названию
@@ -4326,6 +5138,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   );
                 })}
             </div>
+            )}
           </motion.div>
           )}
           </AnimatePresence>
@@ -4333,71 +5146,90 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
       </main>
 
-      {/* File Preview Modal */}
+      {/* Полноэкранный предпросмотр файла — PDF рендерится постранично через
+          pdf.js (см. эффект на previewFile выше) вместо <iframe>, потому что
+          встроенный PDF-вьюер браузера в iframe на телефонах либо не
+          открывается, либо не даёт листать страницы свайпом. */}
       {previewFile && (
-        <div 
-          className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => setPreviewFile(null)}
-        >
-          <div 
-            className="glass-window w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/30">
-              <div className="overflow-hidden mr-2">
-                <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider truncate">
-                  Предпросмотр: {previewFile.name}
-                </h3>
-                <span className="text-[10px] text-slate-400 font-medium block mt-0.5">
-                  Размер: {formatFileSize(previewFile.size)} &bull; Формат: {previewFile.formatGroup.toUpperCase()}
-                </span>
-              </div>
-              <button
-                onClick={() => setPreviewFile(null)}
-                className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-205 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-white text-lg font-black transition-colors cursor-pointer shrink-0"
-              >
-                &times;
-              </button>
+        <div className="fixed inset-0 z-50 bg-black flex flex-col animate-fade-in">
+          <div className="p-4 pt-5 flex items-start justify-between shrink-0 bg-gradient-to-b from-black/70 to-transparent absolute top-0 left-0 right-0 z-10">
+            <div className="overflow-hidden mr-2">
+              <h3 className="text-xs font-black text-white truncate">{previewFile.name}</h3>
+              <span className="text-[10px] text-white/50 font-medium block mt-0.5">
+                {formatFileSize(previewFile.size)}
+                {previewPdfPages.length > 1 && ` · Страница ${previewPageIndex + 1} из ${previewPdfPages.length}`}
+              </span>
             </div>
+          </div>
 
-            {/* Content area */}
-            <div className="p-4 md:p-6 overflow-y-auto overscroll-contain flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-950/20 min-h-[260px]">
-              {previewFile.type.startsWith('image/') || previewFile.formatGroup === 'image' ? (
+          <div
+            className="flex-1 flex items-center justify-center overflow-hidden px-2"
+            onTouchStart={(e) => { previewTouchStartX.current = e.touches[0].clientX; }}
+            onTouchEnd={(e) => {
+              if (previewTouchStartX.current === null || previewPdfPages.length < 2) return;
+              const dx = e.changedTouches[0].clientX - previewTouchStartX.current;
+              previewTouchStartX.current = null;
+              if (Math.abs(dx) < 50) return;
+              if (dx < 0) setPreviewPageIndex(p => Math.min(p + 1, previewPdfPages.length - 1));
+              else setPreviewPageIndex(p => Math.max(p - 1, 0));
+            }}
+          >
+            {previewFile.type?.startsWith('image/') || previewFile.formatGroup === 'image' ? (
+              <img
+                src={previewFile.previewUrl || previewFile.url}
+                alt={previewFile.name}
+                className="max-w-full max-h-full object-contain"
+                referrerPolicy="no-referrer"
+              />
+            ) : (previewFile.type === 'application/pdf' || previewFile.name.toLowerCase().endsWith('.pdf')) ? (
+              previewPdfLoading ? (
+                <div className="flex flex-col items-center gap-3 text-white/70">
+                  <span className="w-8 h-8 rounded-full border-2 border-white/25 border-t-white animate-spin" />
+                  <span className="text-xs font-bold">Готовим просмотр...</span>
+                </div>
+              ) : previewPdfPages.length > 0 ? (
                 <img
-                  src={previewFile.previewUrl || previewFile.url}
-                  alt={previewFile.name}
-                  className="max-w-full max-h-[50vh] object-contain rounded-xl shadow-md border border-slate-200/50 dark:border-slate-850"
-                  referrerPolicy="no-referrer"
-                />
-              ) : previewFile.type === 'application/pdf' || previewFile.name.toLowerCase().endsWith('.pdf') ? (
-                <iframe
-                  src={previewFile.previewUrl || previewFile.url}
-                  title={previewFile.name}
-                  className="w-full h-[50vh] rounded-xl border border-slate-200/50 dark:border-slate-850 bg-white"
+                  src={previewPdfPages[previewPageIndex]}
+                  alt={`Страница ${previewPageIndex + 1}`}
+                  className="max-w-full max-h-full object-contain shadow-2xl"
                 />
               ) : (
-                <div className="text-center p-8 max-w-md">
-                  <div className="text-slate-400 dark:text-slate-500 text-4xl mb-3">📄</div>
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Прямой предпросмотр для этого формата недоступен.
-                  </p>
-                  <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
-                    Но вы можете отправить его на печать! Мы поддерживаем чертежи, текстовые документы и архивы.
-                  </p>
+                <div className="text-center p-8 max-w-md text-white/70">
+                  <div className="text-4xl mb-3">📄</div>
+                  <p className="text-xs font-bold">Не удалось открыть предпросмотр PDF.</p>
+                  <p className="text-[11px] mt-1.5 leading-relaxed">Но файл всё равно можно отправить на печать.</p>
                 </div>
-              )}
-            </div>
+              )
+            ) : (
+              <div className="text-center p-8 max-w-md text-white/70">
+                <div className="text-4xl mb-3">📄</div>
+                <p className="text-xs font-bold">Прямой предпросмотр для этого формата недоступен.</p>
+                <p className="text-[11px] mt-1.5 leading-relaxed">Но вы можете отправить его на печать! Мы поддерживаем чертежи, текстовые документы и архивы.</p>
+              </div>
+            )}
+          </div>
 
-            {/* Footer */}
-            <div className="p-4 border-t border-slate-150 dark:border-slate-800 flex justify-end bg-slate-50/50 dark:bg-slate-950/30">
-              <button
-                onClick={() => setPreviewFile(null)}
-                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors cursor-pointer shadow-sm"
-              >
-                Закрыть
-              </button>
+          {previewPdfPages.length > 1 && (
+            <div className="flex items-center justify-center gap-1.5 py-3 shrink-0 overflow-x-auto px-4">
+              {previewPdfPages.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPreviewPageIndex(i)}
+                  aria-label={`Страница ${i + 1}`}
+                  className={`h-1.5 rounded-full shrink-0 transition-all cursor-pointer ${i === previewPageIndex ? 'bg-white w-5' : 'bg-white/25 w-1.5'}`}
+                />
+              ))}
             </div>
+          )}
+
+          {/* Закрыть — внизу, отдельной кнопкой на всю ширину. */}
+          <div className="p-4 pb-6 shrink-0">
+            <button
+              onClick={() => setPreviewFile(null)}
+              className="w-full py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-black text-sm cursor-pointer backdrop-blur-sm transition-colors"
+            >
+              Закрыть просмотр
+            </button>
           </div>
         </div>
       )}
@@ -4413,8 +5245,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         const copies = file.fileCopies || 1;
         const fillPct = file.colorFillPercent;
         const fillReady = fillPct !== undefined;
+        // Заливку чернил можно посчитать только у файлов с превью (картинки/PDF —
+        // см. previewUrl в handleFiles). У текстовых/офисных документов превью
+        // нет и никогда не появится — раньше это вешало "Анализируем..." навечно,
+        // потому что ждать было нечего. Для них просто берём минимальный тариф.
+        const canAnalyzeFill = !!file.previewUrl;
+        // .txt — гарантированно без цвета в принципе (обычный текстовый файл,
+        // не может содержать ни цветных букв, ни картинок) — печать в цвете
+        // тут ничем не отличается от Ч/Б, доплата за неё не имеет смысла.
+        const isColorless = file.name.toLowerCase().endsWith('.txt');
         const bwPrice = isA3 ? 100 : 20;
-        const colorPrice = isA3 ? 150 : (fillReady ? colorFillPrice(fillPct) : undefined);
+        const colorPrice = isColorless ? 0 : (isA3 ? 150 : (canAnalyzeFill ? (fillReady ? colorFillPrice(fillPct) : undefined) : 25));
+        const colorlessBlocksConfirm = isColorless && !isPhoto && (file.printColor || 'bw') === 'color';
         const thickPrice = 250; // Плотная бумага (А3) — фиксированная цена, заливка не учитывается
         const isThick = isA3 && file.paperType === 'thick';
 
@@ -4430,7 +5272,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
         const filePP = isPhoto ? selSize.price : (isThick ? thickPrice : ((file.printColor || 'bw') === 'bw' ? bwPrice : (colorPrice ?? 0)));
         const fileCost = filePP * (isPhoto ? 1 : pages) * copies;
-        const canConfirm = !isPhoto || !!file.photoSize;
+        const canConfirm = (!isPhoto || !!file.photoSize) && !colorlessBlocksConfirm;
 
         const patch = (updates: Partial<PrintFile>) => patchFileState(file.id, updates);
 
@@ -4439,7 +5281,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <div className="glass-window w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
               {/* Header */}
               <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex items-center gap-3 bg-slate-50/50 dark:bg-slate-950/30 shrink-0">
-                <img src={printerInkIcon} alt="" className="w-10 h-10 shrink-0" />
+                <img src={printerInkIcon} alt="" className="w-16 h-16 shrink-0" />
                 <div className="overflow-hidden flex-1">
                   <h3 className="text-sm font-black text-slate-800 dark:text-white">Настройте параметры печати</h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{file.name}</p>
@@ -4467,7 +5309,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         type="button"
                         disabled={isPhoto}
                         onClick={() => patch({ printColor: 'bw' })}
-                        className={`relative p-3 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${isPhoto ? 'opacity-30 cursor-not-allowed' : ''} ${
+                        className={`btn-glass-sheen relative p-3 rounded-2xl border flex flex-col items-center text-center transition-all duration-200 cursor-pointer ${isPhoto ? 'opacity-30 cursor-not-allowed' : ''} ${
                           (file.printColor || 'bw') === 'bw' && !isPhoto
                             ? 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900/50 ring-2 ring-indigo-500/40 scale-[1.03] shadow-lg shadow-indigo-500/20'
                             : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
@@ -4478,14 +5320,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             <Check className="w-3 h-3" strokeWidth={3} />
                           </div>
                         )}
-                        <div className="text-lg">⚪</div>
+                        <img src={printerInkIcon} alt="" className="w-14 h-14" style={{ filter: 'grayscale(100%)' }} />
                         <div className="text-xs font-black text-slate-800 dark:text-white mt-0.5">Ч/Б</div>
-                        <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{bwPrice} ₽/стр.</div>
                       </button>
                       <button
                         type="button"
                         onClick={() => patch({ printColor: 'color' })}
-                        className={`relative p-3 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                        className={`btn-glass-sheen relative p-3 rounded-2xl border flex flex-col items-center text-center transition-all duration-200 cursor-pointer ${
                           (file.printColor || 'bw') === 'color' || isPhoto
                             ? 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900/50 ring-2 ring-indigo-500/40 scale-[1.03] shadow-lg shadow-indigo-500/20'
                             : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
@@ -4496,18 +5337,25 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             <Check className="w-3 h-3" strokeWidth={3} />
                           </div>
                         )}
-                        <div className="text-lg">🔵</div>
+                        <img src={printerInkIcon} alt="" className="w-14 h-14" />
                         <div className="text-xs font-black text-slate-800 dark:text-white mt-0.5">Цвет</div>
-                        <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                          {isPhoto ? `от ${photoSizes[0].price} ₽` : (colorPrice !== undefined ? `${colorPrice} ₽/стр.` : 'считаем...')}
-                        </div>
                       </button>
                     </div>
+
+                    {colorlessBlocksConfirm && (
+                      <div className="mt-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 p-3 text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                        <span>В этом файле нет цвета — это обычный текстовый файл, цветная печать не будет ничем отличаться от Ч/Б. Выберите Ч/Б, чтобы продолжить.</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Сообщение про заливку чернил — для А3 не показываем, там фиксированные цены без учёта заливки */}
-                {!isPhoto && !isA3 && (file.printColor || 'bw') === 'color' && (
+                {/* Сообщение про заливку чернил — для А3 не показываем (там фиксированные
+                    цены без учёта заливки), и только если её вообще можно посчитать
+                    (есть превью — картинка/PDF). Для текстовых/офисных файлов превью
+                    нет и не будет, поэтому и крутить "Анализируем..." незачем. */}
+                {!isPhoto && !isA3 && canAnalyzeFill && (file.printColor || 'bw') === 'color' && (
                   <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 p-3.5">
                     {fillReady ? (
                       <div className="flex items-center justify-between gap-3">
@@ -4535,64 +5383,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </div>
                 )}
 
-                {/* Бумага */}
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Бумага</p>
-                  <div className="flex gap-2">
-                    {(['plain', 'photo'] as const).map(v => (
-                      <button key={v} type="button"
-                        onClick={() => patch({
-                          paperType: v,
-                          photoSize: v === 'photo' ? (file.photoSize || '10x15') : undefined,
-                          photoBorder: v === 'photo' ? (file.photoBorder || 'borderless') : undefined,
-                          printColor: v === 'photo' ? 'color' : file.printColor,
-                        })}
-                        className={`relative px-3.5 py-2 rounded-xl text-xs font-black border transition-all duration-200 cursor-pointer ${
-                          (file.paperType || 'plain') === v
-                            ? 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/40 scale-[1.05] shadow-lg shadow-indigo-500/20'
-                            : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
-                        }`}
-                      >
-                        {(file.paperType || 'plain') === v && (
-                          <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
-                            <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
-                          </div>
-                        )}
-                        {v === 'plain' ? 'Обычная' : 'Фото 🖼'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Формат */}
-                {!isPhoto && (
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Формат</p>
-                    <div className="flex gap-2">
-                      {(['a4', 'a3'] as const).map(v => {
-                        const selected = (file.format || 'a4') === v;
-                        return (
-                          <button key={v} type="button" onClick={() => patch({ format: v, paperType: v === 'a4' ? (file.paperType === 'thick' ? 'plain' : file.paperType) : file.paperType })}
-                            className={`relative px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
-                              selected
-                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300'
-                                : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
-                            }`}
-                          >
-                            {selected && (
-                              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
-                                <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
-                              </div>
-                            )}
-                            {v.toUpperCase()}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* А3 — единая группа: три фиксированные цены, заливка тут не учитывается */}
+                {/* А3 — единая группа: три фиксированные цены, заливка тут не учитывается.
+                    Формат/Бумага больше нигде не выбираются вручную (убрано по просьбе —
+                    только Цветность имеет значение для обычных файлов); "фото" теперь
+                    включается исключительно плиткой "Печать фото" на Главной
+                    (nextUploadIsPhotoRef), так что isA3/isThick ниже практически не
+                    достижимы, но оставлены на случай уже существующих старых файлов
+                    с format:'a3', чтобы не терять их корректную цену. */}
                 {!isPhoto && isA3 && (
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">А3 — цветность и бумага</p>
@@ -4661,7 +5458,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         const sizeSelected = (file.photoSize || '10x15') === s.key;
                         return (
                           <button key={s.key} type="button" onClick={() => patch({ photoSize: s.key })}
-                            className={`relative p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                            className={`btn-glass-sheen relative p-2 rounded-xl border text-center transition-all cursor-pointer ${
                               sizeSelected
                                 ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25 scale-[1.03]'
                                 : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
@@ -4696,7 +5493,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         const selected = (file.photoBorder || 'borderless') === opt.key;
                         return (
                           <button key={opt.key} type="button" onClick={() => patch({ photoBorder: opt.key })}
-                            className={`relative p-2.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
+                            className={`btn-glass-sheen relative p-2.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
                               selected
                                 ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25 scale-[1.03]'
                                 : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
@@ -4748,7 +5545,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Копий</p>
                   <div className="flex items-center gap-3">
                     <button type="button" onClick={() => patch({ fileCopies: Math.max(1, copies - 1) })}
-                      className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">−</button>
+                      className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">−</button>
                     <input
                       type="number"
                       min={1}
@@ -4760,7 +5557,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       className="w-12 text-sm font-black text-slate-800 dark:text-white text-center bg-slate-100 dark:bg-slate-800 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <button type="button" onClick={() => patch({ fileCopies: copies + 1 })}
-                      className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">+</button>
+                      className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">+</button>
                   </div>
                 </div>
 
@@ -4779,9 +5576,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   type="button"
                   disabled={!canConfirm}
                   onClick={() => confirmFileConfig(file.id, applyToAllPending)}
-                  className="btn-3d-choose w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="glass-icon colored capsule-glow-purple w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {applyToAllPending ? `Применить ко всем и продолжить →` : 'Выбрать →'}
+                  <span className="beam"><i /></span>
+                  <span className="relative z-[3]">{applyToAllPending ? `Применить ко всем и продолжить →` : 'Выбрать →'}</span>
                 </button>
                 <button
                   type="button"
@@ -5826,6 +6624,208 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
       )}
 
+      {/* Причина, по которой камера не открылась — видна пользователю, а не
+          только в консоли; сама по себе не блокирует работу, файловый
+          проводник как запасной вариант уже открылся параллельно. */}
+      {cameraError && (
+        <div className="fixed inset-x-4 bottom-4 z-[60] animate-fade-in">
+          <div className="glass-panel rounded-2xl p-4 max-w-md mx-auto flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-white/90 flex-1">{cameraError}</p>
+            <button onClick={() => setCameraError(null)} className="text-white/50 hover:text-white cursor-pointer shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Живой просмотр камеры (getUserMedia) — работает и на телефоне, и на
+          ПК с веб-камерой, в отличие от input[capture], который на десктопе
+          просто открывает обычный проводник. */}
+      {showLiveCamera && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col animate-fade-in">
+          <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+            <video
+              ref={cameraVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className="max-w-full max-h-full object-contain"
+            />
+            {/* Рамка-подсказка под нужное соотношение сторон — просто ориентир,
+                не обрезает и не анализирует кадр. */}
+            <div
+              className="absolute border-2 border-dashed border-white/50 pointer-events-none rounded-lg"
+              style={
+                scanTargetRatio === 'a4'
+                  ? { width: '55%', aspectRatio: '210 / 297' }
+                  : { width: '70%', aspectRatio: '85.6 / 54' }
+              }
+            />
+          </div>
+          <div className="p-4 pb-6 shrink-0 flex items-center justify-center gap-6">
+            <button
+              onClick={closeCamera}
+              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center cursor-pointer"
+              aria-label="Отмена"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <button
+              onClick={captureFromCamera}
+              className="w-18 h-18 rounded-full bg-white flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
+              style={{ width: 72, height: 72 }}
+              aria-label="Сфотографировать"
+            >
+              <span className="w-16 h-16 rounded-full border-2 border-slate-300" />
+            </button>
+            <div className="w-12 h-12" />
+          </div>
+        </div>
+      )}
+
+      {/* Результат скана — переснять, если криво, или использовать (уходит в
+          обычную загрузку файлов через handleFiles, дальше — стандартный
+          путь: модалка "Настройте параметры печати" и т.д.). */}
+      {scanRawImageUrl && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col animate-fade-in">
+          <div className="p-4 pt-5 shrink-0">
+            <h3 className="text-xs font-black text-white uppercase tracking-wider text-center">Результат скана</h3>
+          </div>
+          <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
+            {scanProcessing ? (
+              <div className="flex flex-col items-center gap-3 text-white/70">
+                <span className="w-8 h-8 rounded-full border-2 border-white/25 border-t-white animate-spin" />
+                <span className="text-xs font-bold">Обрабатываем фото...</span>
+              </div>
+            ) : scanProcessedImageUrl ? (
+              <img src={scanProcessedImageUrl} alt="Результат скана" className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" />
+            ) : null}
+          </div>
+          <div className="p-4 pb-6 shrink-0 space-y-2.5">
+            <button
+              onClick={confirmScan}
+              disabled={scanProcessing || !scanProcessedImageUrl}
+              className="glass-icon colored capsule-glow-green w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <span className="beam"><i /></span>
+              <span className="relative z-[3]">Использовать это фото →</span>
+            </button>
+            <button
+              onClick={openCamera}
+              disabled={scanProcessing}
+              className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold text-sm cursor-pointer disabled:opacity-40"
+            >
+              Переснять
+            </button>
+            <button
+              onClick={() => { setScanRawImageUrl(null); setScanProcessedImageUrl(null); }}
+              className="w-full py-2 text-xs font-bold text-rose-400 hover:text-rose-300 cursor-pointer"
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Отдельное окно "Заметили ошибку?" — не связано с формой пожеланий выше,
+          можно приложить скриншот (грузится в Storage сразу при выборе файла,
+          см. handleBugReportFileChange). Закрывается по клику на фон/крестик —
+          если человеку неинтересно, ничего не мешает просто закрыть. */}
+      {showBugReportModal && (
+        <div
+          className="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in"
+          onClick={() => { if (!bugReportSending) setShowBugReportModal(false); }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 180 }}
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel p-6 md:p-8 rounded-3xl space-y-4 max-w-md w-full relative"
+          >
+            <button
+              onClick={() => setShowBugReportModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🐞</span>
+              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">Заметили ошибку?</h3>
+            </div>
+
+            {bugReportSent ? (
+              <div className="flex items-center gap-2 text-emerald-500 font-bold text-sm py-6 justify-center">
+                <CheckCircle className="w-5 h-5" /> Спасибо, мы проверим!
+              </div>
+            ) : (
+              <form onSubmit={handleSendBugReport} className="space-y-3">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                  Опишите, что пошло не так, и приложите скриншот — так мы быстрее разберёмся.
+                </p>
+                <textarea
+                  value={bugReportText}
+                  onChange={(e) => setBugReportText(e.target.value)}
+                  placeholder="Что случилось? (необязательно, если есть скриншот)"
+                  maxLength={1000}
+                  rows={3}
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-rose-400/40 resize-none"
+                />
+
+                <input
+                  ref={bugReportFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleBugReportFileChange}
+                />
+
+                {bugReportPreviewUrl ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={bugReportPreviewUrl}
+                      alt="Скриншот ошибки"
+                      className="max-h-32 rounded-xl border border-slate-200 dark:border-white/10 object-contain"
+                    />
+                    {bugReportUploading && (
+                      <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center text-white text-[10px] font-bold">
+                        Загрузка...
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => { setBugReportPreviewUrl(null); setBugReportScreenshotUrl(null); if (bugReportFileInputRef.current) bugReportFileInputRef.current.value = ''; }}
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-md cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => bugReportFileInputRef.current?.click()}
+                    className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-white/5 border border-dashed border-slate-300 dark:border-white/15 rounded-xl px-4 py-3 hover:bg-slate-100 dark:hover:bg-white/10 transition cursor-pointer"
+                  >
+                    <Camera className="w-4 h-4" /> Прикрепить скриншот
+                  </button>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={(!bugReportText.trim() && !bugReportScreenshotUrl) || bugReportSending || bugReportUploading}
+                  className="w-full flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs px-5 py-3 rounded-xl shadow-md transition cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" /> {bugReportSending ? 'Отправка...' : 'Отправить'}
+                </button>
+              </form>
+            )}
+          </motion.div>
+        </div>
+      )}
+
       {/* TORN PAPER PROMO CODE EFFECT OVERLAY */}
       {showTornPaperAnimation && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-4 z-[10000] overflow-hidden">
@@ -6004,42 +7004,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
       )}
 
-
-    {/* Sticky кнопки звонка и Telegram — только на мобильном */}
-    <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50 md:hidden">
-      <a
-        href="https://t.me/photosever_bot"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95"
-        style={{background: 'linear-gradient(135deg, #2AABEE, #229ED9)'}}
-        title="Написать в Telegram"
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
-          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.01 9.47c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.873.75z"/>
-        </svg>
-      </a>
-      <a
-        href={WHATSAPP_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95"
-        style={{background: '#25D366'}}
-        title="Написать в WhatsApp"
-      >
-        <WhatsAppIcon className="w-5 h-5 text-white" />
-      </a>
-      <a
-        href="tel:+79680508800"
-        className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95"
-        style={{background: 'linear-gradient(135deg, #4ade80, #16a34a)'}}
-        title="Позвонить"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-          <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
-        </svg>
-      </a>
-    </div>
 
     </div>
   );

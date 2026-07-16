@@ -96,6 +96,7 @@ interface AdminPanelProps {
     services?: Service[];
     paymentConfig?: PaymentConfig;
     siteVisits?: number;
+    siteVisitsHistory?: { date: string; count: number }[];
     feedback?: Feedback[];
   };
   onUpdateDatabase: (updatedData: {
@@ -110,6 +111,14 @@ interface AdminPanelProps {
 export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: AdminPanelProps) {
   // Navigation
   const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services'>('orders');
+  // "Сувениры" в меню — тот же список услуг (отдельного типа "товар" в базе
+  // нет), просто отфильтрованный по названию тем же принципом, что и на
+  // стороне клиента (см. serviceCategoryMatchers.souvenirs в Dashboard.tsx).
+  const [serviceAdminFilter, setServiceAdminFilter] = useState<'all' | 'souvenirs'>('all');
+  const isSouvenirTitle = (title: string) => {
+    const t = title.toLowerCase();
+    return t.includes('сувенир') || t.includes('кружк') || t.includes('магнит') || t.includes('футболк') || t.includes('керамик');
+  };
 
   // 3D tilt effect on sidebar icon hover (mouse tracking) — matches Dashboard client style
   useEffect(() => {
@@ -1446,17 +1455,31 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           </button>
 
           <button
-            onClick={() => setActiveTab('services')}
+            onClick={() => { setActiveTab('services'); setServiceAdminFilter('all'); }}
             className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
-              activeTab === 'services'
+              activeTab === 'services' && serviceAdminFilter === 'all'
                 ? 'nav-holo-active bg-white/10 text-white font-black'
                 : 'text-white/55 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <div className={`glass-icon-capsule glass-icon-violet w-9 h-9 shrink-0 ${activeTab === 'services' ? 'glass-icon-active' : ''}`}>
+            <div className={`glass-icon-capsule glass-icon-violet w-9 h-9 shrink-0 ${activeTab === 'services' && serviceAdminFilter === 'all' ? 'glass-icon-active' : ''}`}>
               <Printer className="w-4.5 h-4.5 text-white" />
             </div>
             <span className="hidden sm:inline">Услуги</span>
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('services'); setServiceAdminFilter('souvenirs'); }}
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
+              activeTab === 'services' && serviceAdminFilter === 'souvenirs'
+                ? 'nav-holo-active bg-white/10 text-white font-black'
+                : 'text-white/55 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <div className={`glass-icon-capsule glass-icon-orange w-9 h-9 shrink-0 ${activeTab === 'services' && serviceAdminFilter === 'souvenirs' ? 'glass-icon-active' : ''}`}>
+              <Gift className="w-4.5 h-4.5 text-white" />
+            </div>
+            <span className="hidden sm:inline">Сувениры</span>
           </button>
 
           <button
@@ -2184,11 +2207,23 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <div key={fb.id} className="glass-card rounded-2xl p-4 flex flex-col sm:flex-row justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
+                            {fb.isBugReport && (
+                              <span className="text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded-md">🐞 Ошибка</span>
+                            )}
                             <span className="font-extrabold text-white text-xs">{fb.userName}</span>
                             <span className="text-[10px] text-white/40">{fb.userEmail}</span>
                             <span className="text-[10px] text-white/40">&bull; {formatDateTime(fb.timestamp)}</span>
                           </div>
                           <p className="text-sm text-white/85 mt-2 whitespace-pre-wrap break-words">{fb.message}</p>
+                          {fb.screenshotUrl && (
+                            <a href={fb.screenshotUrl} target="_blank" rel="noopener noreferrer">
+                              <img
+                                src={fb.screenshotUrl}
+                                alt="Скриншот ошибки"
+                                className="mt-2 max-h-40 rounded-xl border border-white/10 hover:border-white/30 transition cursor-zoom-in"
+                              />
+                            </a>
+                          )}
                         </div>
                         <div className="flex sm:flex-col gap-2 shrink-0">
                           <button
@@ -3253,9 +3288,22 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
-                      <Printer className="text-indigo-650 w-5 h-5" /> Витрина услуг
+                      {serviceAdminFilter === 'souvenirs' ? <Gift className="text-orange-500 w-5 h-5" /> : <Printer className="text-indigo-650 w-5 h-5" />}
+                      {serviceAdminFilter === 'souvenirs' ? 'Сувениры' : 'Витрина услуг'}
                     </h3>
-                    <p className="text-[11px] text-slate-400 mt-1">Клиенты видят эти карточки в личном кабинете. Добавляй, редактируй, скрывай услуги без кода.</p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {serviceAdminFilter === 'souvenirs'
+                        ? 'Карточки товаров-сувениров (кружки, магниты и т.п.) — определяются по названию, как и на сайте у клиента.'
+                        : 'Клиенты видят эти карточки в личном кабинете. Добавляй, редактируй, скрывай услуги без кода.'}
+                    </p>
+                    {serviceAdminFilter === 'souvenirs' && (
+                      <button
+                        onClick={() => setServiceAdminFilter('all')}
+                        className="mt-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 cursor-pointer"
+                      >
+                        ← Показать все услуги
+                      </button>
+                    )}
                   </div>
                   <button
                     onClick={() => setShowAddServiceModal(true)}
@@ -3266,15 +3314,25 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   </button>
                 </div>
 
+                {serviceAdminFilter === 'souvenirs' && (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 -mt-2">
+                    Совет: чтобы новая карточка попала в "Сувениры", включи в название слово вроде "сувенир", "кружка", "магнит", "футболка" или "керамика".
+                  </p>
+                )}
+
                 <div>
-                  {(database.services || []).length === 0 && (
+                  {(database.services || []).filter(s => serviceAdminFilter !== 'souvenirs' || isSouvenirTitle(s.title)).length === 0 && (
                     <div className="flex flex-col items-center justify-center py-10 text-slate-400 text-xs gap-3">
                       <Printer className="w-10 h-10 opacity-20" />
-                      <p className="font-bold text-center">Витрина пуста — нажми «+ Добавить» чтобы создать первую карточку</p>
+                      <p className="font-bold text-center">
+                        {serviceAdminFilter === 'souvenirs'
+                          ? 'Пока нет карточек сувениров — нажми «+ Добавить» и назови товар так, чтобы в названии было слово вроде "сувенир" или "кружка"'
+                          : 'Витрина пуста — нажми «+ Добавить» чтобы создать первую карточку'}
+                      </p>
                     </div>
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                    {(database.services || []).map((svc) => (
+                    {(database.services || []).filter(s => serviceAdminFilter !== 'souvenirs' || isSouvenirTitle(s.title)).map((svc) => (
                       <div
                         key={svc.id}
                         onMouseMove={handleServiceCardTilt}

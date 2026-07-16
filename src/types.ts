@@ -30,8 +30,15 @@ export interface PrintFile {
   id: string;
   name: string;
   size: number;
-  type: string;
-  uploadedAt: string;
+  // Не заполняются для файлов внутри уже сохранённого заказа (там хранится
+  // только то, что нужно для печати) — есть только сразу после загрузки,
+  // до отправки заказа.
+  type?: string;
+  uploadedAt?: string;
+  // Ставится только файлам, загруженным через плитку "Документы" на Главной —
+  // прячет в модалке настройки печати "Формат" (А3) и переключатель "Бумага"
+  // (Обычная/Фото), которые не нужны для обычного документа.
+  simplifiedDocsMode?: boolean;
   content?: string; // base64 or description
   formatGroup: FileFormatGroup;
   pageCount?: number;
@@ -85,6 +92,9 @@ export interface Order {
   rejected?: boolean;
   rejectionReason?: string;
   rejectedAt?: string;
+  // Оценка клиента после выдачи заказа (см. RatingWidget/handleRate в Dashboard.tsx).
+  rating?: 1 | 2 | 3 | 4 | 5;
+  ratingComment?: string;
 }
 
 export interface ChatMessage {
@@ -116,6 +126,11 @@ export interface PaymentConfig {
   enableSbp: boolean;
   sbpPhone?: string;
   instructions?: string;
+  companyName?: string;
+  companyInn?: string;
+  companyOgrn?: string;
+  companyAddress?: string;
+  refundPolicy?: string;
 }
 
 export interface Feedback {
@@ -125,6 +140,10 @@ export interface Feedback {
   userEmail: string;
   message: string;
   timestamp: string;
+  // Заполняется только для сообщений из отдельной формы "Заметили ошибку?" —
+  // отличает баг-репорт со скриншотом от обычного пожелания/благодарности.
+  isBugReport?: boolean;
+  screenshotUrl?: string;
 }
 
 export interface Service {

@@ -10,6 +10,9 @@ interface LiveClockProps {
   className?: string;
   /** Show the seconds column. Defaults to true. */
   showSeconds?: boolean;
+  /** Skip the glass-card pill background/padding — just the dot + digits, so it
+   * sits directly on whatever panel it's placed in instead of its own nested one. */
+  bare?: boolean;
 }
 
 function formatParts(date: Date, showSeconds: boolean) {
@@ -24,7 +27,7 @@ function formatParts(date: Date, showSeconds: boolean) {
  * dark-glass aesthetic (glass-card + a neon indigo/violet glow on the digits,
  * echoing the "neon-clock" reference the client provided).
  */
-export function LiveClock({ className = '', showSeconds = true }: LiveClockProps) {
+export function LiveClock({ className = '', showSeconds = true, bare = false }: LiveClockProps) {
   const [now, setNow] = useState<Date>(() => new Date());
 
   useEffect(() => {
@@ -34,7 +37,9 @@ export function LiveClock({ className = '', showSeconds = true }: LiveClockProps
 
   return (
     <div
-      className={`glass-card flex items-center gap-2 px-3.5 py-2 rounded-xl shrink-0 ${className}`}
+      className={bare
+        ? `flex items-center gap-2 shrink-0 ${className}`
+        : `glass-card flex items-center gap-2 px-3.5 py-2 rounded-xl shrink-0 ${className}`}
       title="Текущее время"
     >
       <span
