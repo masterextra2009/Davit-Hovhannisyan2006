@@ -315,6 +315,13 @@ function GlassProfileIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+function GlassChatIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 12c0-4.4 3.6-8 8-8s8 3.6 8 8-3.6 8-8 8c-1.1 0-2.1-.15-3.05-.5L5 20l1.15-3.55C4.85 15.15 4 13.7 4 12z"/>
+    </svg>
+  );
+}
 function GlassUploadIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -2412,7 +2419,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     {
       key: 'chat',
       label: 'Чат с печатником',
-      icon: MessageSquare,
+      icon: GlassChatIcon,
       glow: 'capsule-glow-green',
       isActive: activeTab === 'chat',
       onClick: () => setActiveTab('chat'),
