@@ -5275,6 +5275,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           { key: '30x40', label: '30×40', price: 250 },
         ] as const;
         const selSize = photoSizes.find(s => s.key === (file.photoSize || '10x15')) || photoSizes[0];
+        // Полароид — временно без настроек в этой модалке (по просьбе клиента,
+        // будем добавлять поля постепенно) — размер уже проставлен плиткой
+        // "Полароид" на Главной, выбор размера/рамки тут просто не показываем.
+        const isPolaroidSize = isPhoto && file.photoSize === 'polaroid';
 
         const filePP = isPhoto ? selSize.price : (isThick ? thickPrice : ((file.printColor || 'bw') === 'bw' ? bwPrice : (colorPrice ?? 0)));
         const fileCost = filePP * (isPhoto ? 1 : pages) * copies;
@@ -5396,67 +5400,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     (nextUploadIsPhotoRef), так что isA3/isThick ниже практически не
                     достижимы, но оставлены на случай уже существующих старых файлов
                     с format:'a3', чтобы не терять их корректную цену. */}
-                {!isPhoto && isA3 && (
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">А3 — цветность и бумага</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button type="button"
-                        onClick={() => patch({ printColor: 'bw', paperType: 'plain' })}
-                        className={`relative p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
-                          (file.printColor || 'bw') === 'bw' && !isThick
-                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
-                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
-                        }`}
-                      >
-                        {(file.printColor || 'bw') === 'bw' && !isThick && (
-                          <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
-                            <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
-                          </div>
-                        )}
-                        <div className="text-base">⚪</div>
-                        <div className="text-[11px] font-black text-slate-800 dark:text-white mt-0.5">Ч/Б</div>
-                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{bwPrice} ₽</div>
-                      </button>
-                      <button type="button"
-                        onClick={() => patch({ printColor: 'color', paperType: 'plain' })}
-                        className={`relative p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
-                          (file.printColor || 'bw') === 'color' && !isThick
-                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
-                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
-                        }`}
-                      >
-                        {(file.printColor || 'bw') === 'color' && !isThick && (
-                          <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
-                            <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
-                          </div>
-                        )}
-                        <div className="text-base">🔵</div>
-                        <div className="text-[11px] font-black text-slate-800 dark:text-white mt-0.5">Цвет</div>
-                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{colorPrice} ₽</div>
-                      </button>
-                      <button type="button"
-                        onClick={() => patch({ paperType: 'thick', printColor: 'color' })}
-                        className={`relative p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
-                          isThick
-                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
-                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20'
-                        }`}
-                      >
-                        {isThick && (
-                          <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
-                            <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
-                          </div>
-                        )}
-                        <div className="text-base">📦</div>
-                        <div className="text-[11px] font-black text-slate-800 dark:text-white mt-0.5">Плотная</div>
-                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{thickPrice} ₽</div>
-                      </button>
-                    </div>
-                  </div>
-                )}
+                {/* А3 — временно без настроек в этой модалке (по просьбе клиента,
+                    будем добавлять поля постепенно); печатается Ч/Б по
+                    умолчанию, пока сюда не добавили выбор. */}
 
-                {/* Размер фото — обязателен для фотобумаги */}
-                {isPhoto && (
+                {/* Размер фото — обязателен для фотобумаги, кроме полароида (там
+                    размер один и тот же, настраивать нечего) */}
+                {isPhoto && !isPolaroidSize && (
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Размер фотографии</p>
                     <div className="grid grid-cols-3 gap-2">
@@ -5484,8 +5434,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </div>
                 )}
 
-                {/* Рамка — с белыми полями или край-в-край, только для фотобумаги */}
-                {isPhoto && (
+                {/* Рамка — с белыми полями или край-в-край, только для фотобумаги (не для полароида) */}
+                {isPhoto && !isPolaroidSize && (
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Печать</p>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug mb-2">
