@@ -15,6 +15,8 @@ import logoImg from '../assets/logo.webp';
 import printerInkIcon from '../assets/printer-ink-icon.svg';
 import chatIconRefImg from '../assets/chat-icon-ref-cropped.png';
 import polaroidIconRefImg from '../assets/polaroid-icon-ref.png';
+import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
+import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 
   Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, 
@@ -2925,7 +2927,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           };
 
           return (
-            <div className="md:hidden p-2 pt-6">
+            <div className="md:hidden p-2 pt-6 relative">
+              {/* Обои под часами и плитками, как на экране блокировки телефона —
+                  своя картинка под каждую тему, переключаются классом .dark. */}
+              <div
+                className="absolute inset-0 -z-10 rounded-3xl bg-cover bg-center dark:hidden"
+                style={{ backgroundImage: `url(${homeWallpaperLight})` }}
+              />
+              <div
+                className="absolute inset-0 -z-10 rounded-3xl bg-cover bg-center hidden dark:block"
+                style={{ backgroundImage: `url(${homeWallpaperDark})` }}
+              />
               <HomeBigClock />
               {jiggleMode && (
                 <div className="flex justify-end mb-2">
