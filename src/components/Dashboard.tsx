@@ -376,6 +376,25 @@ function GlassIcon({ icon: Icon, glow, size = 56, colored = false }: { icon: typ
   );
 }
 
+// Крупные часы над плитками "Главной" — как на экране блокировки iPhone
+// (время крупным тонким шрифтом, дата под ним).
+function HomeBigClock() {
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const dateStr = now.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+  return (
+    <div className="text-center mb-5 select-none">
+      <div className="text-6xl font-thin text-slate-800 dark:text-white tracking-tight leading-none">{hh}:{mm}</div>
+      <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-2 capitalize">{dateStr}</div>
+    </div>
+  );
+}
+
 export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDeleteAccount, hasSyncedFromServer = true }: DashboardProps) {
   // На iOS Web Share Target API не поддерживается Safari в принципе (ограничение
   // самой Apple) — "Поделиться" в другое приложение сюда файл не занесёт.
@@ -2906,7 +2925,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           };
 
           return (
-            <div className="md:hidden p-2 pt-8">
+            <div className="md:hidden p-2 pt-6">
+              <HomeBigClock />
               {jiggleMode && (
                 <div className="flex justify-end mb-2">
                   <button
