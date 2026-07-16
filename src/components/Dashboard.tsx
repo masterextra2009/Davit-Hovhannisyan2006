@@ -2936,19 +2936,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   с картинкой) — обои поверх неё на 30% прозрачности, растянуты
                   flex-1 на всю высоту экрана, а не только на высоту плиток. */}
               <div
-                className="absolute inset-0 dark:hidden"
+                className="absolute top-0 left-0 right-0 -bottom-28 md:bottom-0 dark:hidden"
                 style={{ background: 'linear-gradient(135deg, #c9d3df 0%, #b8c6d6 50%, #cdd6e0 100%)' }}
               />
               <div
-                className="absolute inset-0 hidden dark:block"
+                className="absolute top-0 left-0 right-0 -bottom-28 md:bottom-0 hidden dark:block"
                 style={{ background: 'linear-gradient(160deg, #1a2535 0%, #0f1a28 35%, #121820 65%, #0d1520 100%)' }}
               />
               <div
-                className="absolute inset-0 bg-cover bg-center dark:hidden"
+                className="absolute top-0 left-0 right-0 -bottom-28 md:bottom-0 bg-cover bg-center dark:hidden"
                 style={{ backgroundImage: `url(${homeWallpaperLight})`, opacity: 0.3 }}
               />
               <div
-                className="absolute inset-0 bg-cover bg-center hidden dark:block"
+                className="absolute top-0 left-0 right-0 -bottom-28 md:bottom-0 bg-cover bg-center hidden dark:block"
                 style={{ backgroundImage: `url(${homeWallpaperDark})`, opacity: 0.3 }}
               />
               <div className="relative z-10 p-2 pt-6">
