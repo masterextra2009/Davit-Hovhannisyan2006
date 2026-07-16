@@ -14,6 +14,7 @@ import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
 import logoImg from '../assets/logo.webp';
 import printerInkIcon from '../assets/printer-ink-icon.svg';
 import chatIconRefImg from '../assets/chat-icon-ref-cropped.png';
+import polaroidIconRefImg from '../assets/polaroid-icon-ref.png';
 import { 
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 
   Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, 
@@ -322,6 +323,15 @@ function GlassChatIcon(_props: { style?: React.CSSProperties }) {
   return (
     <img
       src={chatIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+}
+function GlassPolaroidRefIcon(_props: { style?: React.CSSProperties }) {
+  return (
+    <img
+      src={polaroidIconRefImg}
       alt=""
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
     />
@@ -756,10 +766,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     }
   }, [activeConfigFileId, pendingUploads]);
 
-  // Сбрасываем чекбокс "применить ко всем" при переходе к следующему файлу очереди
+  // Чекбокс "применить ко всем" — включаем им по умолчанию, когда в очереди
+  // больше одного фото сразу (массовая загрузка): раньше клиенту приходилось
+  // самому его находить и включать на каждом фото по очереди, из-за чего
+  // казалось, что модалка настройки просто "мигает", открываясь заново для
+  // каждого файла. Теперь одно подтверждение сразу применяется ко всем.
   const [applyToAllPending, setApplyToAllPending] = useState(false);
   useEffect(() => {
-    setApplyToAllPending(false);
+    const otherPendingPhotos = pendingUploads.filter(f => f.id !== activeConfigFileId && f.formatGroup === 'image').length;
+    setApplyToAllPending(otherPendingPhotos > 0);
   }, [activeConfigFileId]);
 
   const confirmFileConfig = (fileId: string, applyToAllPhotos: boolean = false) => {
@@ -2516,7 +2531,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     {
       key: 'category-polaroid',
       label: 'Полароид',
-      icon: GlassPolaroidIcon,
+      icon: GlassPolaroidRefIcon,
       glow: 'capsule-glow-cyan',
       isActive: false,
       onClick: () => { nextUploadIsPolaroidRef.current = true; setActiveTab('upload'); setMobileHome(false); },
