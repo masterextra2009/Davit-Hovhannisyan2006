@@ -41,7 +41,7 @@ import {
 
 // Заглушка "технические работы" на весь сайт. true = показывать её всем посетителям
 // вместо обычного сайта. Поставь false и задеплой, когда работы закончены.
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 export default function App() {
   // Premium splash state for high-end feel
