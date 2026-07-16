@@ -2926,17 +2926,21 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           };
 
           return (
-            <div className="md:hidden p-2 pt-6 relative isolate">
+            <div className="md:hidden relative isolate">
               {/* Обои под часами и плитками, как на экране блокировки телефона —
-                  своя картинка под каждую тему, переключаются классом .dark. */}
+                  своя картинка под каждую тему (переключаются классом .dark),
+                  на весь блок без отступов, иначе в отступах просвечивает
+                  фон родителя (bg-slate-50/40 у <main>). Приглушены до 30%,
+                  чтобы не спорить с иконками. */}
               <div
-                className="absolute inset-0 -z-10 rounded-3xl bg-cover bg-center dark:hidden"
-                style={{ backgroundImage: `url(${homeWallpaperLight})` }}
+                className="absolute inset-0 bg-cover bg-center dark:hidden"
+                style={{ backgroundImage: `url(${homeWallpaperLight})`, opacity: 0.3 }}
               />
               <div
-                className="absolute inset-0 -z-10 rounded-3xl bg-cover bg-center hidden dark:block"
-                style={{ backgroundImage: `url(${homeWallpaperDark})` }}
+                className="absolute inset-0 bg-cover bg-center hidden dark:block"
+                style={{ backgroundImage: `url(${homeWallpaperDark})`, opacity: 0.3 }}
               />
+              <div className="relative z-10 p-2 pt-6">
               <HomeBigClock />
               {jiggleMode && (
                 <div className="flex justify-end mb-2">
@@ -3022,6 +3026,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   );
                 })}
               </nav>
+              </div>
             </div>
           );
         })()}
