@@ -13,6 +13,7 @@ import { EmojiPicker } from './EmojiPicker';
 import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
 import logoImg from '../assets/logo.webp';
 import printerInkIcon from '../assets/printer-ink-icon.svg';
+import chatIconRefImg from '../assets/chat-icon-ref.jpg';
 import { 
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 
   Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, 
@@ -315,11 +316,13 @@ function GlassProfileIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-function GlassChatIcon(props: React.SVGProps<SVGSVGElement>) {
+function GlassChatIcon({ style }: { style?: React.CSSProperties }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 12c0-4.4 3.6-8 8-8s8 3.6 8 8-3.6 8-8 8c-1.1 0-2.1-.15-3.05-.5L5 20l1.15-3.55C4.85 15.15 4 13.7 4 12z"/>
-    </svg>
+    <img
+      src={chatIconRefImg}
+      alt=""
+      style={{ ...style, objectFit: 'cover', borderRadius: '22%' }}
+    />
   );
 }
 function GlassUploadIcon(props: React.SVGProps<SVGSVGElement>) {
