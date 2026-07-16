@@ -3143,7 +3143,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1"
+                className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start content-start w-full md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1"
               >
                 
               {/* Uploader Card */}
@@ -3867,7 +3867,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-6">
+                <div className="grid grid-cols-1 content-start gap-6">
                   {userOrders
                     .filter(ord => {
                       if (orderFilter === 'active') return ord.status !== 'printed';
@@ -3983,7 +3983,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         <div className="p-5 space-y-4">
                           <div className="space-y-2">
                             <div className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Загруженный комплект:</div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 content-start gap-3">
                               {ord.files.map(f => (
                                 <div key={f.id} className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl flex items-center justify-between gap-2.5 text-xs relative group">
                                   <div className="flex items-center gap-2.5 overflow-hidden">
@@ -4374,8 +4374,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 className="space-y-6 w-full md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1"
               >
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
+              <div className="grid grid-cols-1 md:grid-cols-2 content-start gap-6">
+
                 {/* User Stats Card */}
                 <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6">
                   {isEditingProfile ? (
@@ -4822,7 +4822,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <p className="text-sm text-slate-400">Мы всегда рады помочь вам!</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 content-start gap-5 max-w-2xl mx-auto">
             <div className="glass-panel rounded-2xl p-5 flex gap-4 items-start">
               <div className="w-11 h-11 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
                 <MapPin className="w-5 h-5 text-indigo-400" />
@@ -5629,7 +5629,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             </div>
 
             {/* Content area splitting into Canvas on left, controls on right */}
-            <div className="flex-1 overflow-y-auto overscroll-contain p-5 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 bg-slate-50/40 dark:bg-slate-950/20">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-5 md:p-8 grid grid-cols-1 lg:grid-cols-12 content-start gap-8 bg-slate-50/40 dark:bg-slate-950/20">
               
               {/* Left Panel: 3D stage with zero blur, maximum size and detailed textures */}
               <div className="lg:col-span-7 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-950 dark:to-slate-900 rounded-3xl border border-slate-200/60 dark:border-slate-850/50 p-6 flex flex-col justify-between relative min-h-[380px] md:min-h-[460px] overflow-hidden shadow-inner">
@@ -6332,7 +6332,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </p>
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 content-start gap-2.5 pt-2">
                 <button
                   onClick={() => handleDismissPromoGift(false)}
                   className="py-3 px-4 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-705 dark:text-slate-300 rounded-2xl transition cursor-pointer"
