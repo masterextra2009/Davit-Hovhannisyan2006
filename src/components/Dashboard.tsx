@@ -6228,10 +6228,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       {showPromoGiftModal && user.promoCode && (
         <div id="promo-postcard-modal" className="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 30 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 180 }}
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.9 }}
             className="coupon-neon-frame rounded-3xl max-w-md w-full relative"
           >
           <div className="glass-window overflow-hidden max-w-md w-full relative flex flex-col rounded-3xl">
@@ -6330,10 +6330,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           onClick={() => !collageBuilding && setShowCollageBuilder(false)}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.9 }}
             onClick={(e) => e.stopPropagation()}
             className="glass-window w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
@@ -6490,13 +6490,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
       )}
 
+      <AnimatePresence>
       {showTelegramModal && (
         <div className="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in" onClick={() => setShowTelegramModal(false)}>
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 30 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 180 }}
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.9 }}
             onClick={(e) => e.stopPropagation()}
             className="glass-panel glass-panel-modal p-6 md:p-8 rounded-3xl space-y-5 max-w-md w-full relative"
             style={{ boxShadow: '0 0 0 1px rgba(56,189,248,0.15), 0 20px 60px -20px rgba(14,165,233,0.35)' }}
@@ -6594,6 +6595,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </motion.div>
         </div>
       )}
+      </AnimatePresence>
 
       {/* Причина, по которой камера не открылась — видна пользователю, а не
           только в консоли; сама по себе не блокирует работу, файловый
@@ -6703,16 +6705,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           можно приложить скриншот (грузится в Storage сразу при выборе файла,
           см. handleBugReportFileChange). Закрывается по клику на фон/крестик —
           если человеку неинтересно, ничего не мешает просто закрыть. */}
+      <AnimatePresence>
       {showBugReportModal && (
         <div
           className="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in"
           onClick={() => { if (!bugReportSending) setShowBugReportModal(false); }}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 30 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 180 }}
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.9 }}
             onClick={(e) => e.stopPropagation()}
             className="glass-panel glass-panel-modal p-6 md:p-8 rounded-3xl space-y-4 max-w-md w-full relative"
           >
@@ -6796,6 +6799,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </motion.div>
         </div>
       )}
+      </AnimatePresence>
 
       {/* TORN PAPER PROMO CODE EFFECT OVERLAY */}
       {showTornPaperAnimation && (
