@@ -6696,7 +6696,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             {scanProcessing ? (
               <div className="flex flex-col items-center gap-3 text-white/70">
                 <span className="w-8 h-8 rounded-full border-2 border-white/25 border-t-white animate-spin" />
-                <span className="text-xs font-bold">Обрабатываем фото...</span>
+                <span className="text-xs font-bold">Обрабатываем скан...</span>
               </div>
             ) : scanProcessedImageUrl ? (
               <img src={scanProcessedImageUrl} alt="Результат скана" className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" />
@@ -6709,7 +6709,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               className="glass-icon colored capsule-glow-green w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <span className="beam"><i /></span>
-              <span className="relative z-[3]">Использовать это фото →</span>
+              <span className="relative z-[3]">Использовать этот скан →</span>
             </button>
             <button
               onClick={openCamera}
