@@ -2926,12 +2926,23 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           };
 
           return (
-            <div className="md:hidden relative isolate">
+            <div className="md:hidden relative isolate flex-1 flex flex-col min-h-full">
               {/* Обои под часами и плитками, как на экране блокировки телефона —
                   своя картинка под каждую тему (переключаются классом .dark),
                   на весь блок без отступов, иначе в отступах просвечивает
-                  фон родителя (bg-slate-50/40 у <main>). Приглушены до 30%,
-                  чтобы не спорить с иконками. */}
+                  фон родителя (bg-slate-50/40 у <main>). Сплошная подложка
+                  снизу (те же цвета, что у общего фона сайта, но БЕЗ декоративных
+                  "шариков" liquid-glass-bg — клиент просил убрать, они спорили
+                  с картинкой) — обои поверх неё на 30% прозрачности, растянуты
+                  flex-1 на всю высоту экрана, а не только на высоту плиток. */}
+              <div
+                className="absolute inset-0 dark:hidden"
+                style={{ background: 'linear-gradient(135deg, #c9d3df 0%, #b8c6d6 50%, #cdd6e0 100%)' }}
+              />
+              <div
+                className="absolute inset-0 hidden dark:block"
+                style={{ background: 'linear-gradient(160deg, #1a2535 0%, #0f1a28 35%, #121820 65%, #0d1520 100%)' }}
+              />
               <div
                 className="absolute inset-0 bg-cover bg-center dark:hidden"
                 style={{ backgroundImage: `url(${homeWallpaperLight})`, opacity: 0.3 }}
