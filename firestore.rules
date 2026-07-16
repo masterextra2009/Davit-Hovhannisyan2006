@@ -105,7 +105,13 @@ service cloud.firestore {
       allow create: if isSignedIn() && (request.resource.data.userId == request.auth.uid || isAdmin());
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // resource == null: клиент авто-чистит уведомления старше 48ч по таймеру
+      // (Dashboard.tsx) — при нескольких открытых вкладках/устройствах два
+      // сеанса могут одновременно попытаться удалить одно и то же уведомление;
+      // без этой ветки повторное удаление уже удалённого документа Firestore
+      // трактует как отказ в доступе (resource.data на null падает), хотя
+      // по сути результат уже достигнут.
+      allow delete: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Пожелания/замечания от клиентов (форма в личном кабинете) — клиент
