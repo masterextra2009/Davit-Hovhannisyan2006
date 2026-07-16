@@ -307,6 +307,21 @@
     0 12px 40px rgba(0, 0, 0, 0.5);
 }
 
+/* Карточка настоящего модального попапа (поверх затемнённого фона) — обычный
+   .glass-panel слишком прозрачный на busy-фоне позади, текст страницы
+   просвечивал сквозь саму карточку окна. Добавляется ВТОРЫМ классом поверх
+   .glass-panel (тексто-цветовые правила ниже завязаны на .glass-panel и
+   должны остаться), просто делает фон карточки почти непрозрачным. */
+.glass-panel-modal {
+  background: rgba(255, 255, 255, 0.96) !important;
+}
+.dark .glass-panel-modal,
+.dark #admin-dashboard-root .glass-panel.glass-panel-modal,
+.dark #client-dashboard-root .glass-panel.glass-panel-modal {
+  background: rgba(16, 20, 34, 0.96) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
 .glass-card {
   background: rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(24px) saturate(160%);

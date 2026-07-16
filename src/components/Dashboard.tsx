@@ -13,7 +13,7 @@ import { EmojiPicker } from './EmojiPicker';
 import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
 import logoImg from '../assets/logo.webp';
 import printerInkIcon from '../assets/printer-ink-icon.svg';
-import chatIconRefImg from '../assets/chat-icon-ref.jpg';
+import chatIconRefImg from '../assets/chat-icon-ref-cropped.png';
 import { 
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 
   Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, 
@@ -316,12 +316,14 @@ function GlassProfileIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-function GlassChatIcon({ style }: { style?: React.CSSProperties }) {
+function GlassChatIcon(_props: { style?: React.CSSProperties }) {
+  // Заливает всю капсулу целиком (не вписывается с отступом, как обычные
+  // глифы) — по просьбе клиента, картинка должна занимать всю кнопку.
   return (
     <img
       src={chatIconRefImg}
       alt=""
-      style={{ ...style, objectFit: 'cover', borderRadius: '22%' }}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
     />
   );
 }
@@ -2421,7 +2423,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     },
     {
       key: 'chat',
-      label: 'Чат с печатником',
+      label: 'Чат',
       icon: GlassChatIcon,
       glow: 'capsule-glow-green',
       isActive: activeTab === 'chat',
@@ -3869,12 +3871,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <p className="text-xs text-slate-500 mt-2 max-w-sm mx-auto">
                     Загружайте ваши учебные файлы, рефераты, фотографии или архивы чертежей на первом шаге и отправляйте их администратору.
                   </p>
-                  <button
-                    onClick={() => setActiveTab('upload')}
-                    className="mt-6 font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all"
-                  >
-                    Начать загрузку
-                  </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 content-start auto-rows-max gap-6">
@@ -6213,7 +6209,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       {/* Онбординг для новых клиентов */}
       {showOnboarding && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)'}}>
-          <div className="w-full max-w-sm glass-panel rounded-3xl p-7 flex flex-col items-center gap-6 animate-fade-in">
+          <div className="w-full max-w-sm glass-panel glass-panel-modal rounded-3xl p-7 flex flex-col items-center gap-6 animate-fade-in">
             {/* Логотип */}
             <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-3xl shadow-lg">
               🖨️
@@ -6537,7 +6533,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
             transition={{ type: 'spring', damping: 25, stiffness: 180 }}
             onClick={(e) => e.stopPropagation()}
-            className="glass-panel p-6 md:p-8 rounded-3xl space-y-5 max-w-md w-full relative"
+            className="glass-panel glass-panel-modal p-6 md:p-8 rounded-3xl space-y-5 max-w-md w-full relative"
             style={{ boxShadow: '0 0 0 1px rgba(56,189,248,0.15), 0 20px 60px -20px rgba(14,165,233,0.35)' }}
           >
             <button
@@ -6753,7 +6749,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
             transition={{ type: 'spring', damping: 25, stiffness: 180 }}
             onClick={(e) => e.stopPropagation()}
-            className="glass-panel p-6 md:p-8 rounded-3xl space-y-4 max-w-md w-full relative"
+            className="glass-panel glass-panel-modal p-6 md:p-8 rounded-3xl space-y-4 max-w-md w-full relative"
           >
             <button
               onClick={() => setShowBugReportModal(false)}
