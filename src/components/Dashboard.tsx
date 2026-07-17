@@ -1541,10 +1541,25 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     if (aiVoiceRef.current) utterance.voice = aiVoiceRef.current;
     utterance.lang = 'ru-RU';
     utterance.rate = 1;
+    // Android почти никогда не даёт мужской голос по имени (движок отдаёт
+    // голоса без пола в названии — "Google русский" и т.п., дефолтный
+    // голос там нередко женский). Понижаем тон синтезатора — звучит
+    // заметно ближе к мужскому голосу независимо от того, какой голос
+    // выбрал движок; на голосах, где мужской всё-таки нашёлся по имени,
+    // тоже просто звучит чуть ниже, не мешает.
+    utterance.pitch = 0.8;
     utterance.onstart = () => setAiIsSpeaking(true);
-    utterance.onend = () => setAiIsSpeaking(false);
-    utterance.onerror = () => setAiIsSpeaking(false);
+    utterance.onend = () => { setAiIsSpeaking(false); clearInterval(keepAliveTimer); };
+    utterance.onerror = () => { setAiIsSpeaking(false); clearInterval(keepAliveTimer); };
     window.speechSynthesis.speak(utterance);
+    // Известный баг Chrome на Android: озвучка длинных фраз обрывается
+    // рывками сама по себе, если её периодически не "подталкивать" через
+    // pause()+resume(). Без этого длинный ответ звучит кусками с паузами.
+    const keepAliveTimer = setInterval(() => {
+      if (!window.speechSynthesis.speaking) { clearInterval(keepAliveTimer); return; }
+      window.speechSynthesis.pause();
+      window.speechSynthesis.resume();
+    }, 5000);
   };
 
   const handleOpenAiChat = () => {
