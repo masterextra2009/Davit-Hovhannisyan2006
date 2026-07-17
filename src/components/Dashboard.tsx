@@ -1669,15 +1669,22 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       setVoiceOverlayPhase('error');
     };
     recognition.onend = () => {
-      settled = true;
       clearTimeout(safetyTimer);
       setVoiceHolding(false);
-      setVoiceOverlayPhase(prev => (prev === 'listening' ? 'idle' : prev));
+      // Ничего не распозналось и явной ошибки не было (браузер просто молча
+      // закрыл сессию) — раньше это выглядело как "ничего не произошло",
+      // теперь честно показываем, что не расслышали, а не тишина.
+      if (!settled) {
+        setVoiceOverlayError('Не расслышал — держи кружок подольше и говори чётче');
+        setVoiceOverlayPhase('error');
+      }
+      settled = true;
     };
     setVoiceOverlayError(null);
     setVoiceOverlayReply('');
     setVoiceOverlayPhase('listening');
     setVoiceHolding(true);
+    voicePressStartRef.current = Date.now();
     recognition.start();
     // Подстраховка: если палец завис/onend по какой-то причине не пришёл,
     // не даём кружку слушать вечно — жёстко останавливаем через 20 секунд.
@@ -1686,11 +1693,23 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     }, 20000);
   };
 
+  // Реальному распознаванию речи нужно немного времени, чтобы фактически
+  // начать слушать (запрос разрешения, подключение к сервису) — слишком
+  // быстрое "тык-и-отпустил" обрывало запись раньше, чем что-то успевало
+  // попасть в поток, и выглядело как "вообще не сработало". Не отпускаем
+  // раньше 600мс с момента нажатия.
+  const MIN_HOLD_MS = 600;
+  const voicePressStartRef = useRef(0);
   const stopVoiceCapture = () => {
     if (!voiceHolding) return;
     setVoiceHolding(false);
-    // stop() (в отличие от abort) дораспознаёт уже сказанное и вызывает onresult
-    try { voiceOverlayRecognitionRef.current?.stop(); } catch { /* ignore */ }
+    const elapsed = Date.now() - voicePressStartRef.current;
+    const doStop = () => { try { voiceOverlayRecognitionRef.current?.stop(); } catch { /* ignore */ } };
+    if (elapsed < MIN_HOLD_MS) {
+      setTimeout(doStop, MIN_HOLD_MS - elapsed);
+    } else {
+      doStop();
+    }
   };
 
   // Notification states
