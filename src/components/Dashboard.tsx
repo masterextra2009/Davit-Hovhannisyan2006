@@ -1509,7 +1509,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       const dmitri = voices.find(v => /дмитрий|dmitri/i.test(v.name));
       // Android отдаёт lang и как "ru-RU", и как "ru_RU" — нормализуем оба
       const ruVoices = voices.filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('ru'));
-      const ruMale = ruVoices.find(v => /pavel|dmitri|yuri|male/i.test(v.name));
+      // На iOS системный мужской голос называется "Юрий" — если у владельца
+      // телефон на русском языке, имя голоса приходит кириллицей, а не
+      // латиницей "Yuri", поэтому ищем оба написания.
+      const ruMale = ruVoices.find(v => /pavel|dmitri|yuri|юрий|павел|male/i.test(v.name));
       aiVoiceRef.current = preferred || dmitri || ruMale || ruVoices[0] || null;
     };
     pickVoice();
@@ -1531,7 +1534,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     if (!aiVoiceRef.current) {
       const voices = window.speechSynthesis.getVoices();
       const ru = voices.filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('ru'));
-      aiVoiceRef.current = ru.find(v => /дмитрий|dmitri|pavel|yuri|male/i.test(v.name)) || ru[0] || null;
+      aiVoiceRef.current = ru.find(v => /дмитрий|dmitri|pavel|yuri|юрий|павел|male/i.test(v.name)) || ru[0] || null;
     }
     window.speechSynthesis.cancel(); // не наложить новый ответ поверх ещё звучащего
     const utterance = new SpeechSynthesisUtterance(stripMarkdownForSpeech(text));
