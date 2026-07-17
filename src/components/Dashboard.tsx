@@ -20,6 +20,7 @@ import photoIconRefImg from '../assets/photo-icon-ref.png';
 import documentsIconRefImg from '../assets/documents-icon-ref.png';
 import homeIconRefImg from '../assets/home-icon-ref.png';
 import a3IconRefImg from '../assets/a3-icon-ref.png';
+import ordersIconRefImg from '../assets/orders-icon-ref.png';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
@@ -263,6 +264,15 @@ function GlassA3RefIcon(_props: { style?: React.CSSProperties }) {
   return (
     <img
       src={a3IconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+}
+function GlassOrdersRefIcon(_props: { style?: React.CSSProperties }) {
+  return (
+    <img
+      src={ordersIconRefImg}
       alt=""
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
     />
@@ -2537,7 +2547,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     {
       key: 'orders',
       label: 'Мои Заказы',
-      icon: Clock,
+      icon: GlassOrdersRefIcon,
       glow: 'capsule-glow-indigo',
       isActive: activeTab === 'orders',
       onClick: () => setActiveTab('orders'),
@@ -2949,7 +2959,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             className="nav-shift-left relative flex flex-col items-center cursor-pointer justify-self-center"
           >
             <div className="relative">
-              <GlassIcon icon={Clock} glow="capsule-glow-indigo" size={44} colored />
+              <GlassIcon icon={GlassOrdersRefIcon} glow="capsule-glow-indigo" size={44} colored />
               {userOrders.some(o => o.status === 'ready') ? (
                 <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 z-10 animate-pulse border border-white" />
               ) : userOrders.some(o => o.status !== 'printed') ? (
