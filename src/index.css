@@ -2787,8 +2787,15 @@ button:hover .glass-icon-capsule {
 }
 .tile-dragging {
   animation: none !important;
+  /* Пока плитку реально тащит палец, transform обновляется на каждый
+     pointermove — базовый "transition-all duration-200" у кнопки заставлял
+     её "доезжать" с задержкой вместо мгновенного 1:1 слежения за пальцем.
+     Как только класс уходит при отпускании, базовый transition сразу же
+     возвращается и плитка плавно доезжает до новой ячейки сетки. */
+  transition: none !important;
   z-index: 20;
   cursor: grabbing;
+  will-change: transform;
 }
 
 /* Объёмная "физическая" кнопка подтверждения выбора файла — сплошной
@@ -3767,6 +3774,19 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
 .dark #client-dashboard-root#client-dashboard-root .home-tile-btn {
   background: transparent !important;
   border-color: transparent !important;
+}
+
+/* Мобильная шапка кабинета (логотип/Назад + переключатель темы/Выйти) —
+   клиент попросил убрать её плашку-подложку, чтобы она лежала прямо на
+   обоях/фоне, как и плитки выше. Глобальные правила "header внутри
+   #client-dashboard-root" (светлая и тёмная тема) красят background
+   любого <header> — перебиваем их именно для этой шапки через #id. */
+#client-dashboard-root #dashboard-header,
+.dark #client-dashboard-root #dashboard-header {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: none !important;
 }
 
 /* .glass-panel/.glass-card/.glass-input сами по себе уже тёмные и

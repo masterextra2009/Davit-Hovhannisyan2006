@@ -378,8 +378,18 @@ function GlassIcon({ icon: Icon, glow, size = 56, colored = false }: { icon: typ
 }
 
 // Крупные часы над плитками "Главной" — как на экране блокировки iPhone
-// (время крупным тонким шрифтом, дата под ним).
-function HomeBigClock() {
+// (время крупным тонким шрифтом, дата под ним). Размер переключается тапом
+// по часам, пока активен "режим редактирования" (тот же jiggleMode, что и
+// у плиток) — три пресета, как у виджетов на iPhone (там тоже нет свободной
+// растяжки, а S/M/L, выбираемые в режиме редактирования).
+const CLOCK_SIZES = ['sm', 'md', 'lg'] as const;
+type ClockSize = typeof CLOCK_SIZES[number];
+const clockSizeClasses: Record<ClockSize, { time: string; date: string }> = {
+  sm: { time: 'text-4xl', date: 'text-[11px] mt-1.5' },
+  md: { time: 'text-6xl', date: 'text-xs mt-2' },
+  lg: { time: 'text-8xl', date: 'text-sm mt-2.5' },
+};
+function HomeBigClock({ size, resizable, onCycleSize }: { size: ClockSize; resizable: boolean; onCycleSize: () => void }) {
   const [now, setNow] = useState<Date>(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -388,10 +398,19 @@ function HomeBigClock() {
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
   const dateStr = now.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+  const cls = clockSizeClasses[size];
   return (
-    <div className="text-center mb-5 select-none">
-      <div className="text-6xl font-thin text-slate-800 dark:text-white tracking-tight leading-none">{hh}:{mm}</div>
-      <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-2 capitalize">{dateStr}</div>
+    <div
+      onClick={resizable ? onCycleSize : undefined}
+      className={`text-center mb-5 select-none transition-transform ${resizable ? 'cursor-pointer active:scale-95 tile-jiggle' : ''}`}
+    >
+      <div className={`${cls.time} font-thin text-slate-800 dark:text-white tracking-tight leading-none`}>{hh}:{mm}</div>
+      <div className={`${cls.date} font-bold text-slate-500 dark:text-slate-400 capitalize`}>{dateStr}</div>
+      {resizable && (
+        <div className="mt-2 text-[10px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wide">
+          Нажмите, чтобы изменить размер
+        </div>
+      )}
     </div>
   );
 }
@@ -431,6 +450,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const tilePressStartRef = useRef<{ x: number; y: number } | null>(null);
   const tileDragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [tileDragPos, setTileDragPos] = useState<{ x: number; y: number } | null>(null);
+  const edgeFlipTimerRef = useRef<number | null>(null);
   // Плитки "Главной" разбиты на страницы по 9 (3×3), между которыми свайпают
   // пальцем влево/вправо, как между экранами на iPhone — homePageIndex отражает
   // текущую видимую страницу для точек-индикаторов под сеткой.
@@ -441,6 +461,49 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     if (!el || el.clientWidth === 0) return;
     setHomePageIndex(Math.round(el.scrollLeft / el.clientWidth));
   };
+  // Размер часов на "Главной" — переключается тапом по ним в режиме
+  // редактирования (см. HomeBigClock), сохраняется на устройстве как и
+  // порядок плиток.
+  const [clockSize, setClockSize] = useState<'sm' | 'md' | 'lg'>(() => {
+    try {
+      const saved = localStorage.getItem(`home_clock_size_${user.id}`);
+      return saved === 'sm' || saved === 'md' || saved === 'lg' ? saved : 'md';
+    } catch { return 'md'; }
+  });
+  const cycleClockSize = () => {
+    setClockSize(prev => {
+      const next = CLOCK_SIZES[(CLOCK_SIZES.indexOf(prev) + 1) % CLOCK_SIZES.length];
+      try { localStorage.setItem(`home_clock_size_${user.id}`, next); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  // Сколько плиток реально помещается на одну свайп-страницу "Главной" —
+  // считаем по факту доступного места (высота экрана минус часы минус
+  // отступы), а не фиксированным числом, чтобы при увеличении часов или на
+  // маленьком экране плитки не обрезались и не вылезали за пределы страницы.
+  const homeAreaRef = useRef<HTMLDivElement>(null);
+  const homeClockWrapRef = useRef<HTMLDivElement>(null);
+  const [homeTilesPerPage, setHomeTilesPerPage] = useState(9);
+  useLayoutEffect(() => {
+    const recompute = () => {
+      const areaEl = homeAreaRef.current;
+      const clockEl = homeClockWrapRef.current;
+      const sampleTileEl = Object.values(homeTileElsRef.current).find((el): el is HTMLElement => !!el);
+      if (!areaEl || !clockEl || !sampleTileEl) return;
+      const TILE_ROW_GAP = 16; // gap-y-4
+      const DOTS_RESERVE = 24; // высота полосы точек-индикаторов под страницами
+      const tileHeight = sampleTileEl.getBoundingClientRect().height;
+      if (tileHeight <= 0) return;
+      const available = areaEl.clientHeight - clockEl.getBoundingClientRect().height - DOTS_RESERVE;
+      const rows = Math.max(1, Math.floor((available + TILE_ROW_GAP) / (tileHeight + TILE_ROW_GAP)));
+      setHomeTilesPerPage(rows * 3);
+    };
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    if (homeAreaRef.current) ro.observe(homeAreaRef.current);
+    window.addEventListener('resize', recompute);
+    return () => { ro.disconnect(); window.removeEventListener('resize', recompute); };
+  }, [clockSize, mobileHome, jiggleMode]);
 
   const reorderHomeTiles = (allKeys: string[]) => {
     setHomeTileOrder(prev => {
@@ -2569,8 +2632,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   ];
 
   const homeAllTiles = [
-    ...categoryTiles,
+    // Заказы/Чат/Кабинет — самые нужные разделы, должны быть на первой
+    // странице плиток всегда, даже когда категорий услуг наберётся больше
+    // 9 и они уйдут на следующую свайп-страницу.
     ...navItems.filter(item => !['services', 'contacts', 'upload'].includes(item.key)),
+    ...categoryTiles,
   ];
   const homeOrderedTiles = homeTileOrder.length
     ? [...homeAllTiles].sort((a, b) => {
@@ -2584,10 +2650,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     : homeAllTiles;
   // 3×3 на страницу — если плиток больше, они уходят на следующий свайп-экран,
   // а не растягивают "Главную" вертикальным скроллом.
-  const HOME_TILES_PER_PAGE = 9;
   const homeTilePages = Array.from(
-    { length: Math.ceil(homeOrderedTiles.length / HOME_TILES_PER_PAGE) || 1 },
-    (_, i) => homeOrderedTiles.slice(i * HOME_TILES_PER_PAGE, (i + 1) * HOME_TILES_PER_PAGE)
+    { length: Math.ceil(homeOrderedTiles.length / homeTilesPerPage) || 1 },
+    (_, i) => homeOrderedTiles.slice(i * homeTilesPerPage, (i + 1) * homeTilesPerPage)
   );
 
   // FLIP-анимация плавной перестановки: перед тем как порядок в DOM поменяется,
@@ -2617,8 +2682,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       if (key === draggedTileKey) return;
       el.style.transition = 'none';
       el.style.transform = `translate(${dx}px, ${dy}px)`;
+      // Форсируем синхронный reflow, чтобы браузер зафиксировал "старую"
+      // позицию ДО того, как в следующем кадре включится transition —
+      // без этого оба style-апдейта иногда схлопываются в один и плитка
+      // просто прыгает на новое место без анимации.
+      void el.offsetHeight;
       requestAnimationFrame(() => {
-        el.style.transition = 'transform 0.25s ease';
+        el.style.transition = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)';
         el.style.transform = '';
       });
     });
@@ -2907,7 +2977,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       <main className={`flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/50 backdrop-blur-md relative z-10 md:pb-0 ${mobileHome ? 'pb-28' : 'pb-4'}`}>
 
         {/* Top bar on small / medium devices for header */}
-        <header id="dashboard-header" className="md:hidden flex items-center justify-between px-4 py-3 glass-panel rounded-2xl">
+        <header id="dashboard-header" className="md:hidden flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             {!mobileHome ? (
               <button
@@ -2944,9 +3014,39 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               tileLongPressTimerRef.current = null;
             }
           };
+          // Перетаскивание плитки к краю экрана перелистывает свайп-страницу,
+          // как на iPhone — задержка перед перелистыванием, чтобы не улетало
+          // от одного случайного касания края.
+          const cancelEdgeFlip = () => {
+            if (edgeFlipTimerRef.current) {
+              clearTimeout(edgeFlipTimerRef.current);
+              edgeFlipTimerRef.current = null;
+            }
+          };
+          const handleDragEdgeScroll = (clientX: number) => {
+            const scrollEl = homePagesScrollRef.current;
+            if (!scrollEl) return;
+            const rect = scrollEl.getBoundingClientRect();
+            const EDGE = 36;
+            const nearRight = clientX > rect.right - EDGE;
+            const nearLeft = clientX < rect.left + EDGE;
+            if (!nearRight && !nearLeft) {
+              cancelEdgeFlip();
+              return;
+            }
+            if (edgeFlipTimerRef.current) return;
+            edgeFlipTimerRef.current = window.setTimeout(() => {
+              edgeFlipTimerRef.current = null;
+              const maxIndex = homeTilePages.length - 1;
+              const target = Math.max(0, Math.min(maxIndex, homePageIndex + (nearRight ? 1 : -1)));
+              if (target !== homePageIndex) {
+                scrollEl.scrollTo({ left: target * scrollEl.clientWidth, behavior: 'smooth' });
+              }
+            }, 650);
+          };
 
           return (
-            <div className="md:hidden relative isolate flex-1 flex flex-col min-h-full">
+            <div ref={homeAreaRef} className="md:hidden relative isolate flex-1 flex flex-col min-h-full">
               {/* Обои под часами и плитками, как на экране блокировки телефона —
                   своя картинка под каждую тему (переключаются классом .dark),
                   на весь блок без отступов, иначе в отступах просвечивает
@@ -2972,7 +3072,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 style={{ backgroundImage: `url(${homeWallpaperDark})`, opacity: 0.3 }}
               />
               <div className="relative z-10 p-2 pt-6">
-              <HomeBigClock />
+              <div ref={homeClockWrapRef}>
+                <HomeBigClock size={clockSize} resizable={jiggleMode} onCycleSize={cycleClockSize} />
+              </div>
               {jiggleMode && (
                 <div className="flex justify-end mb-2">
                   <button
@@ -3034,6 +3136,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               const dx = e.clientX - tileDragOffsetRef.current.x;
                               const dy = e.clientY - tileDragOffsetRef.current.y;
                               setTileDragPos({ x: dx, y: dy });
+                              handleDragEdgeScroll(e.clientX);
                               const el = document.elementFromPoint(e.clientX, e.clientY);
                               const tileEl = el?.closest('[data-tile-key]') as HTMLElement | null;
                               const overKey = tileEl?.dataset.tileKey;
@@ -3044,6 +3147,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           }}
                           onPointerUp={() => {
                             cancelLongPress();
+                            cancelEdgeFlip();
                             setDraggedTileKey(null);
                             setTileDragPos(null);
                           }}
