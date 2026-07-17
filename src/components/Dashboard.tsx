@@ -13,21 +13,21 @@ import { EmojiPicker } from './EmojiPicker';
 import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
 import logoImg from '../assets/logo.webp';
 import printerInkIcon from '../assets/printer-ink-icon.svg';
-import chatIconRefImg from '../assets/chat-icon-ref-cropped.png';
-import polaroidIconRefImg from '../assets/polaroid-icon-ref.png';
-import scanIconRefImg from '../assets/scan-icon-ref.png';
-import photoIconRefImg from '../assets/photo-icon-ref.png';
-import documentsIconRefImg from '../assets/documents-icon-ref.png';
-import homeIconRefImg from '../assets/home-icon-ref.png';
-import a3IconRefImg from '../assets/a3-icon-ref.png';
-import ordersIconRefImg from '../assets/orders-icon-ref.png';
-import souvenirsIconRefImg from '../assets/souvenirs-icon-ref.png';
-import laminationIconRefImg from '../assets/lamination-icon-ref.png';
-import servicesIconRefImg from '../assets/services-icon-ref.png';
-import profileIconRefImg from '../assets/profile-icon-ref.png';
-import notifyIconRefImg from '../assets/notify-icon-ref.png';
-import callIconRefImg from '../assets/call-icon-ref.png';
-import settingsIconRefImg from '../assets/settings-icon-ref.png';
+import chatIconRefImg from '../assets/chat-icon-ref-cropped.webp';
+import polaroidIconRefImg from '../assets/polaroid-icon-ref.webp';
+import scanIconRefImg from '../assets/scan-icon-ref.webp';
+import photoIconRefImg from '../assets/photo-icon-ref.webp';
+import documentsIconRefImg from '../assets/documents-icon-ref.webp';
+import homeIconRefImg from '../assets/home-icon-ref.webp';
+import a3IconRefImg from '../assets/a3-icon-ref.webp';
+import ordersIconRefImg from '../assets/orders-icon-ref.webp';
+import souvenirsIconRefImg from '../assets/souvenirs-icon-ref.webp';
+import laminationIconRefImg from '../assets/lamination-icon-ref.webp';
+import servicesIconRefImg from '../assets/services-icon-ref.webp';
+import profileIconRefImg from '../assets/profile-icon-ref.webp';
+import notifyIconRefImg from '../assets/notify-icon-ref.webp';
+import callIconRefImg from '../assets/call-icon-ref.webp';
+import settingsIconRefImg from '../assets/settings-icon-ref.webp';
 import aiAssistantCoinWebm from '../assets/ai-assistant-coin.webm';
 import aiAssistantCoinMp4 from '../assets/ai-assistant-coin.mp4';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
@@ -3379,8 +3379,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </div>
         </header>
 
-        {/* WORKSPACE SECTIONS — на телефоне скрыт, пока показана "Главная" с плитками */}
+        {/* WORKSPACE SECTIONS — на телефоне скрыт, пока показана "Главная" с плитками.
+            Раньше прятался только через CSS (display:none), но реально оставался
+            смонтированным — при переходе с "Главной" сразу в конкретный раздел
+            (например "Личный кабинет") на один кадр успевал промелькнуть старый
+            activeTab (обычно "upload" по умолчанию), пока AnimatePresence не
+            доигрывал его exit-анимацию. На мобильном при mobileHome вообще не
+            рендерим содержимое (не просто прячем), тогда переходу неоткуда
+            "выезжать" — на десктопе (navWidth >= 768) содержимое нужно всегда,
+            там нет экрана "Главная". */}
         <div className={`flex-1 p-4 md:p-8 space-y-6 max-w-6xl w-full mx-auto min-h-0 ${mobileHome ? 'hidden md:flex' : 'flex'} flex-col md:overflow-hidden`}>
+          {(!mobileHome || navWidth >= 768) && (<>
           {user.promoCode && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
@@ -5518,6 +5527,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </motion.div>
           )}
           </AnimatePresence>
+          </>)}
 
         </div>
       </main>

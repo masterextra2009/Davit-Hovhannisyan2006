@@ -2287,6 +2287,20 @@ button:hover .glass-icon-capsule {
     transparent 99deg);
   animation: beam-spin 3.2s linear infinite;
 }
+/* Кастомные растровые иконки плиток (<img> внутри .glass-icon) и видео
+   центральной кнопки — на iOS Safari долгое нажатие на обычный <img>/<video>
+   вызывает системное меню "Сохранить/Поделиться изображением", которое
+   перехватывает жест раньше, чем сработает наш JS-обработчик long-press
+   (режим перестановки плиток). Отключаем нативный callout/выделение и
+   убираем их из hit-теста — клики и так обрабатывает родительская кнопка. */
+.glass-icon img,
+.glass-icon video,
+.disc video {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: none;
+}
 .glass-icon svg {
   position: relative;
   z-index: 3;
