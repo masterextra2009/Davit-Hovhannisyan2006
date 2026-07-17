@@ -1505,8 +1505,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   };
 
   const handleOpenAiChat = () => {
+    // Это отдельное окно-оверлей поверх текущего экрана (свой backdrop,
+    // своя видимость через showAiChat) — mobileHome/activeTab трогать не
+    // нужно: раньше это делалось по инерции от старого поведения кнопки
+    // (переход в вкладку "Чат"), и при закрытии окна оголяло вкладку
+    // "Загрузка" по умолчанию позади вместо "Главной", с которой открывали.
     setShowAiChat(true);
-    setMobileHome(false);
   };
   const handleCloseAiChat = () => {
     setShowAiChat(false);
