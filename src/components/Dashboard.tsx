@@ -2995,13 +2995,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     <div id="client-dashboard-root" className="liquid-glass-bg min-h-dvh md:h-dvh text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative overflow-x-hidden overflow-y-auto md:overflow-hidden">
 
       {/* Neutral frosted glow accents (no color tint) */}
-      
-
-      {/* Floating 3D Frosted Glass Orbs mirroring the uploaded design */}
-      <div className="glass-bg-orb w-[200px] h-[200px] top-[15%] left-[10%] opacity-65 animate-[float-slow_24s_infinite_ease-in-out]" style={{ backdropFilter: 'blur(15px) saturate(120%)' }} />
-      <div className="glass-bg-orb w-[250px] h-[250px] bottom-[25%] right-[12%] opacity-80 animate-[float-reverse_28s_infinite_ease-in-out]" style={{ backdropFilter: 'blur(20px) saturate(130%)' }} />
-      <div className="glass-bg-orb w-[150px] h-[150px] top-[65%] left-[-2%] opacity-60 animate-[float-slow_30s_infinite_ease-in-out]" style={{ backdropFilter: 'blur(12px) saturate(110%)' }} />
-      <div className="glass-bg-orb w-[110px] h-[110px] top-[35%] right-[22%] opacity-50 animate-[float-reverse_26s_infinite_ease-in-out]" style={{ backdropFilter: 'blur(10px) saturate(100%)' }} />
 
       {/* Upload success animation — glowing burst + "Файл загружен", in the spirit
           of the reference clip (glowing icon -> colorful particle burst -> text reveal) */}
