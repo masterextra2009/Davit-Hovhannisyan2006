@@ -15,6 +15,8 @@ import logoImg from '../assets/logo.webp';
 import printerInkIcon from '../assets/printer-ink-icon.svg';
 import chatIconRefImg from '../assets/chat-icon-ref-cropped.png';
 import polaroidIconRefImg from '../assets/polaroid-icon-ref.png';
+import scanIconRefImg from '../assets/scan-icon-ref.png';
+import photoIconRefImg from '../assets/photo-icon-ref.png';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
@@ -245,14 +247,6 @@ interface DashboardProps {
 
 // Иконки для стеклянных плиток "Главной" — точные пути из ТЗ (tz-fable-glass-icons-final.md,
 // часть 3). Не заменять на похожие из lucide-react — эти утверждены явно.
-function GlassPhotoIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M5 8h2.5l1.5-2h6l1.5 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/>
-      <circle cx="12" cy="13.5" r="3.5"/>
-    </svg>
-  );
-}
 function GlassPrintIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -283,14 +277,6 @@ function GlassDocumentsIcon(props: React.SVGProps<SVGSVGElement>) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
       <path d="M14 3v5h5M9 13h6M9 17h4"/>
-    </svg>
-  );
-}
-function GlassScanIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/>
-      <path d="M4 12h16"/>
     </svg>
   );
 }
@@ -334,6 +320,24 @@ function GlassPolaroidRefIcon(_props: { style?: React.CSSProperties }) {
   return (
     <img
       src={polaroidIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+}
+function GlassScanRefIcon(_props: { style?: React.CSSProperties }) {
+  return (
+    <img
+      src={scanIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+}
+function GlassPhotoRefIcon(_props: { style?: React.CSSProperties }) {
+  return (
+    <img
+      src={photoIconRefImg}
       alt=""
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
     />
@@ -566,9 +570,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     souvenirs: 'Сувениры',
   };
   const serviceCategoryIcons: Record<string, typeof Upload> = {
-    photo: GlassPhotoIcon,
+    photo: GlassPhotoRefIcon,
     documents: GlassDocumentsIcon,
-    scanning: GlassScanIcon,
+    scanning: GlassScanRefIcon,
     lamination: GlassLaminationIcon,
     souvenirs: GlassSouvenirsIcon,
   };
@@ -2976,6 +2980,32 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       {/* MAIN CONTENT WORKSPACE */}
       <main className={`flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/50 backdrop-blur-md relative z-10 md:pb-0 ${mobileHome ? 'pb-28' : 'pb-4'}`}>
 
+        {/* Обои "Главной" рисуются на уровне <main>, ПОД шапкой тоже (не только
+            под плитками) — иначе на стыке шапки и плиток виден шов: шапка стоит
+            на обычном фоне <main>, а ниже начинаются обои. -z-10 гарантирует,
+            что они красятся за любым обычным (непозиционированным) контентом
+            внутри <main>, включая шапку, независимо от порядка в разметке. */}
+        {mobileHome && (
+          <>
+            <div
+              className="md:hidden absolute inset-x-0 top-0 -bottom-28 md:bottom-0 -z-10 dark:hidden"
+              style={{ background: 'linear-gradient(135deg, #c9d3df 0%, #b8c6d6 50%, #cdd6e0 100%)' }}
+            />
+            <div
+              className="md:hidden absolute inset-x-0 top-0 -bottom-28 md:bottom-0 -z-10 hidden dark:block"
+              style={{ background: 'linear-gradient(160deg, #1a2535 0%, #0f1a28 35%, #121820 65%, #0d1520 100%)' }}
+            />
+            <div
+              className="md:hidden absolute inset-x-0 top-0 -bottom-28 md:bottom-0 -z-10 bg-cover bg-center dark:hidden"
+              style={{ backgroundImage: `url(${homeWallpaperLight})`, opacity: 0.3 }}
+            />
+            <div
+              className="md:hidden absolute inset-x-0 top-0 -bottom-28 md:bottom-0 -z-10 bg-cover bg-center hidden dark:block"
+              style={{ backgroundImage: `url(${homeWallpaperDark})`, opacity: 0.3 }}
+            />
+          </>
+        )}
+
         {/* Top bar on small / medium devices for header */}
         <header id="dashboard-header" className="md:hidden flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
@@ -3047,30 +3077,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
           return (
             <div ref={homeAreaRef} className="md:hidden relative isolate flex-1 flex flex-col min-h-full">
-              {/* Обои под часами и плитками, как на экране блокировки телефона —
-                  своя картинка под каждую тему (переключаются классом .dark),
-                  на весь блок без отступов, иначе в отступах просвечивает
-                  фон родителя (bg-slate-50/40 у <main>). Сплошная подложка
-                  снизу (те же цвета, что у общего фона сайта, но БЕЗ декоративных
-                  "шариков" liquid-glass-bg — клиент просил убрать, они спорили
-                  с картинкой) — обои поверх неё на 30% прозрачности, растянуты
-                  flex-1 на всю высоту экрана, а не только на высоту плиток. */}
-              <div
-                className="absolute top-0 left-0 right-0 -bottom-28 md:bottom-0 dark:hidden"
-                style={{ background: 'linear-gradient(135deg, #c9d3df 0%, #b8c6d6 50%, #cdd6e0 100%)' }}
-              />
-              <div
-                className="absolute top-0 left-0 right-0 -bottom-28 md:bottom-0 hidden dark:block"
-                style={{ background: 'linear-gradient(160deg, #1a2535 0%, #0f1a28 35%, #121820 65%, #0d1520 100%)' }}
-              />
-              <div
-                className="absolute top-0 left-0 right-0 -bottom-28 md:bottom-0 bg-cover bg-center dark:hidden"
-                style={{ backgroundImage: `url(${homeWallpaperLight})`, opacity: 0.3 }}
-              />
-              <div
-                className="absolute top-0 left-0 right-0 -bottom-28 md:bottom-0 bg-cover bg-center hidden dark:block"
-                style={{ backgroundImage: `url(${homeWallpaperDark})`, opacity: 0.3 }}
-              />
+              {/* Обои теперь рисуются выше, на уровне <main> (см. комментарий там) —
+                  так они продолжаются и под шапкой, без шва на стыке. */}
               <div className="relative z-10 p-2 pt-6">
               <div ref={homeClockWrapRef}>
                 <HomeBigClock size={clockSize} resizable={jiggleMode} onCycleSize={cycleClockSize} />
