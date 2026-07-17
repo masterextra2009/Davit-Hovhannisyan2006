@@ -1544,15 +1544,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     if (aiVoiceRef.current) utterance.voice = aiVoiceRef.current;
     utterance.lang = 'ru-RU';
     utterance.rate = 1;
-    // На iOS/iPadOS мужской русский голос ("Юрий"/Yuri) существует, но
-    // должен быть заранее скачан самим владельцем телефона в Настройки →
-    // Специальные возможности → Голосовой контент → Голоса → Русский —
-    // сайт не может ни проверить, ни установить его сам. Если он не
-    // скачан, getVoices() отдаёт только женский "Milena" и regex выше
-    // (dmitri|pavel|yuri|male) просто не находит совпадений. Понижаем тон
-    // синтезатора как страховку на этот случай — звучит заметно ближе к
-    // мужскому голосу, даже когда играет женский голос по умолчанию.
-    utterance.pitch = 0.8;
+    // Ни на Android, ни на iOS сайт не может поставить конкретный голос на
+    // телефон клиента — это системная функция ОС, требующая действий
+    // самого владельца устройства, и просить об этом рядового клиента
+    // печатного сервиса не вариант. Поэтому берём тот голос, что стоит на
+    // телефоне из коробки (обычно единственный доступный женский, без
+    // скачиваний), и просто понижаем тон синтеза — звучит ниже и нейтральнее,
+    // это финальное решение, а не временная заглушка.
+    utterance.pitch = 0.75;
     utterance.onstart = () => setAiIsSpeaking(true);
     utterance.onend = () => { setAiIsSpeaking(false); clearInterval(keepAliveTimer); };
     utterance.onerror = () => { setAiIsSpeaking(false); clearInterval(keepAliveTimer); };
