@@ -26,6 +26,7 @@ import laminationIconRefImg from '../assets/lamination-icon-ref.png';
 import servicesIconRefImg from '../assets/services-icon-ref.png';
 import profileIconRefImg from '../assets/profile-icon-ref.png';
 import notifyIconRefImg from '../assets/notify-icon-ref.png';
+import callIconRefImg from '../assets/call-icon-ref.png';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
@@ -287,6 +288,15 @@ function GlassNotifyRefIcon(_props: { style?: React.CSSProperties }) {
   return (
     <img
       src={notifyIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+}
+function GlassCallRefIcon(_props: { style?: React.CSSProperties }) {
+  return (
+    <img
+      src={callIconRefImg}
       alt=""
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
     />
@@ -2988,7 +2998,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             href="tel:+79680508800"
             className="nav-shift-right flex flex-col items-center cursor-pointer justify-self-center"
           >
-            <GlassIcon icon={Phone} glow="capsule-glow-green" size={44} colored />
+            <GlassIcon icon={GlassCallRefIcon} glow="capsule-glow-green" size={44} colored />
           </a>
           <button
             onClick={() => { setActiveTab('profile'); setMobileHome(false); handleMarkNotificationsRead(); }}
