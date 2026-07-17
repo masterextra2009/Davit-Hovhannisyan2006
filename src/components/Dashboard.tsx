@@ -3323,13 +3323,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
               <button
                 onClick={() => { setFeedbackDismissed(true); localStorage.setItem(`feedback_dismissed_${user.id}`, '1'); }}
-                className="absolute top-4 right-4 text-white/70 hover:text-white transition z-10"
+                className="absolute top-4 right-4 text-white/70 hover:text-white transition z-20 cursor-pointer"
                 aria-label="Скрыть"
               >
                 <X className="w-4 h-4" />
               </button>
 
-              <div className="flex items-start gap-3 relative z-10">
+              <div className="flex items-start gap-3 relative z-10 pr-7">
                 <div className="p-3 bg-white/10 rounded-2xl border border-white/20 shrink-0 animate-bounce">
                   <Gift className="w-6 h-6" />
                 </div>
