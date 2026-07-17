@@ -3053,7 +3053,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             item.onClick();
                             if (item.key !== 'telegram') setMobileHome(false);
                           }}
-                          className={`relative flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl transition-all duration-200 cursor-pointer active:scale-90 ${
+                          className={`home-tile-btn relative flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl transition-all duration-200 cursor-pointer active:scale-90 ${
                             jiggleMode && !isDragged ? 'tile-jiggle' : ''
                           } ${isDragged ? 'tile-dragging' : ''}`}
                         >

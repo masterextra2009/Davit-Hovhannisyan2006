@@ -3761,6 +3761,14 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
   border-color: var(--lg2026-glass-border) !important;
 }
 
+/* Плитки "Главной" тоже попадают под ".rounded-2xl" выше и получают
+   стеклянную подложку-карточку, которую клиент явно просил убрать —
+   иконка и подпись должны лежать прямо на обоях, без своего фона. */
+.dark #client-dashboard-root#client-dashboard-root .home-tile-btn {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
 /* .glass-panel/.glass-card/.glass-input сами по себе уже тёмные и
    правильные — не нужно, чтобы правило выше их приглушало ещё раз
    поверх их собственного фона, оставляем как есть их же значения */
