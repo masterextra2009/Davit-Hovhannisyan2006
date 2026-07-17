@@ -19,6 +19,7 @@ import scanIconRefImg from '../assets/scan-icon-ref.png';
 import photoIconRefImg from '../assets/photo-icon-ref.png';
 import documentsIconRefImg from '../assets/documents-icon-ref.png';
 import homeIconRefImg from '../assets/home-icon-ref.png';
+import a3IconRefImg from '../assets/a3-icon-ref.png';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
@@ -258,12 +259,13 @@ function GlassPrintIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-function GlassA3Icon(props: React.SVGProps<SVGSVGElement>) {
+function GlassA3RefIcon(_props: { style?: React.CSSProperties }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 4h13a1 1 0 0 1 1 1v13"/>
-      <rect x="7" y="7" width="10" height="14" rx="1"/>
-    </svg>
+    <img
+      src={a3IconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
   );
 }
 function GlassPolaroidIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -2632,7 +2634,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     {
       key: 'category-a3',
       label: 'А3',
-      icon: GlassA3Icon,
+      icon: GlassA3RefIcon,
       glow: 'capsule-glow-indigo',
       isActive: false,
       onClick: () => { nextUploadIsA3Ref.current = true; setActiveTab('upload'); setMobileHome(false); },
