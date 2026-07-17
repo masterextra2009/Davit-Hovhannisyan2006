@@ -591,7 +591,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     photo: 'Печать фото',
     documents: 'Документы',
     scanning: 'Сканирование',
-    lamination: 'Переплёт',
+    lamination: 'Брошюровка',
     souvenirs: 'Сувениры',
   };
   const serviceCategoryIcons: Record<string, typeof Upload> = {
