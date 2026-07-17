@@ -28,7 +28,8 @@ import profileIconRefImg from '../assets/profile-icon-ref.png';
 import notifyIconRefImg from '../assets/notify-icon-ref.png';
 import callIconRefImg from '../assets/call-icon-ref.png';
 import settingsIconRefImg from '../assets/settings-icon-ref.png';
-import aiAssistantIconRefImg from '../assets/ai-assistant-icon-ref.png';
+import aiAssistantCoinWebm from '../assets/ai-assistant-coin.webm';
+import aiAssistantCoinMp4 from '../assets/ai-assistant-coin.mp4';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
@@ -3066,7 +3067,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
 
         <button
-          onClick={() => { setActiveTab('upload'); setMobileHome(false); }}
+          onClick={() => {
+            // Центральная кнопка дока — теперь запуск голосового вопроса
+            // ИИ-помощнику: открывает чат и сразу включает микрофон, а не
+            // загрузку файлов, как раньше.
+            setActiveTab('chat');
+            setMobileHome(false);
+            handleMicClick();
+          }}
           className="disc cursor-pointer"
           style={{ left: '50%', top: 24 }}
         >
@@ -3074,12 +3082,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <span key={i} className="seg" style={{ transform: `rotate(${i * 32.7}deg) translateY(-17.83px)` }} />
           ))}
           <span className="ringbeam"><i /></span>
-          <img
-            src={aiAssistantIconRefImg}
-            alt=""
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
             className="rounded-full object-cover pointer-events-none"
             style={{ width: 44, height: 44 }}
-          />
+          >
+            <source src={aiAssistantCoinWebm} type="video/webm" />
+            <source src={aiAssistantCoinMp4} type="video/mp4" />
+          </video>
         </button>
       </nav>
       )}
