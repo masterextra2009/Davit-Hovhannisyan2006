@@ -23,6 +23,7 @@ import a3IconRefImg from '../assets/a3-icon-ref.png';
 import ordersIconRefImg from '../assets/orders-icon-ref.png';
 import souvenirsIconRefImg from '../assets/souvenirs-icon-ref.png';
 import laminationIconRefImg from '../assets/lamination-icon-ref.png';
+import servicesIconRefImg from '../assets/services-icon-ref.png';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
@@ -253,13 +254,13 @@ interface DashboardProps {
 
 // Иконки для стеклянных плиток "Главной" — точные пути из ТЗ (tz-fable-glass-icons-final.md,
 // часть 3). Не заменять на похожие из lucide-react — эти утверждены явно.
-function GlassPrintIcon(props: React.SVGProps<SVGSVGElement>) {
+function GlassPrintIcon(_props: { style?: React.CSSProperties }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M7 8V4h10v4"/>
-      <rect x="4" y="8" width="16" height="7" rx="2"/>
-      <path d="M7 15h10v5H7z"/>
-    </svg>
+    <img
+      src={servicesIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
   );
 }
 function GlassA3RefIcon(_props: { style?: React.CSSProperties }) {
