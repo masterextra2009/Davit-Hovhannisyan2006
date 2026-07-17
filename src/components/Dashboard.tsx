@@ -27,6 +27,7 @@ import servicesIconRefImg from '../assets/services-icon-ref.png';
 import profileIconRefImg from '../assets/profile-icon-ref.png';
 import notifyIconRefImg from '../assets/notify-icon-ref.png';
 import callIconRefImg from '../assets/call-icon-ref.png';
+import settingsIconRefImg from '../assets/settings-icon-ref.png';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
@@ -4907,7 +4908,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <div className="space-y-6">
                 {/* Secure System & Synchronization Details */}
                 <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6">
-                  <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Безопасность и Настройки</h3>
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <img src={settingsIconRefImg} alt="" className="w-6 h-6 rounded-lg shrink-0" />
+                    Безопасность и Настройки
+                  </h3>
 
                   <div className="space-y-4">
                     
