@@ -222,6 +222,10 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
 
   // Загружаем официальный виджет Telegram Login в контейнер
   const telegramWidgetRef = useRef<HTMLDivElement>(null);
+  // Виджет не загрузился (telegram.org заблокирован оператором/сетью и т.п.) —
+  // тогда невидимый слот отключаем, а по тапу на видимую кнопку показываем
+  // честное объяснение вместо мёртвого молчания.
+  const [tgWidgetFailed, setTgWidgetFailed] = useState(false);
   useEffect(() => {
     (window as any).onTelegramAuthCallback = handleTelegramAuth;
 
@@ -236,6 +240,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     script.setAttribute('data-radius', '14');
     script.setAttribute('data-onauth', 'onTelegramAuthCallback(user)');
     script.setAttribute('data-request-access', 'write');
+    script.onerror = () => setTgWidgetFailed(true);
     container.appendChild(script);
 
     // Виджет вставляет свой iframe асинхронно уже после монтирования — в момент
@@ -251,7 +256,13 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     });
     observer.observe(container, { childList: true });
 
-    return () => observer.disconnect();
+    // Если за 6 секунд iframe так и не появился — считаем, что виджет не
+    // доехал (скрипт или oauth.telegram.org недоступны в этой сети).
+    const failTimer = setTimeout(() => {
+      if (!container.querySelector('iframe')) setTgWidgetFailed(true);
+    }, 6000);
+
+    return () => { observer.disconnect(); clearTimeout(failTimer); };
   }, []);
 
   // Simulate Social network logins (VK/Яндекс — pending real integration)
@@ -510,24 +521,31 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                   </div>
                 </div>
 
-                <label className="flex items-start gap-2 px-2 py-1 cursor-pointer select-none">
+                {/* Вся строка — одна большая зона тапа для галочки. Ссылки на
+                    документы вынесены отдельной строкой ниже: раньше почти весь
+                    текст рядом с галочкой был ссылками, и тап пальцем по ним
+                    открывал документ вместо установки галочки, а сама галочка
+                    была 14px — попасть в неё с телефона почти невозможно. */}
+                <label className="flex items-start gap-2.5 px-2 py-2 -mx-1 rounded-xl cursor-pointer select-none active:bg-white/10 transition-colors">
                   <input
                     type="checkbox"
                     checked={agreedToTerms}
-                    onChange={e => setAgreedToTerms(e.target.checked)}
-                    className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30 cursor-pointer"
+                    onChange={e => {
+                      setAgreedToTerms(e.target.checked);
+                      if (e.target.checked) setErrorMsg('');
+                    }}
+                    className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 cursor-pointer"
+                    style={{ accentColor: '#2563eb' }}
                   />
-                  <span className="text-[10.5px] leading-snug text-slate-500 dark:text-slate-400">
-                    Я согласен с{' '}
-                    <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:text-blue-500">
-                      публичной офертой
-                    </a>
-                    {' '}и{' '}
-                    <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:text-blue-500">
-                      политикой обработки персональных данных
-                    </a>
+                  <span className="text-[11px] leading-snug text-slate-500 dark:text-slate-400">
+                    Я согласен с публичной офертой и политикой обработки персональных данных
                   </span>
                 </label>
+                <div className="px-2 -mt-1.5 text-[10px] text-slate-400 dark:text-slate-500">
+                  <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:text-blue-500">Читать оферту</a>
+                  {' '}·{' '}
+                  <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:text-blue-500">политику данных</a>
+                </div>
 
                 <button
                   type="submit"
@@ -613,9 +631,13 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                 </button>
 
                 <div className="relative w-full h-[46px] flex justify-center items-center rounded-full overflow-hidden">
-                  {/* Видимая кнопка в стиле "Войти в кабинет" — только оформление, клики сквозь неё не ловим */}
+                  {/* Видимая кнопка в стиле "Войти в кабинет". Пока живой виджет
+                      Telegram на месте — клики проходят сквозь неё в невидимый
+                      iframe. Если виджет не загрузился (сеть блокирует
+                      telegram.org) — кнопка сама ловит тап и честно объясняет. */}
                   <div
-                    className="btn-holo-glass absolute inset-0 flex justify-center items-center gap-2 px-3 rounded-full text-xs font-bold text-slate-900 pointer-events-none"
+                    onClick={tgWidgetFailed ? () => setErrorMsg('Вход через Telegram сейчас недоступен в вашей сети — войдите по почте или через Google.') : undefined}
+                    className={`btn-holo-glass absolute inset-0 flex justify-center items-center gap-2 px-3 rounded-full text-xs font-bold text-slate-900 ${tgWidgetFailed ? 'cursor-pointer' : 'pointer-events-none'}`}
                     style={{ position: 'absolute' }}
                   >
                     {socialLoading === 'telegram' ? (
@@ -630,11 +652,12 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                       </>
                     )}
                   </div>
-                  {/* Настоящий виджет Telegram — растянут поверх невидимо, ловит клик по-настоящему */}
+                  {/* Настоящий виджет Telegram — растянут поверх невидимо, ловит клик по-настоящему.
+                      При сбое загрузки отключаем его от кликов, чтобы тап доставался видимой кнопке. */}
                   <div
                     id="telegram-login-slot"
                     ref={telegramWidgetRef}
-                    className="absolute inset-0 opacity-0"
+                    className={`absolute inset-0 opacity-0 ${tgWidgetFailed ? 'pointer-events-none' : ''}`}
                   />
                 </div>
               </div>
