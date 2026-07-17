@@ -3780,9 +3780,15 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
    клиент попросил убрать её плашку-подложку, чтобы она лежала прямо на
    обоях/фоне, как и плитки выше. Глобальные правила "header внутри
    #client-dashboard-root" (светлая и тёмная тема) красят background
-   любого <header> — перебиваем их именно для этой шапки через #id. */
-#client-dashboard-root #dashboard-header,
-.dark #client-dashboard-root #dashboard-header {
+   любого <header> — перебиваем их именно для этой шапки через #id.
+   ВАЖНО: id-селектор дублируем на самом #dashboard-header (а не через
+   предка #client-dashboard-root #dashboard-header) — сборщик CSS минифицирует
+   "id-предок id-потомок" в просто "id-потомок" как избыточное (id и так
+   уникален), из-за чего специфичность в проде падала до 1 id вместо 2,
+   и проигрывала правилу "#client-dashboard-root header". Повтор одного и
+   того же id на одном элементе минификатор не трогает. */
+#dashboard-header#dashboard-header,
+.dark #dashboard-header#dashboard-header {
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
