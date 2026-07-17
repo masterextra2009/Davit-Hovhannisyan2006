@@ -3294,7 +3294,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       )}
 
       {/* MAIN CONTENT WORKSPACE */}
-      <main className={`flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/50 backdrop-blur-md relative z-10 md:pb-0 ${mobileHome ? 'pb-28' : 'pb-4'}`}>
+      <main className={`flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/50 backdrop-blur-md relative z-10 md:pb-0 ${mobileHome ? 'pb-28' : 'pb-4 mobile-page-safe-bottom'}`}>
 
         {/* Обои "Главной" рисуются на уровне <main>, ПОД шапкой тоже (не только
             под плитками) — иначе на стыке шапки и плиток виден шов: шапка стоит
@@ -3432,6 +3432,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             '--jiggle-i': i,
                             transform: isDragged && tileDragPos ? `translate(${tileDragPos.x}px, ${tileDragPos.y}px) scale(1.08)` : undefined,
                             touchAction: jiggleMode ? 'none' : undefined,
+                            WebkitTouchCallout: 'none',
                           } as React.CSSProperties}
                           onPointerDown={(e) => {
                             if (jiggleMode) {
@@ -3461,8 +3462,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               const dy = e.clientY - tileDragOffsetRef.current.y;
                               setTileDragPos({ x: dx, y: dy });
                               handleDragEdgeScroll(e.clientX);
-                              const el = document.elementFromPoint(e.clientX, e.clientY);
-                              const tileEl = el?.closest('[data-tile-key]') as HTMLElement | null;
+                              // elementFromPoint берёт САМЫЙ ВЕРХНИЙ элемент в этой точке — а
+                              // это как раз перетаскиваемая плитка (у неё z-index:20 и она
+                              // визуально следует за пальцем/курсором), поэтому она сама себя
+                              // "находила" под курсором и своп никогда не срабатывал.
+                              // elementsFromPoint (мн.ч.) отдаёт весь стек по z-порядку —
+                              // берём первую плитку в нём, которая не является перетаскиваемой.
+                              const stack = document.elementsFromPoint(e.clientX, e.clientY);
+                              const tileEl = stack
+                                .map(node => node.closest('[data-tile-key]') as HTMLElement | null)
+                                .find(node => node && node.dataset.tileKey !== draggedTileKey);
                               const overKey = tileEl?.dataset.tileKey;
                               if (overKey && overKey !== draggedTileKey) {
                                 moveHomeTile(draggedTileKey, overKey);
@@ -3481,7 +3490,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             item.onClick();
                             if (item.key !== 'telegram') setMobileHome(false);
                           }}
-                          className={`home-tile-btn relative flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl transition-all duration-200 cursor-pointer active:scale-90 ${
+                          className={`home-tile-btn select-none relative flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl transition-all duration-200 cursor-pointer active:scale-90 ${
                             jiggleMode && !isDragged ? 'tile-jiggle' : ''
                           } ${isDragged ? 'tile-dragging' : ''}`}
                         >
@@ -4921,7 +4930,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     onChange={e => setChatInput(e.target.value)}
                     placeholder={micState === 'listening' ? 'Слушаю…' : 'Задайте ваш вопрос оператору...'}
                     aria-label="Сообщение оператору"
-                    className="flex-1 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    // text-base (16px) вместо text-xs — на iOS Safari фокус на
+                    // поле с шрифтом меньше 16px автоматически зумит страницу
+                    // для читаемости, что ощущается как "сильный зум".
+                    className="flex-1 bg-slate-50 dark:bg-slate-950 text-base sm:text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                   <button
                     type="submit"
@@ -7248,7 +7260,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 onChange={(e) => setAiChatInput(e.target.value)}
                 placeholder="Задайте вопрос..."
                 aria-label="Сообщение ИИ-консультанту"
-                className="flex-1 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="flex-1 bg-slate-50 dark:bg-slate-950 text-base sm:text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <button
                 type="submit"
