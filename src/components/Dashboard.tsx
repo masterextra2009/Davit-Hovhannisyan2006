@@ -21,7 +21,6 @@ import documentsIconRefImg from '../assets/documents-icon-ref.webp';
 import homeIconRefImg from '../assets/home-icon-ref.webp';
 import a3IconRefImg from '../assets/a3-icon-ref.webp';
 import ordersIconRefImg from '../assets/orders-icon-ref.webp';
-import souvenirsIconRefImg from '../assets/souvenirs-icon-ref.webp';
 import laminationIconRefImg from '../assets/lamination-icon-ref.webp';
 import servicesIconRefImg from '../assets/services-icon-ref.webp';
 import profileIconRefImg from '../assets/profile-icon-ref.webp';
@@ -329,15 +328,6 @@ function GlassLaminationIcon(_props: { style?: React.CSSProperties }) {
     />
   );
 }
-function GlassSouvenirsIcon(_props: { style?: React.CSSProperties }) {
-  return (
-    <img
-      src={souvenirsIconRefImg}
-      alt=""
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-    />
-  );
-}
 function GlassProfileIcon(_props: { style?: React.CSSProperties }) {
   return (
     <img
@@ -630,28 +620,24 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     documents: (t) => t.includes('докум'),
     scanning: (t) => t.includes('скан'),
     lamination: (t) => t.includes('ламинац') || t.includes('переплёт') || t.includes('переплет') || t.includes('binding'),
-    souvenirs: (t) => t.includes('сувенир') || t.includes('кружк') || t.includes('магнит') || t.includes('футболк') || t.includes('керамик'),
   };
   const serviceCategoryLabels: Record<string, string> = {
     photo: 'Печать фото',
     documents: 'Документы',
     scanning: 'Сканирование',
     lamination: 'Брошюровка',
-    souvenirs: 'Сувениры',
   };
   const serviceCategoryIcons: Record<string, typeof Upload> = {
     photo: GlassPhotoRefIcon,
     documents: GlassDocumentsRefIcon,
     scanning: GlassScanRefIcon,
     lamination: GlassLaminationIcon,
-    souvenirs: GlassSouvenirsIcon,
   };
   const serviceCategoryGlows: Record<string, string> = {
     photo: 'capsule-glow-purple',
     documents: 'capsule-glow-indigo',
     scanning: 'capsule-glow-green',
     lamination: 'capsule-glow-orange',
-    souvenirs: 'capsule-glow-cyan',
   };
   const [dismissedRatings, setDismissedRatings] = React.useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('dismissed_ratings') || '[]')); } catch { return new Set(); }
