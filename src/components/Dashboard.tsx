@@ -1460,13 +1460,23 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // оператором окно: клиент задаёт вопрос текстом или голосом, ответ идёт
   // через Claude API (сервер сам подтягивает живые цены из Firestore и
   // подставляет их в системный промпт — на клиенте цены нигде не хранятся).
-  type AiChatMessage = { role: 'user' | 'assistant'; content: string };
+  type AiChatMessage = { role: 'user' | 'assistant'; content: string; showRoute?: boolean };
+  // Маршрут.md — модель добавляет эту метку в конце ответа, когда клиент
+  // спрашивает "как добраться"; код (не модель) вырезает метку из текста
+  // и рисует вместо неё кнопку с готовой ссылкой на Яндекс.Карты.
+  const AI_ROUTE_MARKER = '[ПОКАЗАТЬ_МАРШРУТ]';
+  const AI_STUDIO_ADDRESS = 'Северное шоссе 18, Раменское, Московская область';
+  const openAiChatRoute = () => {
+    // Геолокацию должен спросить сам браузер по клику на ссылку карт —
+    // ничего запрашивать заранее не нужно, и без разрешения карта всё
+    // равно откроется, просто попросит точку отправления сама.
+    const url = `https://yandex.ru/maps/?rtext=~${encodeURIComponent(AI_STUDIO_ADDRESS)}&rtt=auto`;
+    window.open(url, '_blank');
+  };
   const [showAiChat, setShowAiChat] = useState(false);
   const [aiChatMessages, setAiChatMessages] = useState<AiChatMessage[]>([]);
   const [aiChatInput, setAiChatInput] = useState('');
   const [aiChatSending, setAiChatSending] = useState(false);
-  const [aiChatMicState, setAiChatMicState] = useState<'idle' | 'listening'>('idle');
-  const [aiChatMicError, setAiChatMicError] = useState<string | null>(null);
   // "на время сессии" — sessionStorage, не localStorage, обнуляется когда
   // вкладка/приложение закрывается, как и просили в ТЗ озвучки.
   const [aiChatSpeakEnabled, setAiChatSpeakEnabled] = useState(() => {
@@ -1495,12 +1505,45 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     .replace(/\n+/g, ' ')
     .trim();
 
+  // Конкретный голос для озвучки (Голос.md) — выбирается один раз по имени,
+  // не даётся клиенту на выбор. Список голосов браузер отдаёт асинхронно
+  // (onvoiceschanged), а в части браузеров он уже готов к моменту монтирования
+  // — поэтому пробуем сразу И подписываемся на событие.
+  const aiVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    const pickVoice = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) return;
+      const preferred = voices.find(v => v.name === 'Microsoft Дмитрий Online (Natural) - Russian (Russia)');
+      const dmitri = voices.find(v => /дмитрий|dmitri/i.test(v.name));
+      const ruVoices = voices.filter(v => v.lang?.toLowerCase().startsWith('ru'));
+      const ruMale = ruVoices.find(v => /pavel|dmitri|yuri|male/i.test(v.name));
+      aiVoiceRef.current = preferred || dmitri || ruMale || ruVoices[0] || null;
+    };
+    pickVoice();
+    window.speechSynthesis.onvoiceschanged = pickVoice;
+    return () => { window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
+
+  // Пока идёт озвучка ответа — кружок в голосовом оверлее "оживает"
+  // (пульс + бегущая звуковая дорожка), как в голосовом режиме GPT-чатов.
+  // Настоящего анализа громкости у SpeechSynthesis нет (браузер не даёт
+  // доступ к аудио-потоку синтеза), поэтому дорожка декоративная — просто
+  // играет, пока utterance реально звучит (onstart/onend), а не всегда.
+  const [aiIsSpeaking, setAiIsSpeaking] = useState(false);
+
   const speakAiReply = (text: string) => {
     if (!aiChatSpeakEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (!aiVoiceRef.current) return; // нет подходящего русского голоса на устройстве — молча пропускаем
     window.speechSynthesis.cancel(); // не наложить новый ответ поверх ещё звучащего
     const utterance = new SpeechSynthesisUtterance(stripMarkdownForSpeech(text));
+    utterance.voice = aiVoiceRef.current;
     utterance.lang = 'ru-RU';
     utterance.rate = 1;
+    utterance.onstart = () => setAiIsSpeaking(true);
+    utterance.onend = () => setAiIsSpeaking(false);
+    utterance.onerror = () => setAiIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
   };
 
@@ -1517,14 +1560,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     window.speechSynthesis?.cancel(); // не договаривать в свёрнутое окно
   };
 
-  const handleSendAiChatMessage = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const text = aiChatInput.trim();
-    if (!text || aiChatSending) return;
+  // Общая логика "отправить текст в ИИ и получить ответ" — используется и
+  // обычной текстовой формой, и голосовым оверлеем (см. ниже), чтобы не
+  // дублировать fetch/обработку ошибок/парсинг метки маршрута в двух местах.
+  const sendAiChatText = async (text: string): Promise<{ reply: string; showRoute: boolean }> => {
     const nextMessages: AiChatMessage[] = [...aiChatMessages, { role: 'user', content: text }];
     setAiChatMessages(nextMessages);
-    setAiChatInput('');
-    setAiChatSending(true);
+    const fallbackReply = 'Не могу ответить прямо сейчас, напишите нам в Telegram @photosever18 или позвоните 8 (968) 050-88-00';
     try {
       const res = await fetch('https://sever-18.ru/api/ai-chat.php', {
         method: 'POST',
@@ -1532,40 +1574,78 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         body: JSON.stringify({ messages: nextMessages }),
       });
       const data = await res.json();
-      const reply = data.reply || 'Не могу ответить прямо сейчас, напишите нам в Telegram @photosever18 или позвоните 8 (968) 050-88-00';
-      setAiChatMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+      const rawReply: string = data.reply || fallbackReply;
+      const showRoute = rawReply.includes(AI_ROUTE_MARKER);
+      const reply = rawReply.replace(AI_ROUTE_MARKER, '').trim();
+      setAiChatMessages(prev => [...prev, { role: 'assistant', content: reply, showRoute }]);
       speakAiReply(reply);
+      return { reply, showRoute };
     } catch {
-      const reply = 'Не могу ответить прямо сейчас, напишите нам в Telegram @photosever18 или позвоните 8 (968) 050-88-00';
-      setAiChatMessages(prev => [...prev, { role: 'assistant', content: reply }]);
-      speakAiReply(reply);
+      setAiChatMessages(prev => [...prev, { role: 'assistant', content: fallbackReply }]);
+      speakAiReply(fallbackReply);
+      return { reply: fallbackReply, showRoute: false };
+    }
+  };
+
+  const handleSendAiChatMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const text = aiChatInput.trim();
+    if (!text || aiChatSending) return;
+    setAiChatInput('');
+    setAiChatSending(true);
+    try {
+      await sendAiChatText(text);
     } finally {
       setAiChatSending(false);
     }
   };
 
-  const handleAiChatMicClick = () => {
-    if (aiChatMicState === 'listening') return;
+  // Полноэкранный голосовой режим (как voice mode в GPT-чатах) — открывается
+  // по кнопке микрофона вместо инлайн-записи в маленьком поле: большая
+  // пульсирующая кнопка, пока идёт запись, затем ответ показывается и
+  // проговаривается уже в этом же оверлее.
+  type VoiceOverlayPhase = 'listening' | 'thinking' | 'answered' | 'error';
+  const [showVoiceOverlay, setShowVoiceOverlay] = useState(false);
+  const [voiceOverlayPhase, setVoiceOverlayPhase] = useState<VoiceOverlayPhase>('listening');
+  const [voiceOverlayReply, setVoiceOverlayReply] = useState('');
+  const [voiceOverlayError, setVoiceOverlayError] = useState<string | null>(null);
+  const voiceOverlayRecognitionRef = useRef<any>(null);
+
+  const handleCloseVoiceOverlay = () => {
+    try { voiceOverlayRecognitionRef.current?.abort(); } catch { /* ignore */ }
+    setShowVoiceOverlay(false);
+    window.speechSynthesis?.cancel();
+  };
+
+  const handleOpenVoiceOverlay = () => {
     const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionCtor) return;
-    setAiChatMicError(null);
+    setVoiceOverlayError(null);
+    setVoiceOverlayReply('');
+    setVoiceOverlayPhase('listening');
+    setShowVoiceOverlay(true);
+
     const recognition = new SpeechRecognitionCtor();
+    voiceOverlayRecognitionRef.current = recognition;
     recognition.lang = 'ru-RU';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-    recognition.onstart = () => setAiChatMicState('listening');
-    recognition.onresult = (event: any) => {
+    recognition.onresult = async (event: any) => {
       const text = event.results?.[0]?.[0]?.transcript;
-      if (text) setAiChatInput(text);
+      if (!text) return;
+      setVoiceOverlayPhase('thinking');
+      const { reply } = await sendAiChatText(text);
+      setVoiceOverlayReply(reply);
+      setVoiceOverlayPhase('answered');
     };
     recognition.onerror = (event: any) => {
       if (event.error === 'not-allowed' || event.error === 'permission-denied' || event.error === 'service-not-allowed') {
-        setAiChatMicError('Разреши доступ к микрофону в браузере');
-      } else {
-        setAiChatMicError('Не расслышал, попробуй ещё раз');
+        setVoiceOverlayError('Разреши доступ к микрофону в браузере');
+      } else if (event.error !== 'aborted') {
+        setVoiceOverlayError('Не расслышал, попробуй ещё раз');
       }
+      setVoiceOverlayPhase('error');
     };
-    recognition.onend = () => setAiChatMicState('idle');
     recognition.start();
   };
 
@@ -7120,7 +7200,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 </div>
               )}
               {aiChatMessages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'} gap-2`}>
                   <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
                     m.role === 'user'
                       ? 'bg-indigo-600 text-white'
@@ -7128,6 +7208,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   }`}>
                     {m.content}
                   </div>
+                  {m.showRoute && (
+                    <button
+                      onClick={openAiChatRoute}
+                      className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition cursor-pointer"
+                    >
+                      <MapPin className="w-3.5 h-3.5" /> Построить маршрут 📍
+                    </button>
+                  )}
                 </div>
               ))}
               {aiChatSending && (
@@ -7142,23 +7230,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <div ref={aiChatBottomRef} />
             </div>
 
-            {aiChatMicError && (
-              <div className="px-4 pb-1 text-[11px] font-bold text-rose-500 dark:text-rose-400 shrink-0">
-                {aiChatMicError}
-              </div>
-            )}
             <form onSubmit={handleSendAiChatMessage} className="p-4 border-t border-white/10 flex gap-2 shrink-0">
               {speechRecognitionSupported && (
                 <button
                   type="button"
-                  onClick={handleAiChatMicClick}
-                  title={aiChatMicState === 'listening' ? 'Слушаю…' : 'Голосовой ввод'}
-                  aria-label={aiChatMicState === 'listening' ? 'Слушаю…' : 'Голосовой ввод'}
-                  className={`shrink-0 p-3 rounded-xl transition flex items-center justify-center border ${
-                    aiChatMicState === 'listening'
-                      ? 'bg-rose-500 border-rose-500 text-white animate-pulse'
-                      : 'bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-850'
-                  }`}
+                  onClick={handleOpenVoiceOverlay}
+                  title="Голосовой вопрос"
+                  aria-label="Голосовой вопрос"
+                  className="shrink-0 p-3 rounded-xl transition flex items-center justify-center border bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-850"
                 >
                   <Mic className="w-4 h-4" />
                 </button>
@@ -7167,7 +7246,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 type="text"
                 value={aiChatInput}
                 onChange={(e) => setAiChatInput(e.target.value)}
-                placeholder={aiChatMicState === 'listening' ? 'Слушаю…' : 'Задайте вопрос...'}
+                placeholder="Задайте вопрос..."
                 aria-label="Сообщение ИИ-консультанту"
                 className="flex-1 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
@@ -7179,6 +7258,82 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <Send className="w-4 h-4" />
               </button>
             </form>
+          </motion.div>
+        </div>
+      )}
+      </AnimatePresence>
+
+      {/* Полноэкранный голосовой режим ИИ-чата (как voice mode в GPT-чатах) */}
+      <AnimatePresence>
+      {showVoiceOverlay && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-lg flex flex-col items-center justify-center p-6 z-[60]">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.9 }}
+            className="flex flex-col items-center justify-center gap-8 w-full max-w-sm"
+          >
+            <div className="relative flex items-center justify-center" style={{ width: 180, height: 180 }}>
+              {voiceOverlayPhase === 'listening' && (
+                <>
+                  <span className="absolute inset-0 rounded-full bg-rose-500/40 voice-pulse-ring" />
+                  <span className="absolute inset-0 rounded-full bg-rose-500/40 voice-pulse-ring" style={{ animationDelay: '0.5s' }} />
+                </>
+              )}
+              <video
+                autoPlay loop muted playsInline
+                className="rounded-full object-cover relative z-10"
+                style={{ width: 150, height: 150 }}
+              >
+                <source src={aiAssistantCoinWebm} type="video/webm" />
+                <source src={aiAssistantCoinMp4} type="video/mp4" />
+              </video>
+              {aiIsSpeaking && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center gap-1">
+                  {[0, 1, 2, 3, 4].map(i => (
+                    <span
+                      key={i}
+                      className="w-1 rounded-full bg-white voice-track-bar"
+                      style={{ height: 34, animationDelay: `${i * 0.12}s` }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="text-center min-h-[3em] px-2">
+              {voiceOverlayPhase === 'listening' && (
+                <p className="text-white text-sm font-bold">Слушаю…</p>
+              )}
+              {voiceOverlayPhase === 'thinking' && (
+                <p className="text-white/70 text-sm font-bold">Думаю…</p>
+              )}
+              {voiceOverlayPhase === 'error' && (
+                <p className="text-rose-400 text-sm font-bold">{voiceOverlayError}</p>
+              )}
+              {voiceOverlayPhase === 'answered' && (
+                <p className="text-white text-sm leading-relaxed">{voiceOverlayReply}</p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              {(voiceOverlayPhase === 'answered' || voiceOverlayPhase === 'error') && (
+                <button
+                  onClick={handleOpenVoiceOverlay}
+                  className="px-5 py-3 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition cursor-pointer"
+                >
+                  Спросить ещё
+                </button>
+              )}
+              <button
+                onClick={handleCloseVoiceOverlay}
+                className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center text-white transition cursor-pointer"
+                aria-label="Закрыть"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </motion.div>
         </div>
       )}

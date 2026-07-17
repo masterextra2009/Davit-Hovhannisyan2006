@@ -2234,6 +2234,25 @@ button:hover .glass-icon-capsule {
   content: none;
 }
 
+/* Голосовой оверлей ИИ-чата — большой кружок пульсирует, пока слушает
+   клиента, и "оживает" бегущей звуковой дорожкой, пока проговаривает
+   ответ (как voice mode в GPT-чатах). */
+@keyframes voice-pulse-ring {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.45); opacity: 0; }
+}
+.voice-pulse-ring {
+  animation: voice-pulse-ring 1.6s ease-out infinite;
+}
+@keyframes voice-track-bar {
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1); }
+}
+.voice-track-bar {
+  animation: voice-track-bar 0.9s ease-in-out infinite;
+  transform-origin: center;
+}
+
 /* Стеклянная иконка с бегущим бликом по кромке — прозрачная "стеклянная" капсула,
    цвет только у самого глифа иконки внутри (передаётся через color на SVG). */
 @keyframes beam-spin {
