@@ -3271,9 +3271,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
         <button
           onClick={() => {
-            // Центральная кнопка дока — отдельное окно ИИ-консультанта
-            // (tz-fable-chat-icon-attach.md), не путать с чатом оператора.
+            // Центральная кнопка дока — сразу открывает голосовой режим
+            // (не текстовое окно чата первым экраном), поверх уже открытого
+            // текстового чата — так при закрытии голосового оверлея клиент
+            // попадает в обычное окно чата с историей (и понятной кнопкой
+            // закрыть), а не сразу обратно на "Главную".
             handleOpenAiChat();
+            handleOpenVoiceOverlay();
           }}
           className="disc cursor-pointer"
           style={{ left: '50%', top: 24 }}
@@ -3304,19 +3308,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         {mobileHome && (
           <>
             <div
-              className="md:hidden absolute inset-x-0 top-0 -bottom-28 md:bottom-0 -z-10 dark:hidden"
+              className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 dark:hidden"
               style={{ background: 'linear-gradient(135deg, #c9d3df 0%, #b8c6d6 50%, #cdd6e0 100%)' }}
             />
             <div
-              className="md:hidden absolute inset-x-0 top-0 -bottom-28 md:bottom-0 -z-10 hidden dark:block"
+              className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 hidden dark:block"
               style={{ background: 'linear-gradient(160deg, #1a2535 0%, #0f1a28 35%, #121820 65%, #0d1520 100%)' }}
             />
             <div
-              className="md:hidden absolute inset-x-0 top-0 -bottom-28 md:bottom-0 -z-10 bg-cover bg-center dark:hidden"
+              className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 bg-cover bg-center dark:hidden"
               style={{ backgroundImage: `url(${homeWallpaperLight})`, opacity: 0.3 }}
             />
             <div
-              className="md:hidden absolute inset-x-0 top-0 -bottom-28 md:bottom-0 -z-10 bg-cover bg-center hidden dark:block"
+              className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 bg-cover bg-center hidden dark:block"
               style={{ backgroundImage: `url(${homeWallpaperDark})`, opacity: 0.3 }}
             />
           </>
