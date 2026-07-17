@@ -30,9 +30,7 @@ import callIconRefImg from '../assets/call-icon-ref.webp';
 import settingsIconRefImg from '../assets/settings-icon-ref.webp';
 import aiAssistantCoinWebm from '../assets/ai-assistant-coin.webm';
 import aiAssistantCoinMp4 from '../assets/ai-assistant-coin.mp4';
-import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
-import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
-import { 
+import {
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 
   Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, Mic, Volume2, VolumeX,
   FileCheck, LogOut, Check, ArrowDown, Bell, HelpCircle, Laptop, ArrowLeft,
@@ -2942,10 +2940,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   ];
 
   const homeAllTiles = [
-    // Заказы/Чат/Кабинет — самые нужные разделы, должны быть на первой
-    // странице плиток всегда, даже когда категорий услуг наберётся больше
-    // 9 и они уйдут на следующую свайп-страницу.
-    ...navItems.filter(item => !['services', 'contacts', 'upload'].includes(item.key)),
+    // Заказы/Чат — самые нужные разделы, должны быть на первой странице
+    // плиток всегда, даже когда категорий услуг наберётся больше 9 и они
+    // уйдут на следующую свайп-страницу. "Личный кабинет" сюда не входит —
+    // для него уже есть отдельная иконка в нижнем доке, дублировать плиткой
+    // на "Главной" не нужно (клиент попросил убрать дубль).
+    ...navItems.filter(item => !['services', 'contacts', 'upload', 'profile'].includes(item.key)),
     ...categoryTiles,
   ];
   const homeOrderedTiles = homeTileOrder.length
@@ -3204,7 +3204,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           бегущим бликом, цвет только у самого глифа. */}
       {mobileHome && (
       <nav
-        className="md:hidden fixed bottom-3 left-0 right-0 z-40"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40"
         style={{ width: navWidth, height: 90 }}
       >
         {/* Заливка + блюр вырезаны точно по контуру через clip-path (те же координаты,
@@ -3304,7 +3304,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             под плитками) — иначе на стыке шапки и плиток виден шов: шапка стоит
             на обычном фоне <main>, а ниже начинаются обои. -z-10 гарантирует,
             что они красятся за любым обычным (непозиционированным) контентом
-            внутри <main>, включая шапку, независимо от порядка в разметке. */}
+            внутри <main>, включая шапку, независимо от порядка в разметке.
+            Раньше поверх этого градиента ещё лежала волнистая S-образная
+            фотография (home-wallpaper-*.jpg на 30% прозрачности) — клиент
+            попросил убрать волнистые полосы и оставить ровный градиент. */}
         {mobileHome && (
           <>
             <div
@@ -3314,14 +3317,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <div
               className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 hidden dark:block"
               style={{ background: 'linear-gradient(160deg, #1a2535 0%, #0f1a28 35%, #121820 65%, #0d1520 100%)' }}
-            />
-            <div
-              className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 bg-cover bg-center dark:hidden"
-              style={{ backgroundImage: `url(${homeWallpaperLight})`, opacity: 0.3 }}
-            />
-            <div
-              className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 bg-cover bg-center hidden dark:block"
-              style={{ backgroundImage: `url(${homeWallpaperDark})`, opacity: 0.3 }}
             />
           </>
         )}
