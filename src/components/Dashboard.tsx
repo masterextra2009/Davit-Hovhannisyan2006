@@ -2816,10 +2816,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
       </aside>
 
-      {/* Постоянная нижняя навигация на телефоне — панель рисуется одной SVG-фигурой,
-          вырез под кнопку загрузки — часть контура (кнопка "лежит" в вырезе, а не
-          просто наложена поверх плашки). Стеклянные иконки с бегущим бликом, цвет
-          только у самого глифа. */}
+      {/* Нижняя навигация на телефоне — только на "Главной" с плитками; внутри
+          раздела (mobileHome === false) за возврат отвечает кнопка "Назад" в
+          шапке, дублировать её доком снизу не нужно. Панель рисуется одной
+          SVG-фигурой, вырез под кнопку загрузки — часть контура (кнопка "лежит"
+          в вырезе, а не просто наложена поверх плашки). Стеклянные иконки с
+          бегущим бликом, цвет только у самого глифа. */}
+      {mobileHome && (
       <nav
         className="md:hidden fixed bottom-3 left-0 right-0 z-40"
         style={{ width: navWidth, height: 90 }}
@@ -2898,9 +2901,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           <GlassUploadIcon style={{ color: '#c4b5fd' }} />
         </button>
       </nav>
+      )}
 
       {/* MAIN CONTENT WORKSPACE */}
-      <main className="flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/50 backdrop-blur-md relative z-10 pb-28 md:pb-0">
+      <main className={`flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/50 backdrop-blur-md relative z-10 md:pb-0 ${mobileHome ? 'pb-28' : 'pb-4'}`}>
 
         {/* Top bar on small / medium devices for header */}
         <header id="dashboard-header" className="md:hidden flex items-center justify-between px-4 py-3 glass-panel rounded-2xl">

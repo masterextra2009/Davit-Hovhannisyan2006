@@ -115,6 +115,13 @@
   transition-duration: 150ms;
 }
 
+/* Убираем стандартную серую подсветку тапа на мобильных браузерах — на
+   плитках/кнопках без своего фона (например, плитки "Главной") она рисуется
+   как некрасивый серый прямоугольник поверх иконки и подписи при нажатии. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Scrollbar tweaks to increase high density screen space efficiency */
 ::-webkit-scrollbar {
   width: 6px;
