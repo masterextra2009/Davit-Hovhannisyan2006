@@ -611,6 +611,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // Ламинация / Сувениры) — null значит показывать все активные услуги, как раньше.
   const [serviceCategoryFilter, setServiceCategoryFilter] = useState<string | null>(null);
 
+  // Раскрытая на весь экран карточка услуги: тап по карточке плавно
+  // "разворачивает" её из своего места в сетке до полного экрана (эффект
+  // открытия окна как в macOS/App Store, через layoutId Framer Motion),
+  // крестик или тап по фону сворачивает обратно.
+  const [expandedService, setExpandedService] = useState<Service | null>(null);
+
   // Категории плиток на "Главной" — реальные услуги фильтруются по ключевым словам в названии,
   // тем же принципом, что уже используется для подбора 3D-иконки услуги (см. get3DIcon ниже).
   // Ничего не выдумываем: если у категории пока нет ни одной активной услуги в базе, покажем
@@ -5657,10 +5663,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   };
 
                   return (
-                    <div
+                    <motion.div
                       key={svc.id}
+                      layoutId={`svc-card-${svc.id}`}
                       onMouseMove={handleServiceCardTilt}
                       onMouseLeave={handleServiceCardTiltReset}
+                      onClick={() => setExpandedService(svc)}
                       className="service-glass-card group relative cursor-pointer select-none flex flex-col"
                     >
                       {/* Картинка сверху — намеренно без overflow-hidden, чтобы при
@@ -5690,7 +5698,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         </p>
                         <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mt-2 mb-2">{svc.price}</p>
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const priceNum = parseInt(svc.price.replace(/[^0-9]/g, ''), 10) || 0;
                             setSelectedService({ id: svc.id, title: svc.title, price: priceNum });
                             setNotes(`Услуга: ${svc.title} — ${svc.price}`);
@@ -5699,7 +5708,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           className="btn-3d-choose w-full mt-auto py-2.5 rounded-xl font-black text-xs text-white cursor-pointer"
                         >Заказать →</button>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
             </div>
@@ -5711,6 +5720,70 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
         </div>
       </main>
+
+      {/* Раскрытая карточка услуги: та же карточка (общий layoutId) плавно
+          вырастает из своего места в сетке до полного экрана и обратно —
+          эффект открытия окна как в macOS/App Store. Фон и крестик закрывают. */}
+      <AnimatePresence>
+        {expandedService && (
+          <motion.div
+            key="svc-expanded-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/55 backdrop-blur-sm"
+            onClick={() => setExpandedService(null)}
+          >
+            <motion.div
+              layoutId={`svc-card-${expandedService.id}`}
+              transition={{ type: 'spring', damping: 30, stiffness: 320 }}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute inset-0 bg-white dark:bg-[#101422] flex flex-col overflow-y-auto overscroll-contain"
+            >
+              <button
+                onClick={() => setExpandedService(null)}
+                aria-label="Закрыть"
+                className="fixed z-20 right-4 w-9 h-9 rounded-full bg-black/45 text-white text-lg font-black flex items-center justify-center cursor-pointer backdrop-blur-sm"
+                style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
+              >✕</button>
+
+              <div className="w-full shrink-0 bg-slate-100 dark:bg-slate-900/60 flex items-center justify-center">
+                {expandedService.imageUrl ? (
+                  <img
+                    src={expandedService.imageUrl}
+                    alt={expandedService.title}
+                    className="w-full max-h-[55dvh] object-contain"
+                  />
+                ) : expandedService.iconUrl ? (
+                  <img src={expandedService.iconUrl} alt={expandedService.title} className="w-40 h-40 object-contain my-16" />
+                ) : (
+                  <span className="text-[96px] leading-none my-16">{expandedService.emoji}</span>
+                )}
+              </div>
+
+              <div className="flex-1 flex flex-col px-5 pt-5"
+                style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+              >
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white leading-tight">{expandedService.title}</h2>
+                {expandedService.description && (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mt-2 whitespace-pre-wrap">{expandedService.description}</p>
+                )}
+                <p className="font-black text-3xl text-indigo-600 dark:text-indigo-400 mt-4">{expandedService.price}</p>
+                <button
+                  onClick={() => {
+                    const priceNum = parseInt(expandedService.price.replace(/[^0-9]/g, ''), 10) || 0;
+                    setSelectedService({ id: expandedService.id, title: expandedService.title, price: priceNum });
+                    setNotes(`Услуга: ${expandedService.title} — ${expandedService.price}`);
+                    setExpandedService(null);
+                    setActiveTab('upload');
+                  }}
+                  className="btn-3d-choose w-full mt-6 py-3.5 rounded-2xl font-black text-sm text-white cursor-pointer"
+                >Заказать →</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Полноэкранный предпросмотр файла — PDF рендерится постранично через
           pdf.js (см. эффект на previewFile выше) вместо <iframe>, потому что
