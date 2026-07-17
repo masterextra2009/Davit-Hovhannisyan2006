@@ -24,6 +24,7 @@ import ordersIconRefImg from '../assets/orders-icon-ref.png';
 import souvenirsIconRefImg from '../assets/souvenirs-icon-ref.png';
 import laminationIconRefImg from '../assets/lamination-icon-ref.png';
 import servicesIconRefImg from '../assets/services-icon-ref.png';
+import profileIconRefImg from '../assets/profile-icon-ref.png';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
@@ -307,12 +308,13 @@ function GlassSouvenirsIcon(_props: { style?: React.CSSProperties }) {
     />
   );
 }
-function GlassProfileIcon(props: React.SVGProps<SVGSVGElement>) {
+function GlassProfileIcon(_props: { style?: React.CSSProperties }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="8" r="4"/>
-      <path d="M5 20a7 7 0 0 1 14 0"/>
-    </svg>
+    <img
+      src={profileIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
   );
 }
 function GlassChatIcon(_props: { style?: React.CSSProperties }) {
