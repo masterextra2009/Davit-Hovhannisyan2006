@@ -22,6 +22,7 @@ import homeIconRefImg from '../assets/home-icon-ref.png';
 import a3IconRefImg from '../assets/a3-icon-ref.png';
 import ordersIconRefImg from '../assets/orders-icon-ref.png';
 import souvenirsIconRefImg from '../assets/souvenirs-icon-ref.png';
+import laminationIconRefImg from '../assets/lamination-icon-ref.png';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
@@ -287,12 +288,13 @@ function GlassPolaroidIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-function GlassLaminationIcon(props: React.SVGProps<SVGSVGElement>) {
+function GlassLaminationIcon(_props: { style?: React.CSSProperties }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="7" y="4" width="14" height="17" rx="1"/>
-      <path d="M3 6h2M3 9.5h2M3 13h2M3 16.5h2M3 20h2"/>
-    </svg>
+    <img
+      src={laminationIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
   );
 }
 function GlassSouvenirsIcon(_props: { style?: React.CSSProperties }) {
