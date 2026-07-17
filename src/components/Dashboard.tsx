@@ -34,7 +34,7 @@ import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 
-  Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, Mic, 
+  Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, Mic, Volume2, VolumeX,
   FileCheck, LogOut, Check, ArrowDown, Bell, HelpCircle, Laptop, ArrowLeft,
   Layers, RefreshCw, Smartphone, Phone, Star, Trophy, Award, Share2, Copy, Mail, Gift,
   Maximize2, Eye, ZoomIn, ZoomOut, RotateCw, Printer, X, Camera
@@ -1453,6 +1453,115 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       }
     };
     recognition.onend = () => setMicState('idle');
+    recognition.start();
+  };
+
+  // ИИ-чат (tz-fable-ai-chat-master.md) — отдельное, независимое от чата с
+  // оператором окно: клиент задаёт вопрос текстом или голосом, ответ идёт
+  // через Claude API (сервер сам подтягивает живые цены из Firestore и
+  // подставляет их в системный промпт — на клиенте цены нигде не хранятся).
+  type AiChatMessage = { role: 'user' | 'assistant'; content: string };
+  const [showAiChat, setShowAiChat] = useState(false);
+  const [aiChatMessages, setAiChatMessages] = useState<AiChatMessage[]>([]);
+  const [aiChatInput, setAiChatInput] = useState('');
+  const [aiChatSending, setAiChatSending] = useState(false);
+  const [aiChatMicState, setAiChatMicState] = useState<'idle' | 'listening'>('idle');
+  const [aiChatMicError, setAiChatMicError] = useState<string | null>(null);
+  // "на время сессии" — sessionStorage, не localStorage, обнуляется когда
+  // вкладка/приложение закрывается, как и просили в ТЗ озвучки.
+  const [aiChatSpeakEnabled, setAiChatSpeakEnabled] = useState(() => {
+    try { return sessionStorage.getItem('ai_chat_speak') !== 'off'; } catch { return true; }
+  });
+  const aiChatBottomRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    aiChatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [aiChatMessages, aiChatSending]);
+
+  const toggleAiChatSpeak = () => {
+    setAiChatSpeakEnabled(prev => {
+      const next = !prev;
+      try { sessionStorage.setItem('ai_chat_speak', next ? 'on' : 'off'); } catch { /* ignore */ }
+      if (!next) window.speechSynthesis?.cancel();
+      return next;
+    });
+  };
+
+  // Список с тире читается вслух дословно ("тире печать А4") — если в
+  // ответе есть маркированный список, для озвучки убираем разметку и
+  // склеиваем в обычный связный текст.
+  const stripMarkdownForSpeech = (text: string) => text
+    .replace(/^[\s]*[-•]\s+/gm, '. ')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\n+/g, ' ')
+    .trim();
+
+  const speakAiReply = (text: string) => {
+    if (!aiChatSpeakEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel(); // не наложить новый ответ поверх ещё звучащего
+    const utterance = new SpeechSynthesisUtterance(stripMarkdownForSpeech(text));
+    utterance.lang = 'ru-RU';
+    utterance.rate = 1;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleOpenAiChat = () => {
+    setShowAiChat(true);
+    setMobileHome(false);
+  };
+  const handleCloseAiChat = () => {
+    setShowAiChat(false);
+    window.speechSynthesis?.cancel(); // не договаривать в свёрнутое окно
+  };
+
+  const handleSendAiChatMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const text = aiChatInput.trim();
+    if (!text || aiChatSending) return;
+    const nextMessages: AiChatMessage[] = [...aiChatMessages, { role: 'user', content: text }];
+    setAiChatMessages(nextMessages);
+    setAiChatInput('');
+    setAiChatSending(true);
+    try {
+      const res = await fetch('https://sever-18.ru/api/ai-chat.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: nextMessages }),
+      });
+      const data = await res.json();
+      const reply = data.reply || 'Не могу ответить прямо сейчас, напишите нам в Telegram @photosever18 или позвоните 8 (968) 050-88-00';
+      setAiChatMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+      speakAiReply(reply);
+    } catch {
+      const reply = 'Не могу ответить прямо сейчас, напишите нам в Telegram @photosever18 или позвоните 8 (968) 050-88-00';
+      setAiChatMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+      speakAiReply(reply);
+    } finally {
+      setAiChatSending(false);
+    }
+  };
+
+  const handleAiChatMicClick = () => {
+    if (aiChatMicState === 'listening') return;
+    const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
+    setAiChatMicError(null);
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'ru-RU';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onstart = () => setAiChatMicState('listening');
+    recognition.onresult = (event: any) => {
+      const text = event.results?.[0]?.[0]?.transcript;
+      if (text) setAiChatInput(text);
+    };
+    recognition.onerror = (event: any) => {
+      if (event.error === 'not-allowed' || event.error === 'permission-denied' || event.error === 'service-not-allowed') {
+        setAiChatMicError('Разреши доступ к микрофону в браузере');
+      } else {
+        setAiChatMicError('Не расслышал, попробуй ещё раз');
+      }
+    };
+    recognition.onend = () => setAiChatMicState('idle');
     recognition.start();
   };
 
@@ -3078,12 +3187,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
         <button
           onClick={() => {
-            // Центральная кнопка дока — теперь запуск голосового вопроса
-            // ИИ-помощнику: открывает чат и сразу включает микрофон, а не
-            // загрузку файлов, как раньше.
-            setActiveTab('chat');
-            setMobileHome(false);
-            handleMicClick();
+            // Центральная кнопка дока — отдельное окно ИИ-консультанта
+            // (tz-fable-chat-icon-attach.md), не путать с чатом оператора.
+            handleOpenAiChat();
           }}
           className="disc cursor-pointer"
           style={{ left: '50%', top: 24 }}
@@ -6957,6 +7063,118 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 )}
               </div>
             </div>
+          </motion.div>
+        </div>
+      )}
+      </AnimatePresence>
+
+      {/* Отдельное окно ИИ-консультанта (tz-fable-ai-chat-master.md +
+          tz-fable-chat-icon-attach.md) — независимое от чата с оператором,
+          открывается только с центральной кнопки дока. */}
+      <AnimatePresence>
+      {showAiChat && (
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 z-50" onClick={handleCloseAiChat}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.9 }}
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel glass-panel-modal rounded-3xl w-full max-w-md h-[min(640px,85vh)] flex flex-col relative overflow-hidden"
+            style={{ boxShadow: '0 0 0 1px rgba(129,140,248,0.15), 0 20px 60px -20px rgba(99,102,241,0.35)' }}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
+              <div className="flex items-center gap-2">
+                <video autoPlay loop muted playsInline className="rounded-full object-cover" style={{ width: 28, height: 28 }}>
+                  <source src={aiAssistantCoinWebm} type="video/webm" />
+                  <source src={aiAssistantCoinMp4} type="video/mp4" />
+                </video>
+                <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">ИИ-консультант</h3>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={toggleAiChatSpeak}
+                  title={aiChatSpeakEnabled ? 'Озвучивать ответы: вкл' : 'Озвучивать ответы: выкл'}
+                  aria-label="Озвучивать ответы"
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition cursor-pointer"
+                >
+                  {aiChatSpeakEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={handleCloseAiChat}
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {aiChatMessages.length === 0 && (
+                <div className="text-center text-xs text-slate-500 dark:text-slate-400 py-8 px-4">
+                  Спросите про услуги, цены или часы работы — текстом или голосом 🎤
+                </div>
+              )}
+              {aiChatMessages.map((m, i) => (
+                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                    m.role === 'user'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-slate-100'
+                  }`}>
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {aiChatSending && (
+                <div className="flex justify-start">
+                  <div className="rounded-2xl px-3.5 py-2.5 bg-slate-100 dark:bg-white/5 text-xs text-slate-400 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-current animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-current animate-bounce" style={{ animationDelay: '120ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-current animate-bounce" style={{ animationDelay: '240ms' }} />
+                  </div>
+                </div>
+              )}
+              <div ref={aiChatBottomRef} />
+            </div>
+
+            {aiChatMicError && (
+              <div className="px-4 pb-1 text-[11px] font-bold text-rose-500 dark:text-rose-400 shrink-0">
+                {aiChatMicError}
+              </div>
+            )}
+            <form onSubmit={handleSendAiChatMessage} className="p-4 border-t border-white/10 flex gap-2 shrink-0">
+              {speechRecognitionSupported && (
+                <button
+                  type="button"
+                  onClick={handleAiChatMicClick}
+                  title={aiChatMicState === 'listening' ? 'Слушаю…' : 'Голосовой ввод'}
+                  aria-label={aiChatMicState === 'listening' ? 'Слушаю…' : 'Голосовой ввод'}
+                  className={`shrink-0 p-3 rounded-xl transition flex items-center justify-center border ${
+                    aiChatMicState === 'listening'
+                      ? 'bg-rose-500 border-rose-500 text-white animate-pulse'
+                      : 'bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-850'
+                  }`}
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+              )}
+              <input
+                type="text"
+                value={aiChatInput}
+                onChange={(e) => setAiChatInput(e.target.value)}
+                placeholder={aiChatMicState === 'listening' ? 'Слушаю…' : 'Задайте вопрос...'}
+                aria-label="Сообщение ИИ-консультанту"
+                className="flex-1 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button
+                type="submit"
+                disabled={!aiChatInput.trim() || aiChatSending}
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:dark:bg-slate-850 text-white py-3 px-4.5 rounded-xl font-bold text-xs flex items-center justify-center transition"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
           </motion.div>
         </div>
       )}
