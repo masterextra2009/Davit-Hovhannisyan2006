@@ -2759,6 +2759,16 @@ button:hover .glass-icon-capsule {
 /* Режим перестановки плиток на "Главной" (зажал — задрожали, как на iPhone).
    Каждая плитка дрожит со случайным небольшим сдвигом фазы/задержки, чтобы
    они не качались синхронно, как настоящий iOS-хоумскрин. */
+/* Свайп-страницы плиток на "Главной" — горизонтальный скролл со снапом,
+   как между экранами на iPhone. Скроллбар прячем, инерцию на iOS включаем. */
+.mobile-tile-pages {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.mobile-tile-pages::-webkit-scrollbar {
+  display: none;
+}
+
 @keyframes tile-jiggle {
   0%   { transform: rotate(-1.5deg); }
   50%  { transform: rotate(1.5deg); }

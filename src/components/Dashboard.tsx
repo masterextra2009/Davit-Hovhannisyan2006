@@ -367,7 +367,6 @@ function GlassIcon({ icon: Icon, glow, size = 56, colored = false }: { icon: typ
   return (
     <span className={`glass-icon${colored ? ` colored ${glow || ''}` : ''}`} style={{ width: size, height: size, borderRadius: size * (31 / 124) }}>
       <span className="beam"><i /></span>
-      {colored && <span className="icon-glass-lens" />}
       <Icon
         style={{
           width: size * (96 / 124),
@@ -432,6 +431,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const tilePressStartRef = useRef<{ x: number; y: number } | null>(null);
   const tileDragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [tileDragPos, setTileDragPos] = useState<{ x: number; y: number } | null>(null);
+  // Плитки "Главной" разбиты на страницы по 9 (3×3), между которыми свайпают
+  // пальцем влево/вправо, как между экранами на iPhone — homePageIndex отражает
+  // текущую видимую страницу для точек-индикаторов под сеткой.
+  const [homePageIndex, setHomePageIndex] = useState(0);
+  const homePagesScrollRef = useRef<HTMLDivElement>(null);
+  const handleHomePagesScroll = () => {
+    const el = homePagesScrollRef.current;
+    if (!el || el.clientWidth === 0) return;
+    setHomePageIndex(Math.round(el.scrollLeft / el.clientWidth));
+  };
 
   const reorderHomeTiles = (allKeys: string[]) => {
     setHomeTileOrder(prev => {
@@ -2573,6 +2582,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         return ia - ib;
       })
     : homeAllTiles;
+  // 3×3 на страницу — если плиток больше, они уходят на следующий свайп-экран,
+  // а не растягивают "Главную" вертикальным скроллом.
+  const HOME_TILES_PER_PAGE = 9;
+  const homeTilePages = Array.from(
+    { length: Math.ceil(homeOrderedTiles.length / HOME_TILES_PER_PAGE) || 1 },
+    (_, i) => homeOrderedTiles.slice(i * HOME_TILES_PER_PAGE, (i + 1) * HOME_TILES_PER_PAGE)
+  );
 
   // FLIP-анимация плавной перестановки: перед тем как порядок в DOM поменяется,
   // запоминаем текущее положение каждой плитки (First), а после того как React
@@ -2963,80 +2979,105 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </button>
                 </div>
               )}
-              <nav className="mobile-tile-nav grid grid-cols-3 gap-y-4 gap-x-2 w-full">
-                {homeOrderedTiles.map((item, i) => {
-                  const isDragged = draggedTileKey === item.key;
-                  return (
-                    <button
-                      key={item.key}
-                      data-tile-key={item.key}
-                      ref={(el) => { homeTileElsRef.current[item.key] = el; }}
-                      style={{
-                        '--jiggle-i': i,
-                        transform: isDragged && tileDragPos ? `translate(${tileDragPos.x}px, ${tileDragPos.y}px) scale(1.08)` : undefined,
-                        touchAction: jiggleMode ? 'none' : undefined,
-                      } as React.CSSProperties}
-                      onPointerDown={(e) => {
-                        if (jiggleMode) {
-                          e.preventDefault();
-                          (e.target as Element).setPointerCapture?.(e.pointerId);
-                          setDraggedTileKey(item.key);
-                          tileDragOffsetRef.current = { x: e.clientX, y: e.clientY };
-                          setTileDragPos({ x: 0, y: 0 });
-                        } else {
-                          tilePressStartRef.current = { x: e.clientX, y: e.clientY };
-                          cancelLongPress();
-                          tileLongPressTimerRef.current = window.setTimeout(() => {
-                            reorderHomeTiles(homeAllTiles.map(t => t.key));
-                            setJiggleMode(true);
-                            navigator.vibrate?.(10);
-                          }, 550);
-                        }
-                      }}
-                      onPointerMove={(e) => {
-                        if (!jiggleMode && tilePressStartRef.current) {
-                          const dx = Math.abs(e.clientX - tilePressStartRef.current.x);
-                          const dy = Math.abs(e.clientY - tilePressStartRef.current.y);
-                          if (dx > 8 || dy > 8) cancelLongPress();
-                        }
-                        if (draggedTileKey) {
-                          const dx = e.clientX - tileDragOffsetRef.current.x;
-                          const dy = e.clientY - tileDragOffsetRef.current.y;
-                          setTileDragPos({ x: dx, y: dy });
-                          const el = document.elementFromPoint(e.clientX, e.clientY);
-                          const tileEl = el?.closest('[data-tile-key]') as HTMLElement | null;
-                          const overKey = tileEl?.dataset.tileKey;
-                          if (overKey && overKey !== draggedTileKey) {
-                            moveHomeTile(draggedTileKey, overKey);
-                          }
-                        }
-                      }}
-                      onPointerUp={() => {
-                        cancelLongPress();
-                        setDraggedTileKey(null);
-                        setTileDragPos(null);
-                      }}
-                      onPointerLeave={cancelLongPress}
-                      onClick={() => {
-                        if (jiggleMode) return;
-                        item.onClick();
-                        if (item.key !== 'telegram') setMobileHome(false);
-                      }}
-                      className={`relative flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl transition-all duration-200 cursor-pointer active:scale-90 ${
-                        jiggleMode && !isDragged ? 'tile-jiggle' : ''
-                      } ${isDragged ? 'tile-dragging' : ''}`}
-                    >
-                      <div className="relative">
-                        <GlassIcon icon={item.icon} glow={item.glow} size={60} colored />
-                        {item.badge}
-                      </div>
-                      <span className="text-[12px] font-semibold text-center leading-tight text-slate-800 dark:text-white/85">
-                        {item.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </nav>
+              <div
+                ref={homePagesScrollRef}
+                onScroll={handleHomePagesScroll}
+                className="mobile-tile-pages flex w-full overflow-x-auto"
+                style={{ scrollSnapType: jiggleMode ? 'none' : 'x mandatory' }}
+              >
+                {homeTilePages.map((page, pageIdx) => (
+                  <nav
+                    key={pageIdx}
+                    className="mobile-tile-nav grid grid-cols-3 grid-rows-3 gap-y-4 gap-x-2 w-full shrink-0"
+                    style={{ scrollSnapAlign: 'start' }}
+                  >
+                    {page.map((item, i) => {
+                      const isDragged = draggedTileKey === item.key;
+                      return (
+                        <button
+                          key={item.key}
+                          data-tile-key={item.key}
+                          ref={(el) => { homeTileElsRef.current[item.key] = el; }}
+                          style={{
+                            '--jiggle-i': i,
+                            transform: isDragged && tileDragPos ? `translate(${tileDragPos.x}px, ${tileDragPos.y}px) scale(1.08)` : undefined,
+                            touchAction: jiggleMode ? 'none' : undefined,
+                          } as React.CSSProperties}
+                          onPointerDown={(e) => {
+                            if (jiggleMode) {
+                              e.preventDefault();
+                              (e.target as Element).setPointerCapture?.(e.pointerId);
+                              setDraggedTileKey(item.key);
+                              tileDragOffsetRef.current = { x: e.clientX, y: e.clientY };
+                              setTileDragPos({ x: 0, y: 0 });
+                            } else {
+                              tilePressStartRef.current = { x: e.clientX, y: e.clientY };
+                              cancelLongPress();
+                              tileLongPressTimerRef.current = window.setTimeout(() => {
+                                reorderHomeTiles(homeAllTiles.map(t => t.key));
+                                setJiggleMode(true);
+                                navigator.vibrate?.(10);
+                              }, 550);
+                            }
+                          }}
+                          onPointerMove={(e) => {
+                            if (!jiggleMode && tilePressStartRef.current) {
+                              const dx = Math.abs(e.clientX - tilePressStartRef.current.x);
+                              const dy = Math.abs(e.clientY - tilePressStartRef.current.y);
+                              if (dx > 8 || dy > 8) cancelLongPress();
+                            }
+                            if (draggedTileKey) {
+                              const dx = e.clientX - tileDragOffsetRef.current.x;
+                              const dy = e.clientY - tileDragOffsetRef.current.y;
+                              setTileDragPos({ x: dx, y: dy });
+                              const el = document.elementFromPoint(e.clientX, e.clientY);
+                              const tileEl = el?.closest('[data-tile-key]') as HTMLElement | null;
+                              const overKey = tileEl?.dataset.tileKey;
+                              if (overKey && overKey !== draggedTileKey) {
+                                moveHomeTile(draggedTileKey, overKey);
+                              }
+                            }
+                          }}
+                          onPointerUp={() => {
+                            cancelLongPress();
+                            setDraggedTileKey(null);
+                            setTileDragPos(null);
+                          }}
+                          onPointerLeave={cancelLongPress}
+                          onClick={() => {
+                            if (jiggleMode) return;
+                            item.onClick();
+                            if (item.key !== 'telegram') setMobileHome(false);
+                          }}
+                          className={`relative flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl transition-all duration-200 cursor-pointer active:scale-90 ${
+                            jiggleMode && !isDragged ? 'tile-jiggle' : ''
+                          } ${isDragged ? 'tile-dragging' : ''}`}
+                        >
+                          <div className="relative">
+                            <GlassIcon icon={item.icon} glow={item.glow} size={60} colored />
+                            {item.badge}
+                          </div>
+                          <span className="text-[12px] font-semibold text-center leading-tight text-slate-800 dark:text-white/85">
+                            {item.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+                ))}
+              </div>
+              {homeTilePages.length > 1 && (
+                <div className="flex justify-center gap-1.5 mt-4">
+                  {homeTilePages.map((_, idx) => (
+                    <span
+                      key={idx}
+                      className={`h-1.5 rounded-full transition-all duration-200 ${
+                        idx === homePageIndex ? 'w-4 bg-slate-800 dark:bg-white' : 'w-1.5 bg-slate-400/40 dark:bg-white/30'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
               </div>
             </div>
           );
