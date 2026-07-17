@@ -1507,7 +1507,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       if (voices.length === 0) return;
       const preferred = voices.find(v => v.name === 'Microsoft Дмитрий Online (Natural) - Russian (Russia)');
       const dmitri = voices.find(v => /дмитрий|dmitri/i.test(v.name));
-      const ruVoices = voices.filter(v => v.lang?.toLowerCase().startsWith('ru'));
+      // Android отдаёт lang и как "ru-RU", и как "ru_RU" — нормализуем оба
+      const ruVoices = voices.filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('ru'));
       const ruMale = ruVoices.find(v => /pavel|dmitri|yuri|male/i.test(v.name));
       aiVoiceRef.current = preferred || dmitri || ruMale || ruVoices[0] || null;
     };
@@ -1525,10 +1526,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   const speakAiReply = (text: string) => {
     if (!aiChatSpeakEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
-    if (!aiVoiceRef.current) return; // нет подходящего русского голоса на устройстве — молча пропускаем
+    // На телефонах список голосов часто приезжает позже монтирования —
+    // пробуем добрать голос прямо перед озвучкой.
+    if (!aiVoiceRef.current) {
+      const voices = window.speechSynthesis.getVoices();
+      const ru = voices.filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('ru'));
+      aiVoiceRef.current = ru.find(v => /дмитрий|dmitri|pavel|yuri|male/i.test(v.name)) || ru[0] || null;
+    }
     window.speechSynthesis.cancel(); // не наложить новый ответ поверх ещё звучащего
     const utterance = new SpeechSynthesisUtterance(stripMarkdownForSpeech(text));
-    utterance.voice = aiVoiceRef.current;
+    // Если конкретный голос так и не нашёлся — НЕ молчим: оставляем выбор
+    // движку по lang='ru-RU' (на Android это штатный путь, и он работает
+    // даже когда getVoices() пустой).
+    if (aiVoiceRef.current) utterance.voice = aiVoiceRef.current;
     utterance.lang = 'ru-RU';
     utterance.rate = 1;
     utterance.onstart = () => setAiIsSpeaking(true);
@@ -1594,15 +1604,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // по кнопке микрофона вместо инлайн-записи в маленьком поле: большая
   // пульсирующая кнопка, пока идёт запись, затем ответ показывается и
   // проговаривается уже в этом же оверлее.
-  type VoiceOverlayPhase = 'listening' | 'thinking' | 'answered' | 'error';
+  type VoiceOverlayPhase = 'idle' | 'listening' | 'thinking' | 'answered' | 'error';
   const [showVoiceOverlay, setShowVoiceOverlay] = useState(false);
-  const [voiceOverlayPhase, setVoiceOverlayPhase] = useState<VoiceOverlayPhase>('listening');
+  const [voiceOverlayPhase, setVoiceOverlayPhase] = useState<VoiceOverlayPhase>('idle');
   const [voiceOverlayReply, setVoiceOverlayReply] = useState('');
   const [voiceOverlayError, setVoiceOverlayError] = useState<string | null>(null);
   const voiceOverlayRecognitionRef = useRef<any>(null);
+  // Рация: микрофон слушает, только пока палец на кружке. Отпустил —
+  // запись останавливается и вопрос сразу уходит в ИИ (просьба клиента).
+  const [voiceHolding, setVoiceHolding] = useState(false);
 
   const handleCloseVoiceOverlay = () => {
     try { voiceOverlayRecognitionRef.current?.abort(); } catch { /* ignore */ }
+    setVoiceHolding(false);
     setShowVoiceOverlay(false);
     window.speechSynthesis?.cancel();
   };
@@ -1612,9 +1626,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     if (!SpeechRecognitionCtor) return;
     setVoiceOverlayError(null);
     setVoiceOverlayReply('');
-    setVoiceOverlayPhase('listening');
+    setVoiceOverlayPhase('idle');
     setShowVoiceOverlay(true);
+    // Разблокировка озвучки на iOS: speechSynthesis "оживает" только если
+    // первый speak() случился внутри реального тапа — говорим пустую фразу.
+    try { window.speechSynthesis?.speak(new SpeechSynthesisUtterance('')); } catch { /* ignore */ }
+  };
 
+  const startVoiceCapture = () => {
+    const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
+    try { voiceOverlayRecognitionRef.current?.abort(); } catch { /* ignore */ }
+    window.speechSynthesis?.cancel(); // не слушать поверх говорящего ИИ
     const recognition = new SpeechRecognitionCtor();
     voiceOverlayRecognitionRef.current = recognition;
     recognition.lang = 'ru-RU';
@@ -1633,10 +1656,23 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         setVoiceOverlayError('Разреши доступ к микрофону в браузере');
       } else if (event.error !== 'aborted') {
         setVoiceOverlayError('Не расслышал, попробуй ещё раз');
+      } else {
+        return;
       }
       setVoiceOverlayPhase('error');
     };
+    setVoiceOverlayError(null);
+    setVoiceOverlayReply('');
+    setVoiceOverlayPhase('listening');
+    setVoiceHolding(true);
     recognition.start();
+  };
+
+  const stopVoiceCapture = () => {
+    if (!voiceHolding) return;
+    setVoiceHolding(false);
+    // stop() (в отличие от abort) дораспознаёт уже сказанное и вызывает onresult
+    try { voiceOverlayRecognitionRef.current?.stop(); } catch { /* ignore */ }
   };
 
   // Notification states
@@ -7337,7 +7373,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.9 }}
             className="flex flex-col items-center justify-center gap-8 w-full max-w-sm"
           >
-            <div className="relative flex items-center justify-center" style={{ width: 180, height: 180 }}>
+            {/* Рация: зажми кружок и говори, отпусти — вопрос сразу уходит.
+                pointer-события покрывают и палец, и мышь одним обработчиком;
+                onPointerLeave страхует случай, когда палец соскользнул с
+                кружка не отпуская экран вообще. */}
+            <div
+              onPointerDown={(e) => { e.preventDefault(); startVoiceCapture(); }}
+              onPointerUp={stopVoiceCapture}
+              onPointerLeave={stopVoiceCapture}
+              onPointerCancel={stopVoiceCapture}
+              className="relative flex items-center justify-center select-none touch-none cursor-pointer"
+              style={{ width: 180, height: 180, WebkitTouchCallout: 'none' }}
+            >
               {voiceOverlayPhase === 'listening' && (
                 <>
                   <span className="absolute inset-0 rounded-full bg-rose-500/40 voice-pulse-ring" />
@@ -7346,14 +7393,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               )}
               <video
                 autoPlay loop muted playsInline
-                className="rounded-full object-cover relative z-10"
+                className="rounded-full object-cover relative z-10 pointer-events-none"
                 style={{ width: 150, height: 150 }}
               >
                 <source src={aiAssistantCoinWebm} type="video/webm" />
                 <source src={aiAssistantCoinMp4} type="video/mp4" />
               </video>
               {aiIsSpeaking && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center gap-1">
+                <div className="absolute inset-0 z-20 flex items-center justify-center gap-1 pointer-events-none">
                   {[0, 1, 2, 3, 4].map(i => (
                     <span
                       key={i}
@@ -7366,6 +7413,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             </div>
 
             <div className="text-center min-h-[3em] px-2">
+              {voiceOverlayPhase === 'idle' && (
+                <p className="text-white/60 text-sm font-bold">Зажми кружок и говори</p>
+              )}
               {voiceOverlayPhase === 'listening' && (
                 <p className="text-white text-sm font-bold">Слушаю…</p>
               )}
@@ -7382,12 +7432,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
             <div className="flex items-center gap-3">
               {(voiceOverlayPhase === 'answered' || voiceOverlayPhase === 'error') && (
-                <button
-                  onClick={handleOpenVoiceOverlay}
-                  className="px-5 py-3 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition cursor-pointer"
-                >
-                  Спросить ещё
-                </button>
+                <p className="text-white/50 text-[11px] font-bold">Зажми кружок, чтобы спросить ещё</p>
               )}
               <button
                 onClick={handleCloseVoiceOverlay}
