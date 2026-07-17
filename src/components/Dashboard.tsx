@@ -21,6 +21,7 @@ import documentsIconRefImg from '../assets/documents-icon-ref.png';
 import homeIconRefImg from '../assets/home-icon-ref.png';
 import a3IconRefImg from '../assets/a3-icon-ref.png';
 import ordersIconRefImg from '../assets/orders-icon-ref.png';
+import souvenirsIconRefImg from '../assets/souvenirs-icon-ref.png';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
@@ -294,13 +295,13 @@ function GlassLaminationIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-function GlassSouvenirsIcon(props: React.SVGProps<SVGSVGElement>) {
+function GlassSouvenirsIcon(_props: { style?: React.CSSProperties }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="3" y="9" width="18" height="11" rx="2"/>
-      <path d="M3 13h18M12 9v11"/>
-      <path d="M12 9c-3.5 0-5-1-5-2.5S8.5 4 12 9zM12 9c3.5 0 5-1 5-2.5S15.5 4 12 9z"/>
-    </svg>
+    <img
+      src={souvenirsIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
   );
 }
 function GlassProfileIcon(props: React.SVGProps<SVGSVGElement>) {
