@@ -303,6 +303,15 @@ function GlassCallRefIcon(_props: { style?: React.CSSProperties }) {
     />
   );
 }
+function GlassSettingsRefIcon(_props: { style?: React.CSSProperties }) {
+  return (
+    <img
+      src={settingsIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+}
 function GlassPolaroidIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -2611,6 +2620,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           {unreadNotificationsCount + unreadChatsCount}
         </span>
       ) : null,
+    },
+    {
+      key: 'settings',
+      label: 'Настройки',
+      icon: GlassSettingsRefIcon,
+      glow: 'capsule-glow-purple',
+      isActive: activeTab === 'profile',
+      onClick: () => { setActiveTab('profile'); handleMarkNotificationsRead(); },
     },
     {
       key: 'contacts',
