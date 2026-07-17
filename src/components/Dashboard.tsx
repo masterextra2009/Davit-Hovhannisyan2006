@@ -33,7 +33,7 @@ import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 
-  Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, 
+  Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, Mic, 
   FileCheck, LogOut, Check, ArrowDown, Bell, HelpCircle, Laptop, ArrowLeft,
   Layers, RefreshCw, Smartphone, Phone, Star, Trophy, Award, Share2, Copy, Mail, Gift,
   Maximize2, Eye, ZoomIn, ZoomOut, RotateCw, Printer, X, Camera
@@ -1411,6 +1411,39 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatContentRef = useRef<HTMLDivElement>(null);
+
+  // Голосовой ввод в чат (тз-fable-voice-input.md) — распознавание речи целиком
+  // в браузере клиента через встроенный Web Speech API, ничего никуда не
+  // отправляется и не сохраняется, только итоговый текст попадает в поле
+  // ввода (не отправляется автоматически — клиент может поправить перед "Отправить").
+  const [micState, setMicState] = useState<'idle' | 'listening'>('idle');
+  const [micError, setMicError] = useState<string | null>(null);
+  const speechRecognitionSupported = typeof window !== 'undefined'
+    && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+  const handleMicClick = () => {
+    if (micState === 'listening') return;
+    const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
+    setMicError(null);
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'ru-RU';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onstart = () => setMicState('listening');
+    recognition.onresult = (event: any) => {
+      const text = event.results?.[0]?.[0]?.transcript;
+      if (text) setChatInput(text);
+    };
+    recognition.onerror = (event: any) => {
+      if (event.error === 'not-allowed' || event.error === 'permission-denied' || event.error === 'service-not-allowed') {
+        setMicError('Разреши доступ к микрофону в браузере');
+      } else {
+        setMicError('Не расслышал, попробуй ещё раз');
+      }
+    };
+    recognition.onend = () => setMicState('idle');
+    recognition.start();
+  };
 
   // Notification states
   const [pushConsent, setPushConsent] = useState<'default' | 'granted' | 'denied'>(() => {
@@ -4626,39 +4659,61 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </div>
 
               {/* Chat inputs panel */}
-              <form onSubmit={handleSendMessage} className="p-4 border-t border-white/10 glass-panel flex gap-2">
-                <div className="relative shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setShowEmojiPicker(v => !v)}
-                    className="bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 font-bold p-3 rounded-xl transition flex items-center justify-center border border-slate-200 dark:border-slate-850 h-full"
-                    title="Эмодзи"
-                  >
-                    <span className="text-base leading-none">😊</span>
-                  </button>
-                  {showEmojiPicker && (
-                    <EmojiPicker
-                      onSelect={(sticker) => handleSendSticker(sticker)}
-                      onClose={() => setShowEmojiPicker(false)}
-                    />
+              <div className="border-t border-white/10 glass-panel">
+                {micError && (
+                  <div className="px-4 pt-2.5 text-[11px] font-bold text-rose-500 dark:text-rose-400">
+                    {micError}
+                  </div>
+                )}
+                <form onSubmit={handleSendMessage} className="p-4 flex gap-2">
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(v => !v)}
+                      className="bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 font-bold p-3 rounded-xl transition flex items-center justify-center border border-slate-200 dark:border-slate-850 h-full"
+                      title="Эмодзи"
+                    >
+                      <span className="text-base leading-none">😊</span>
+                    </button>
+                    {showEmojiPicker && (
+                      <EmojiPicker
+                        onSelect={(sticker) => handleSendSticker(sticker)}
+                        onClose={() => setShowEmojiPicker(false)}
+                      />
+                    )}
+                  </div>
+                  {speechRecognitionSupported && (
+                    <button
+                      type="button"
+                      onClick={handleMicClick}
+                      title={micState === 'listening' ? 'Слушаю…' : 'Голосовой ввод'}
+                      aria-label={micState === 'listening' ? 'Слушаю…' : 'Голосовой ввод'}
+                      className={`shrink-0 p-3 rounded-xl transition flex items-center justify-center border h-full ${
+                        micState === 'listening'
+                          ? 'bg-rose-500 border-rose-500 text-white animate-pulse'
+                          : 'bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-850'
+                      }`}
+                    >
+                      <Mic className="w-4 h-4" />
+                    </button>
                   )}
-                </div>
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  placeholder="Задайте ваш вопрос оператору..."
-                  aria-label="Сообщение оператору"
-                  className="flex-1 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <button
-                  type="submit"
-                  disabled={!chatInput.trim()}
-                  className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:dark:bg-slate-850 text-white py-3 px-4.5 rounded-xl font-bold text-xs flex items-center justify-center transition"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              </form>
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    placeholder={micState === 'listening' ? 'Слушаю…' : 'Задайте ваш вопрос оператору...'}
+                    aria-label="Сообщение оператору"
+                    className="flex-1 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!chatInput.trim()}
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:dark:bg-slate-850 text-white py-3 px-4.5 rounded-xl font-bold text-xs flex items-center justify-center transition"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
+              </div>
               </motion.div>
             )}
 
