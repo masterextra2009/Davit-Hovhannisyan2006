@@ -25,6 +25,7 @@ import souvenirsIconRefImg from '../assets/souvenirs-icon-ref.png';
 import laminationIconRefImg from '../assets/lamination-icon-ref.png';
 import servicesIconRefImg from '../assets/services-icon-ref.png';
 import profileIconRefImg from '../assets/profile-icon-ref.png';
+import notifyIconRefImg from '../assets/notify-icon-ref.png';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
@@ -277,6 +278,15 @@ function GlassOrdersRefIcon(_props: { style?: React.CSSProperties }) {
   return (
     <img
       src={ordersIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+}
+function GlassNotifyRefIcon(_props: { style?: React.CSSProperties }) {
+  return (
+    <img
+      src={notifyIconRefImg}
       alt=""
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
     />
@@ -2610,7 +2620,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     ...(!user.telegramChatId ? [{
       key: 'telegram',
       label: 'Уведомления',
-      icon: Send,
+      icon: GlassNotifyRefIcon,
       glow: 'capsule-glow-cyan',
       isActive: false,
       onClick: () => setShowTelegramModal(true),
