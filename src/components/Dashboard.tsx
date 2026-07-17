@@ -1643,29 +1643,47 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     recognition.lang = 'ru-RU';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
+    // На отпускание кружка recognition.stop() не всегда вызывает onresult
+    // или onerror — если ничего не успело распознаться (отпустили слишком
+    // рано/тихо сказали), браузер просто молча завершает запись через
+    // onend, и без этого флага экран навсегда застревал на "Слушаю".
+    let settled = false;
     recognition.onresult = async (event: any) => {
+      settled = true;
       const text = event.results?.[0]?.[0]?.transcript;
-      if (!text) return;
+      if (!text) { setVoiceOverlayPhase('idle'); return; }
       setVoiceOverlayPhase('thinking');
       const { reply } = await sendAiChatText(text);
       setVoiceOverlayReply(reply);
       setVoiceOverlayPhase('answered');
     };
     recognition.onerror = (event: any) => {
+      settled = true;
       if (event.error === 'not-allowed' || event.error === 'permission-denied' || event.error === 'service-not-allowed') {
         setVoiceOverlayError('Разреши доступ к микрофону в браузере');
       } else if (event.error !== 'aborted') {
         setVoiceOverlayError('Не расслышал, попробуй ещё раз');
       } else {
-        return;
+        return; // сами прервали через abort() — не показываем это как ошибку
       }
       setVoiceOverlayPhase('error');
+    };
+    recognition.onend = () => {
+      settled = true;
+      clearTimeout(safetyTimer);
+      setVoiceHolding(false);
+      setVoiceOverlayPhase(prev => (prev === 'listening' ? 'idle' : prev));
     };
     setVoiceOverlayError(null);
     setVoiceOverlayReply('');
     setVoiceOverlayPhase('listening');
     setVoiceHolding(true);
     recognition.start();
+    // Подстраховка: если палец завис/onend по какой-то причине не пришёл,
+    // не даём кружку слушать вечно — жёстко останавливаем через 20 секунд.
+    const safetyTimer = setTimeout(() => {
+      if (!settled) { try { recognition.stop(); } catch { /* ignore */ } }
+    }, 20000);
   };
 
   const stopVoiceCapture = () => {
