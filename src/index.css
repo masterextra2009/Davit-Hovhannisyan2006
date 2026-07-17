@@ -324,7 +324,14 @@
 }
 .dark .glass-panel-modal,
 .dark #admin-dashboard-root .glass-panel.glass-panel-modal,
-.dark #client-dashboard-root .glass-panel.glass-panel-modal {
+.dark #client-dashboard-root .glass-panel.glass-panel-modal,
+/* Модалки почти всегда несут ещё и .rounded-3xl (сама карточка скруглена),
+   а более позднее правило ".rounded-3xl" (см. ниже по файлу) красит ЛЮБОЙ
+   .rounded-3xl в 4%-белый фон с двойным #id — это выигрывает по специфичности
+   у обычного .glass-panel-modal (у него только один #id) и модалка
+   становится почти прозрачной. Перебиваем тем же приёмом (id повторён на
+   самом себе, минификатор его не схлопывает). */
+.dark #client-dashboard-root#client-dashboard-root .glass-panel.glass-panel-modal {
   background: rgba(16, 20, 34, 0.96) !important;
   border-color: rgba(255, 255, 255, 0.14) !important;
 }

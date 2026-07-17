@@ -552,15 +552,25 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [homeTilesPerPage, setHomeTilesPerPage] = useState(9);
   useLayoutEffect(() => {
     const recompute = () => {
-      const areaEl = homeAreaRef.current;
-      const clockEl = homeClockWrapRef.current;
+      // areaEl.clientHeight раньше "плавал" вместе с содержимым (главный
+      // родитель ничем не ограничен по высоте — сам скроллится #client-
+      // dashboard-root), так что он не давал реальный бюджет одного экрана:
+      // на первом рендере получалось "влезает больше, чем есть", и лишние
+      // плитки вылезали под фиксированный нижний док. Меряем от РЕАЛЬНОЙ
+      // высоты видимой области (window.innerHeight/visualViewport) минус
+      // фактическая позиция начала сетки плиток минус зарезервированное
+      // место под неподвижный нижний док.
+      const scrollerEl = homePagesScrollRef.current;
       const sampleTileEl = Object.values(homeTileElsRef.current).find((el): el is HTMLElement => !!el);
-      if (!areaEl || !clockEl || !sampleTileEl) return;
+      if (!scrollerEl || !sampleTileEl) return;
       const TILE_ROW_GAP = 16; // gap-y-4
       const DOTS_RESERVE = 24; // высота полосы точек-индикаторов под страницами
+      const DOCK_NAV_RESERVE = 112; // высота дока (90) + отступ снизу (bottom-3=12) + запас
       const tileHeight = sampleTileEl.getBoundingClientRect().height;
       if (tileHeight <= 0) return;
-      const available = areaEl.clientHeight - clockEl.getBoundingClientRect().height - DOTS_RESERVE;
+      const viewportH = window.visualViewport?.height || window.innerHeight;
+      const scrollerTop = scrollerEl.getBoundingClientRect().top;
+      const available = viewportH - scrollerTop - DOCK_NAV_RESERVE - DOTS_RESERVE;
       const rows = Math.max(1, Math.floor((available + TILE_ROW_GAP) / (tileHeight + TILE_ROW_GAP)));
       setHomeTilesPerPage(rows * 3);
     };
@@ -3078,17 +3088,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           className="disc cursor-pointer"
           style={{ left: '50%', top: 24 }}
         >
-          {Array.from({ length: 11 }).map((_, i) => (
-            <span key={i} className="seg" style={{ transform: `rotate(${i * 32.7}deg) translateY(-17.83px)` }} />
-          ))}
-          <span className="ringbeam"><i /></span>
           <video
             autoPlay
             loop
             muted
             playsInline
             className="rounded-full object-cover pointer-events-none"
-            style={{ width: 44, height: 44 }}
+            style={{ width: 64, height: 64 }}
           >
             <source src={aiAssistantCoinWebm} type="video/webm" />
             <source src={aiAssistantCoinMp4} type="video/mp4" />
