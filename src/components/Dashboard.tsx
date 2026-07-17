@@ -17,6 +17,8 @@ import chatIconRefImg from '../assets/chat-icon-ref-cropped.png';
 import polaroidIconRefImg from '../assets/polaroid-icon-ref.png';
 import scanIconRefImg from '../assets/scan-icon-ref.png';
 import photoIconRefImg from '../assets/photo-icon-ref.png';
+import documentsIconRefImg from '../assets/documents-icon-ref.png';
+import homeIconRefImg from '../assets/home-icon-ref.png';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import { 
@@ -24,7 +26,7 @@ import {
   Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, 
   FileCheck, LogOut, Check, ArrowDown, Bell, HelpCircle, Laptop, ArrowLeft,
   Layers, RefreshCw, Smartphone, Phone, Star, Trophy, Award, Share2, Copy, Mail, Gift,
-  Maximize2, Eye, ZoomIn, ZoomOut, RotateCw, Printer, X, Home, Camera
+  Maximize2, Eye, ZoomIn, ZoomOut, RotateCw, Printer, X, Camera
 } from 'lucide-react';
 import { 
   calculateOrderCost, getFileFormatGroup, formatFileSize, 
@@ -272,14 +274,6 @@ function GlassPolaroidIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-function GlassDocumentsIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
-      <path d="M14 3v5h5M9 13h6M9 17h4"/>
-    </svg>
-  );
-}
 function GlassLaminationIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -338,6 +332,24 @@ function GlassPhotoRefIcon(_props: { style?: React.CSSProperties }) {
   return (
     <img
       src={photoIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+}
+function GlassDocumentsRefIcon(_props: { style?: React.CSSProperties }) {
+  return (
+    <img
+      src={documentsIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+}
+function GlassHomeRefIcon(_props: { style?: React.CSSProperties }) {
+  return (
+    <img
+      src={homeIconRefImg}
       alt=""
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
     />
@@ -571,7 +583,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   };
   const serviceCategoryIcons: Record<string, typeof Upload> = {
     photo: GlassPhotoRefIcon,
-    documents: GlassDocumentsIcon,
+    documents: GlassDocumentsRefIcon,
     scanning: GlassScanRefIcon,
     lamination: GlassLaminationIcon,
     souvenirs: GlassSouvenirsIcon,
@@ -2928,7 +2940,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             onClick={() => setMobileHome(true)}
             className="flex flex-col items-center cursor-pointer justify-self-center active:scale-90 transition-transform"
           >
-            <GlassIcon icon={Home} glow="capsule-glow-purple" size={44} colored />
+            <GlassIcon icon={GlassHomeRefIcon} glow="capsule-glow-purple" size={44} colored />
           </button>
           <button
             onClick={() => { setActiveTab('orders'); setMobileHome(false); }}
