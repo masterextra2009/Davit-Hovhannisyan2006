@@ -3703,7 +3703,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             <GlassIcon icon={item.icon} glow={item.glow} size={60} colored noOuterShadow />
                             {item.badge}
                           </div>
-                          <span className="text-[12px] font-semibold text-center leading-tight text-slate-800 dark:text-white/85">
+                          {/* Фиксированная высота подписи (под 2 строки) — иначе у подписей
+                              в одну строку ("Чат") и в две ("Мои Заказы") получалась разная
+                              общая высота плитки, и иконки в одном ряду сидели не вровень. */}
+                          <span className="text-[12px] font-semibold text-center leading-tight text-slate-800 dark:text-white/85 h-[30px] flex items-center justify-center line-clamp-2">
                             {item.label}
                           </span>
                         </button>
