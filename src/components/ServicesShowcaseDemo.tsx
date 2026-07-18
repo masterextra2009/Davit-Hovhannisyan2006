@@ -108,7 +108,12 @@ export function ServicesShowcaseDemo({ services }: { services: Service[] }) {
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
+      {/* Всегда 2 колонки — эта сетка живёт внутри фиксированной по ширине
+          390px демо-панели (см. AdminPanel.tsx), которая всегда изображает
+          телефон. sm:/lg: варианты тут не годятся — Tailwind считает их по
+          ширине ВЬЮПОРТА браузера, а не по ширине этой панели, так что на
+          широком ПК-мониторе сетка ошибочно прыгала бы на 3-4 колонки. */}
+      <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto">
         {shown.map(svc => (
           <motion.div
             key={svc.id}

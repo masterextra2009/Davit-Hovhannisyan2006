@@ -3758,10 +3758,15 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
                   exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
                 >
+                  {/* Ширина ровно как экран iPhone (390px) — вся демо-панель,
+                      не только раскрытая карточка, иначе сетка внутри ловит
+                      десктопные breakpoint'ы Tailwind (lg:grid-cols-4 и т.п.)
+                      и показывает 4 колонки вместо мобильных 2, а не то, как
+                      реально выглядит у клиента на телефоне. */}
                   <motion.div
                     onClick={(e) => e.stopPropagation()}
                     data-css-anim-off
-                    className="bg-slate-950 w-full max-w-5xl max-h-[92vh] rounded-3xl overflow-hidden flex flex-col border border-white/10"
+                    className="bg-slate-950 w-[390px] max-w-[calc(100vw-2rem)] max-h-[92vh] rounded-3xl overflow-hidden flex flex-col border border-white/10"
                     initial={{ opacity: 0, scale: 0.82, y: 8 }}
                     animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
                     exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
@@ -3778,7 +3783,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         <X className="w-4 h-4" />
                       </button>
                     </div>
-                    <div className="p-5 md:p-8 overflow-y-auto">
+                    <div className="p-5 overflow-y-auto">
                       <div className="mb-6 max-w-4xl mx-auto text-center">
                         <h2 className="text-xl font-black text-white mb-1"><AnimatedTitle>Наши услуги</AnimatedTitle></h2>
                       </div>
