@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Service } from '../types';
 
 /* Те же 3D SVG-иконки-заглушки (когда у услуги нет своего фото/иконки),
@@ -92,6 +94,7 @@ function get3DIcon(svc: Service) {
    наклона по мыши и без открытия заказа, это просто предпросмотр для
    администратора, а не полноценная копия кабинета клиента. */
 export function ServicesShowcaseDemo({ services }: { services: Service[] }) {
+  const [expanded, setExpanded] = useState<Service | null>(null);
   const shown = services.filter(s => s.isActive);
 
   if (shown.length === 0) {
@@ -104,33 +107,95 @@ export function ServicesShowcaseDemo({ services }: { services: Service[] }) {
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
-      {shown.map(svc => (
-        <div key={svc.id} className="service-glass-card relative select-none flex flex-col">
-          <div className="service-glass-card-media h-40 shrink-0 flex items-center justify-center relative">
-            <div className="service-card-glow absolute inset-0 pointer-events-none" />
-            {svc.imageUrl ? (
-              <img src={svc.imageUrl} alt={svc.title}
-                loading="lazy"
-                className="w-full h-full object-cover rounded-t-[20px] relative z-10"
-                style={{ transform: `scale(${svc.imageScale || 1})` }}
-              />
-            ) : svc.iconUrl ? (
-              <img src={svc.iconUrl} alt={svc.title} loading="lazy" className="w-16 h-16 object-contain relative z-10" />
-            ) : (
-              <div className="relative z-10">{get3DIcon(svc)}</div>
-            )}
-          </div>
-          <div className="px-3.5 pt-3 pb-3.5 flex flex-col flex-1">
-            <p className="font-extrabold text-[13px] text-slate-800 dark:text-white mb-0.5 leading-tight">{svc.title}</p>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
-              {svc.description?.slice(0, 50)}{(svc.description?.length || 0) > 50 ? '...' : ''}
-            </p>
-            <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mt-2 mb-2">{svc.price}</p>
-            <button className="btn-3d-choose w-full mt-auto py-2.5 rounded-xl font-black text-xs text-white cursor-default">Заказать →</button>
-          </div>
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
+        {shown.map(svc => (
+          <motion.div
+            key={svc.id}
+            layoutId={`svc-demo-card-${svc.id}`}
+            onClick={() => setExpanded(svc)}
+            className="service-glass-card relative cursor-pointer select-none flex flex-col"
+          >
+            <div className="service-glass-card-media h-40 shrink-0 flex items-center justify-center relative">
+              <div className="service-card-glow absolute inset-0 pointer-events-none" />
+              {svc.imageUrl ? (
+                <img src={svc.imageUrl} alt={svc.title}
+                  loading="lazy"
+                  className="w-full h-full object-cover rounded-t-[20px] relative z-10"
+                  style={{ transform: `scale(${svc.imageScale || 1})` }}
+                />
+              ) : svc.iconUrl ? (
+                <img src={svc.iconUrl} alt={svc.title} loading="lazy" className="w-16 h-16 object-contain relative z-10" />
+              ) : (
+                <div className="relative z-10">{get3DIcon(svc)}</div>
+              )}
+            </div>
+            <div className="px-3.5 pt-3 pb-3.5 flex flex-col flex-1">
+              <p className="font-extrabold text-[13px] text-slate-800 dark:text-white mb-0.5 leading-tight">{svc.title}</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                {svc.description?.slice(0, 50)}{(svc.description?.length || 0) > 50 ? '...' : ''}
+              </p>
+              <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mt-2 mb-2">{svc.price}</p>
+              <button className="btn-3d-choose w-full mt-auto py-2.5 rounded-xl font-black text-xs text-white cursor-default">Заказать →</button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Раскрытие карточки на весь экран — та же механика (общий layoutId,
+          пружина), что у настоящей карточки в кабинете клиента. Кнопка
+          "Заказать" тут неактивна — это только предпросмотр для админа. */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            key="svc-demo-expanded-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] bg-black/55 backdrop-blur-sm"
+            onClick={() => setExpanded(null)}
+          >
+            <motion.div
+              layoutId={`svc-demo-card-${expanded.id}`}
+              transition={{ type: 'spring', damping: 30, stiffness: 320 }}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute inset-0 bg-white dark:bg-[#101422] flex flex-col overflow-y-auto overscroll-contain"
+            >
+              <button
+                onClick={() => setExpanded(null)}
+                aria-label="Закрыть"
+                className="fixed z-20 right-4 w-9 h-9 rounded-full bg-black/45 text-white text-lg font-black flex items-center justify-center cursor-pointer backdrop-blur-sm"
+                style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
+              >✕</button>
+
+              <div className="w-full shrink-0 bg-slate-100 dark:bg-slate-900/60 flex items-center justify-center">
+                {expanded.imageUrl ? (
+                  <img
+                    src={expanded.imageUrl}
+                    alt={expanded.title}
+                    className="w-full max-h-[55dvh] object-contain"
+                  />
+                ) : expanded.iconUrl ? (
+                  <img src={expanded.iconUrl} alt={expanded.title} className="w-40 h-40 object-contain my-16" />
+                ) : (
+                  <span className="text-[96px] leading-none my-16">{expanded.emoji}</span>
+                )}
+              </div>
+
+              <div className="flex-1 flex flex-col px-5 pt-5"
+                style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+              >
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white leading-tight">{expanded.title}</h2>
+                {expanded.description && (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mt-2 whitespace-pre-wrap">{expanded.description}</p>
+                )}
+                <p className="font-black text-3xl text-indigo-600 dark:text-indigo-400 mt-4">{expanded.price}</p>
+                <button className="btn-3d-choose w-full mt-6 py-3.5 rounded-2xl font-black text-sm text-white cursor-default">Заказать →</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
