@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, PaymentConfig, Service, Feedback } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
@@ -2449,9 +2450,23 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               </div>
 
               {/* USER FILES DIALOG MODAL */}
+              <AnimatePresence>
               {selectedUserForFiles && (
-                <div id="user-files-popup-modal" className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-                  <div className="glass-window max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+                <motion.div
+                  key="user-files-popup-modal"
+                  id="user-files-popup-modal"
+                  className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+                  exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+                >
+                  <motion.div
+                    data-css-anim-off
+                    className="glass-window max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden"
+                    initial={{ opacity: 0, scale: 0.82, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+                    exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
+                  >
                     {/* Modal Header */}
                     <div className="p-6 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/20">
                       <div className="flex items-center gap-3">
@@ -2520,14 +2535,29 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         Закрыть окно
                       </button>
                     </div>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               )}
+              </AnimatePresence>
 
               {/* GIFT PROMO CUSTOM DIALOG MODAL */}
+              <AnimatePresence>
               {promoGiftUser && (
-                <div id="user-promo-gift-modal" className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 z-50 animate-fade-in">
-                  <div className="glass-window max-w-md w-full flex flex-col overflow-hidden">
+                <motion.div
+                  key="user-promo-gift-modal"
+                  id="user-promo-gift-modal"
+                  className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 z-50"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+                  exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+                >
+                  <motion.div
+                    data-css-anim-off
+                    className="glass-window max-w-md w-full flex flex-col overflow-hidden"
+                    initial={{ opacity: 0, scale: 0.82, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+                    exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
+                  >
                     {/* Header */}
                     <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/20">
                       <div className="flex items-center gap-2">
@@ -2647,14 +2677,29 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         🎁 Отправить промокод
                       </button>
                     </div>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               )}
+              </AnimatePresence>
 
               {/* EMAIL TO CLIENT MODAL */}
+              <AnimatePresence>
               {emailComposeUser && (
-                <div id="email-compose-modal" className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 z-50 animate-fade-in">
-                  <div className="glass-window max-w-md w-full flex flex-col overflow-hidden">
+                <motion.div
+                  key="email-compose-modal"
+                  id="email-compose-modal"
+                  className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 z-50"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+                  exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+                >
+                  <motion.div
+                    data-css-anim-off
+                    className="glass-window max-w-md w-full flex flex-col overflow-hidden"
+                    initial={{ opacity: 0, scale: 0.82, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+                    exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
+                  >
 
                     {isSendingEmail ? (
                       /* --- PHASE 2: SENDING ANIMATION --- */
@@ -2766,9 +2811,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         </div>
                       </>
                     )}
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               )}
+              </AnimatePresence>
             </div>
           )}
 
@@ -3207,11 +3253,22 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           )}
 
           {/* CUSTOM DELETE CONFIRMATION MODAL */}
+          <AnimatePresence>
           {userToDelete && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fade-in">
-              <div
+            <motion.div
+              key="user-delete-confirm-modal"
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+              exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+            >
+              <motion.div
+                data-css-anim-off
                 className="glass-window max-w-md w-full p-6"
                 onClick={(e) => e.stopPropagation()}
+                initial={{ opacity: 0, scale: 0.82, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+                exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
               >
                 <div className="flex items-center gap-3 text-rose-600 dark:text-rose-450 mb-4">
                   <div className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded-2xl border border-rose-100/50 dark:border-rose-900/35">
@@ -3263,9 +3320,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     )}
                   </button>
                 </div>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
+          </AnimatePresence>
 
           {/* ── SERVICES TAB ── */}
           {activeTab === 'services' && (
@@ -3498,14 +3556,23 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               </div>
 
               {/* Новая услуга — всплывающее окно с явным сохранением */}
+              <AnimatePresence>
               {showAddServiceModal && (
-                <div
-                  className="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in"
+                <motion.div
+                  key="add-service-modal"
+                  className="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 z-50"
                   onClick={() => setShowAddServiceModal(false)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+                  exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
                 >
-                  <div
+                  <motion.div
+                    data-css-anim-off
                     onClick={(e) => e.stopPropagation()}
                     className="glass-window w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
+                    initial={{ opacity: 0, scale: 0.82, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+                    exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
                   >
                     <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/20 shrink-0">
                       <h3 className="text-sm font-black text-slate-800 dark:text-white">Новая услуга</h3>
@@ -3662,9 +3729,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         Сохранить
                       </button>
                     </div>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               )}
+              </AnimatePresence>
             </div>
           )}
 

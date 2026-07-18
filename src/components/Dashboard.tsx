@@ -5966,7 +5966,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       )}
 
       {/* Модалка "Настройте параметры печати" — открывается автоматически после каждой загрузки */}
-      {activeConfigFileId && (() => {
+      <AnimatePresence>{activeConfigFileId && (() => {
         const file = pendingUploads.find(f => f.id === activeConfigFileId);
         if (!file) return null;
 
@@ -6012,8 +6012,21 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         const patch = (updates: Partial<PrintFile>) => patchFileState(file.id, updates);
 
         return (
-          <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
-            <div className="glass-window w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+          <motion.div
+            key="activeConfigFileModal"
+            className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+            exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+          >
+            <motion.div
+              className="glass-window w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+              data-css-anim-off
+              initial={{ opacity: 0, scale: 0.82, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+              exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
+            >
               {/* Header */}
               <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex items-center gap-3 bg-slate-50/50 dark:bg-slate-950/30 shrink-0">
                 <img src={printerInkIcon} alt="" className="w-16 h-16 shrink-0" />
@@ -6270,20 +6283,28 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   Убрать файл
                 </button>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         );
-      })()}
+      })()}</AnimatePresence>
 
       {/* --- PREMIUM HIGH-FIDELITY INTERACTIVE 3D MOCKUP INSPECTOR MODAL --- */}
-      {show3DMockupModal && (
-        <div 
-          className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 md:p-6 animate-fade-in text-slate-800 dark:text-slate-100"
+      <AnimatePresence>{show3DMockupModal && (
+        <motion.div
+          key="show3DMockupModal"
+          className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 md:p-6 text-slate-800 dark:text-slate-100"
           onClick={() => setShow3DMockupModal(false)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+          exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
         >
-          <div 
+          <motion.div
             className="glass-window w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh]"
             onClick={(e) => e.stopPropagation()}
+            data-css-anim-off
+            initial={{ opacity: 0, scale: 0.82, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+            exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
           >
             {/* Header */}
             <div className="p-5 border-b border-slate-150 dark:border-slate-850 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/40 shrink-0">
@@ -6675,13 +6696,25 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 Готово, вернуться к заказу
               </button>
             </div>
-          </div>
-        </div>
-      )}
-      {payingOrder && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="glass-window w-full max-w-md overflow-hidden text-left transform transition-all relative">
-            
+          </motion.div>
+        </motion.div>
+      )}</AnimatePresence>
+      <AnimatePresence>{payingOrder && (
+        <motion.div
+          key="payingOrderModal"
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+          exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+        >
+          <motion.div
+            className="glass-window w-full max-w-md overflow-hidden text-left transform transition-all relative"
+            data-css-anim-off
+            initial={{ opacity: 0, scale: 0.82, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+            exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
+          >
+
             {/* Header */}
             <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/30">
               <div className="flex items-center gap-2">
@@ -6743,16 +6776,26 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </button>
             </div>
 
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+      )}</AnimatePresence>
 
       {/* CUSTOM SELF DELETE CONFIRMATION MODAL */}
-      {showSelfDeleteModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fade-in">
-          <div
+      <AnimatePresence>{showSelfDeleteModal && (
+        <motion.div
+          key="showSelfDeleteModal"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+          exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+        >
+          <motion.div
             className="glass-window max-w-md w-full p-6"
             onClick={(e) => e.stopPropagation()}
+            data-css-anim-off
+            initial={{ opacity: 0, scale: 0.82, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+            exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
           >
             <div className="flex items-center gap-3 text-rose-500 dark:text-rose-400 mb-4">
               <div className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded-2xl border border-rose-100/50 dark:border-rose-900/35">
@@ -6807,9 +6850,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 )}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+      )}</AnimatePresence>
 
       {/* CONFETTI DELIGHT BURST OVERLAY */}
       {confettiActive && (
@@ -6941,7 +6984,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.9 }}
+            transition={{ type: 'spring', stiffness: 170, damping: 20, mass: 1 }}
             className="coupon-neon-frame rounded-3xl max-w-md w-full relative"
           >
           <div data-css-anim-off className="glass-window overflow-hidden max-w-md w-full relative flex flex-col rounded-3xl">
@@ -7043,7 +7086,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.9 }}
+            transition={{ type: 'spring', stiffness: 170, damping: 20, mass: 1 }}
             onClick={(e) => e.stopPropagation()}
             data-css-anim-off
             className="glass-window w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
@@ -7830,10 +7873,22 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       )}
 
       {/* Interactive Compliance Documents Modal */}
-      {activeLegalDoc && (
-        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="glass-window w-full max-w-2xl p-6 md:p-8 flex flex-col max-h-[85vh] relative">
-            <button 
+      <AnimatePresence>{activeLegalDoc && (
+        <motion.div
+          key="activeLegalDocModal"
+          className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+          exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+        >
+          <motion.div
+            className="glass-window w-full max-w-2xl p-6 md:p-8 flex flex-col max-h-[85vh] relative"
+            data-css-anim-off
+            initial={{ opacity: 0, scale: 0.82, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+            exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
+          >
+            <button
               onClick={() => setActiveLegalDoc(null)} 
               className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-450 dark:text-slate-400 cursor-pointer"
             >
@@ -7882,9 +7937,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             >
               Понятно, закрыть
             </button>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+      )}</AnimatePresence>
 
 
     </div>
