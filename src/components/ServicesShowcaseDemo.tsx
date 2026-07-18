@@ -176,7 +176,7 @@ export function ServicesShowcaseDemo({ services }: { services: Service[] }) {
               layoutId={`svc-demo-card-${expanded.id}`}
               transition={{ type: 'spring', damping: 30, stiffness: 320 }}
               onClick={(e) => e.stopPropagation()}
-              className="glass-window w-[390px] max-w-[calc(100vw-2rem)] overflow-hidden flex flex-col max-h-[85vh] relative"
+              className="bg-white dark:bg-[#101422] border border-white/10 rounded-3xl shadow-2xl w-[390px] max-w-[calc(100vw-2rem)] overflow-hidden flex flex-col max-h-[85vh] relative"
             >
               <button
                 onClick={() => setExpanded(null)}

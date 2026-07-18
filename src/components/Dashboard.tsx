@@ -566,7 +566,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       const scrollerTop = scrollerEl.getBoundingClientRect().top;
       const available = viewportH - scrollerTop - DOCK_NAV_RESERVE - DOTS_RESERVE;
       const rows = Math.max(1, Math.floor((available + TILE_ROW_GAP) / (tileHeight + TILE_ROW_GAP)));
-      setHomeTilesPerPage(rows * 3);
+      setHomeTilesPerPage(rows * 4);
     };
     recompute();
     const ro = new ResizeObserver(recompute);
@@ -3574,7 +3574,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 {homeTilePages.map((page, pageIdx) => (
                   <nav
                     key={pageIdx}
-                    className="mobile-tile-nav grid grid-cols-3 grid-rows-3 gap-y-4 gap-x-2 w-full shrink-0"
+                    className="mobile-tile-nav grid grid-cols-4 gap-y-4 gap-x-3 w-full shrink-0"
                     style={{ scrollSnapAlign: 'start' }}
                   >
                     {page.map((item, i) => {
@@ -3651,7 +3651,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           } ${isDragged ? 'tile-dragging' : ''}`}
                         >
                           <div className="relative">
-                            <GlassIcon icon={item.icon} glow={item.glow} size={68} colored noOuterShadow />
+                            <GlassIcon icon={item.icon} glow={item.glow} size={60} colored noOuterShadow />
                             {item.badge}
                           </div>
                           <span className="text-[12px] font-semibold text-center leading-tight text-slate-800 dark:text-white/85">
