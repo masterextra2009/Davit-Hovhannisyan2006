@@ -13,6 +13,8 @@ import { EmojiPicker } from './EmojiPicker';
 import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
 import { AnimatedTitle } from './AnimatedTitle';
 import { AiPriceCard } from './AiPriceCard';
+import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
+import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import JSZip from 'jszip';
 import logoImg from '../assets/logo.webp';
 import printerInkIcon from '../assets/printer-ink-icon.svg';
@@ -3511,19 +3513,24 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             на обычном фоне <main>, а ниже начинаются обои. -z-10 гарантирует,
             что они красятся за любым обычным (непозиционированным) контентом
             внутри <main>, включая шапку, независимо от порядка в разметке.
-            Раньше поверх этого градиента ещё лежала волнистая S-образная
-            фотография (home-wallpaper-*.jpg на 30% прозрачности) — клиент
-            попросил убрать волнистые полосы и оставить ровный градиент. */}
+            Новая пара обоев (2026-07-19, выбраны клиентом) — одна и та же
+            "стеклянная лента", тёмный и светлый вариант под соответствующую
+            тему; градиент оставлен под фото полупрозрачным слоем, чтобы текст
+            плиток не терял контраст поверх картинки. */}
         {mobileHome && (
           <>
             <div
-              className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 dark:hidden"
-              style={{ background: 'linear-gradient(135deg, #c9d3df 0%, #b8c6d6 50%, #cdd6e0 100%)' }}
-            />
+              className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 dark:hidden bg-cover bg-center"
+              style={{ backgroundImage: `url(${homeWallpaperLight})` }}
+            >
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(201,211,223,0.55) 0%, rgba(184,198,214,0.55) 50%, rgba(205,214,224,0.55) 100%)' }} />
+            </div>
             <div
-              className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 hidden dark:block"
-              style={{ background: 'linear-gradient(160deg, #1a2535 0%, #0f1a28 35%, #121820 65%, #0d1520 100%)' }}
-            />
+              className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 hidden dark:block bg-cover bg-center"
+              style={{ backgroundImage: `url(${homeWallpaperDark})` }}
+            >
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, rgba(26,37,53,0.6) 0%, rgba(15,26,40,0.6) 35%, rgba(18,24,32,0.6) 65%, rgba(13,21,32,0.6) 100%)' }} />
+            </div>
           </>
         )}
 
