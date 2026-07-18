@@ -5585,9 +5585,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <h2 className="text-xl font-black text-white mb-1">
                 {serviceCategoryFilter ? serviceCategoryLabels[serviceCategoryFilter] : 'Наши услуги'}
               </h2>
-              {serviceCategoryFilter !== 'scanning' && (
-                <p className="text-sm text-slate-400">Всё что мы делаем в Фото-Север на Северном шоссе, 18</p>
-              )}
               {serviceCategoryFilter && (
                 <button
                   onClick={() => setServiceCategoryFilter(null)}
@@ -6048,8 +6045,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
               {/* Body */}
               <div className="p-5 space-y-4 overflow-y-auto">
-                {/* Цветность с ценами прямо на кнопках — для А4. Для А3 своя объединённая группа ниже, после выбора формата */}
-                {!isA3 && (
+                {/* Цветность с ценами прямо на кнопках — для А4. Для А3 своя объединённая группа ниже, после выбора формата.
+                    Для полароида не показываем — печать там всегда цветная, выбор нечего настраивать. */}
+                {!isA3 && !isPolaroidSize && (
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Цветность</p>
                     <div className="grid grid-cols-2 gap-2.5">

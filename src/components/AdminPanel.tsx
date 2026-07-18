@@ -3780,7 +3780,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     <div className="p-5 md:p-8 overflow-y-auto">
                       <div className="mb-6 max-w-4xl mx-auto text-center">
                         <h2 className="text-xl font-black text-white mb-1">Наши услуги</h2>
-                        <p className="text-sm text-slate-400">Всё что мы делаем в Фото-Север на Северном шоссе, 18</p>
                       </div>
                       <ServicesShowcaseDemo services={database.services || []} />
                     </div>
