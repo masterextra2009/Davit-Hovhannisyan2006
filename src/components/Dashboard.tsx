@@ -6232,6 +6232,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </label>
                 )}
 
+                {/* А3 — временно пусто по просьбе клиента (2026-07-18), пока не
+                    решено, что здесь будет; "Копий"/"Итог" ниже спрятаны только
+                    для А3 — цена и 1 копия по умолчанию остаются в силе, заказ
+                    всё равно можно оформить. */}
+                {!isA3 && (
+                <>
                 {/* Копии */}
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Копий</p>
@@ -6260,6 +6266,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </span>
                   <strong className="text-xl font-black text-slate-800 dark:text-white">{fileCost} ₽</strong>
                 </div>
+                </>
+                )}
               </div>
 
               {/* Footer */}
