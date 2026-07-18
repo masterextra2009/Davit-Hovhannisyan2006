@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, PaymentConfig, Service, Feedback } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
+import { ServicesShowcaseDemo } from './ServicesShowcaseDemo';
 import logoImg from '../assets/logo.webp';
 import { 
   FileText, Users, Clock, MessageSquare, Download, CheckCircle, 
@@ -544,6 +545,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   // всплывающее окно с явной кнопкой "Сохранить", а не автосохранением
   // по уходу курсора (как у уже существующих карточек в сетке).
   const [showAddServiceModal, setShowAddServiceModal] = useState(false);
+  const [showServicesDemo, setShowServicesDemo] = useState(false);
   const [newServiceForm, setNewServiceForm] = useState({
     emoji: '🖨️',
     title: '',
@@ -3349,13 +3351,21 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       </button>
                     )}
                   </div>
-                  <button
-                    onClick={() => setShowAddServiceModal(true)}
-                    className="btn-holo-glass flex items-center gap-1.5 px-3.5 py-2 text-xs font-black rounded-xl transition cursor-pointer shrink-0"
-                    style={{ color: '#1e293b' }}
-                  >
-                    <span className="text-base leading-none">+</span> Добавить
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => setShowServicesDemo(true)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-850 transition cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Демо
+                    </button>
+                    <button
+                      onClick={() => setShowAddServiceModal(true)}
+                      className="btn-holo-glass flex items-center gap-1.5 px-3.5 py-2 text-xs font-black rounded-xl transition cursor-pointer"
+                      style={{ color: '#1e293b' }}
+                    >
+                      <span className="text-base leading-none">+</span> Добавить
+                    </button>
+                  </div>
                 </div>
 
                 {serviceAdminFilter === 'souvenirs' && (
@@ -3728,6 +3738,51 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       >
                         Сохранить
                       </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+              </AnimatePresence>
+
+              {/* ДЕМО ВИТРИНЫ — точно те же карточки/классы, что видит клиент
+                  в личном кабинете (см. ServicesShowcaseDemo.tsx), только
+                  read-only: без наклона по мыши и без реального заказа. */}
+              <AnimatePresence>
+              {showServicesDemo && (
+                <motion.div
+                  key="services-demo-modal"
+                  className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4"
+                  onClick={() => setShowServicesDemo(false)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+                  exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+                >
+                  <motion.div
+                    onClick={(e) => e.stopPropagation()}
+                    data-css-anim-off
+                    className="bg-slate-950 w-full max-w-5xl max-h-[92vh] rounded-3xl overflow-hidden flex flex-col border border-white/10"
+                    initial={{ opacity: 0, scale: 0.82, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+                    exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
+                  >
+                    <div className="p-5 border-b border-white/10 flex items-center justify-between shrink-0">
+                      <div className="flex items-center gap-2 text-white">
+                        <Eye className="w-4 h-4" />
+                        <h3 className="text-sm font-black">Демо — так видит клиент</h3>
+                      </div>
+                      <button
+                        onClick={() => setShowServicesDemo(false)}
+                        className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="p-5 md:p-8 overflow-y-auto">
+                      <div className="mb-6 max-w-4xl mx-auto text-center">
+                        <h2 className="text-xl font-black text-white mb-1">Наши услуги</h2>
+                        <p className="text-sm text-slate-400">Всё что мы делаем в Фото-Север на Северном шоссе, 18</p>
+                      </div>
+                      <ServicesShowcaseDemo services={database.services || []} />
                     </div>
                   </motion.div>
                 </motion.div>

@@ -5629,7 +5629,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 />
                 <button
                   onClick={openCamera}
-                  className="glass-icon colored capsule-glow-cyan w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer flex items-center justify-center gap-2"
+                  className="glass-icon colored capsule-glow-cyan glass-icon-pill w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span className="beam"><i /></span>
                   <Camera className="relative z-[3] w-4 h-4" />
@@ -6270,7 +6270,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   type="button"
                   disabled={!canConfirm}
                   onClick={() => confirmFileConfig(file.id, applyToAllPending)}
-                  className="glass-icon colored capsule-glow-purple w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="glass-icon colored capsule-glow-purple glass-icon-pill w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <span className="beam"><i /></span>
                   <span className="relative z-[3]">{applyToAllPending ? `Применить ко всем и продолжить →` : 'Выбрать →'}</span>
@@ -7629,7 +7629,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <button
               onClick={confirmScan}
               disabled={scanProcessing || !scanProcessedImageUrl}
-              className="glass-icon colored capsule-glow-green w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="glass-icon colored capsule-glow-green glass-icon-pill w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <span className="beam"><i /></span>
               <span className="relative z-[3]">Использовать этот скан →</span>
