@@ -417,9 +417,9 @@ function navShapePath(w: number) {
 // Пропорции 31/124 (радиус) и 96/124 (иконка) — утверждённые в ТЗ, не менять.
 // colored=true красит саму капсулу градиентом по имени glow (см. .capsule-glow-*
 // в index.css) — глиф внутри остаётся белым, только фон плитки цветной.
-function GlassIcon({ icon: Icon, glow, size = 56, colored = false }: { icon: typeof Upload; glow?: string; size?: number; colored?: boolean }) {
+function GlassIcon({ icon: Icon, glow, size = 56, colored = false, noOuterShadow = false }: { icon: typeof Upload; glow?: string; size?: number; colored?: boolean; noOuterShadow?: boolean }) {
   return (
-    <span className={`glass-icon${colored ? ` colored ${glow || ''}` : ''}`} style={{ width: size, height: size, borderRadius: size * (31 / 124) }}>
+    <span className={`glass-icon${colored ? ` colored ${glow || ''}` : ''}${noOuterShadow ? ' glass-icon-pill' : ''}`} style={{ width: size, height: size, borderRadius: size * (31 / 124) }}>
       <span className="beam"><i /></span>
       <Icon
         style={{
@@ -3571,7 +3571,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           } ${isDragged ? 'tile-dragging' : ''}`}
                         >
                           <div className="relative">
-                            <GlassIcon icon={item.icon} glow={item.glow} size={60} colored />
+                            <GlassIcon icon={item.icon} glow={item.glow} size={60} colored noOuterShadow />
                             {item.badge}
                           </div>
                           <span className="text-[12px] font-semibold text-center leading-tight text-slate-800 dark:text-white/85">
