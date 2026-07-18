@@ -1487,7 +1487,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     setAiChatSpeakEnabled(prev => {
       const next = !prev;
       try { sessionStorage.setItem('ai_chat_speak', next ? 'on' : 'off'); } catch { /* ignore */ }
-      if (!next) window.speechSynthesis?.cancel();
+      if (!next) stopAiSpeaking();
       return next;
     });
   };
@@ -1501,75 +1501,94 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     .replace(/\n+/g, ' ')
     .trim();
 
-  // Конкретный голос для озвучки (Голос.md) — выбирается один раз по имени,
-  // не даётся клиенту на выбор. Список голосов браузер отдаёт асинхронно
-  // (onvoiceschanged), а в части браузеров он уже готов к моменту монтирования
-  // — поэтому пробуем сразу И подписываемся на событие.
-  const aiVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    const pickVoice = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length === 0) return;
-      const preferred = voices.find(v => v.name === 'Microsoft Дмитрий Online (Natural) - Russian (Russia)');
-      const dmitri = voices.find(v => /дмитрий|dmitri/i.test(v.name));
-      // Android отдаёт lang и как "ru-RU", и как "ru_RU" — нормализуем оба
-      const ruVoices = voices.filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('ru'));
-      // На iOS системный мужской голос называется "Юрий" — если у владельца
-      // телефон на русском языке, имя голоса приходит кириллицей, а не
-      // латиницей "Yuri", поэтому ищем оба написания.
-      const ruMale = ruVoices.find(v => /pavel|dmitri|yuri|юрий|павел|male/i.test(v.name));
-      aiVoiceRef.current = preferred || dmitri || ruMale || ruVoices[0] || null;
-    };
-    pickVoice();
-    window.speechSynthesis.onvoiceschanged = pickVoice;
-    return () => { window.speechSynthesis.onvoiceschanged = null; };
-  }, []);
+  // Yandex SpeechKit tts:synthesize ограничивает длину текста за один запрос
+  // (~5000 символов) — разбиваем длинный ответ по границам предложений, чтобы
+  // не резать слова и не отправлять всё одним куском без ограничения.
+  const splitForTts = (text: string, maxLen = 3500): string[] => {
+    const clean = stripMarkdownForSpeech(text);
+    if (clean.length <= maxLen) return clean ? [clean] : [];
+    const sentences = clean.split(/(?<=[.!?])\s+/);
+    const chunks: string[] = [];
+    let cur = '';
+    for (const s of sentences) {
+      const next = cur ? `${cur} ${s}` : s;
+      if (next.length > maxLen && cur) {
+        chunks.push(cur);
+        cur = s;
+      } else {
+        cur = next;
+      }
+    }
+    if (cur) chunks.push(cur);
+    return chunks;
+  };
 
   // Пока идёт озвучка ответа — кружок в голосовом оверлее "оживает"
   // (пульс + бегущая звуковая дорожка), как в голосовом режиме GPT-чатов.
-  // Настоящего анализа громкости у SpeechSynthesis нет (браузер не даёт
-  // доступ к аудио-потоку синтеза), поэтому дорожка декоративная — просто
-  // играет, пока utterance реально звучит (onstart/onend), а не всегда.
   const [aiIsSpeaking, setAiIsSpeaking] = useState(false);
 
-  const speakAiReply = (text: string) => {
-    if (!aiChatSpeakEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
-    // На телефонах список голосов часто приезжает позже монтирования —
-    // пробуем добрать голос прямо перед озвучкой.
-    if (!aiVoiceRef.current) {
-      const voices = window.speechSynthesis.getVoices();
-      const ru = voices.filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('ru'));
-      aiVoiceRef.current = ru.find(v => /дмитрий|dmitri|pavel|yuri|юрий|павел|male/i.test(v.name)) || ru[0] || null;
+  // Один и тот же <audio>-элемент для всей озвучки (не новый на каждый
+  // кусок) — на iOS Safari programmatic play() разрешён без нового жеста
+  // пользователя только для элемента, который уже был запущен внутри
+  // настоящего тапа (см. unlockAiAudio ниже).
+  const aiAudioElRef = useRef<HTMLAudioElement | null>(null);
+  const getAiAudioEl = () => {
+    if (!aiAudioElRef.current) aiAudioElRef.current = new Audio();
+    return aiAudioElRef.current;
+  };
+
+  // Разблокировка автоплея на iOS: озвучка теперь приходит с сервера
+  // (fetch), то есть play() вызывается уже ПОСЛЕ настоящего тапа — Safari
+  // тихо блокирует такой programmatic play(). Прогреваем тот же элемент
+  // одним play()+pause() прямо внутри реального жеста (открытие чата/
+  // голосового оверлея), дальше он остаётся разрешённым до закрытия вкладки.
+  const unlockAiAudio = () => {
+    const el = getAiAudioEl();
+    el.muted = true;
+    el.play().then(() => { el.pause(); el.muted = false; }).catch(() => { el.muted = false; });
+  };
+
+  // Растущий токен — прерывает уже идущую озвучку (новый ответ, мьют,
+  // закрытие окна), не даёт старому куску доиграть поверх нового.
+  const speakTokenRef = useRef(0);
+  const stopAiSpeaking = () => {
+    speakTokenRef.current += 1;
+    aiAudioElRef.current?.pause();
+    setAiIsSpeaking(false);
+  };
+
+  const speakAiReply = async (text: string) => {
+    if (!aiChatSpeakEnabled) return;
+    stopAiSpeaking();
+    const myToken = speakTokenRef.current;
+    const el = getAiAudioEl();
+    const chunks = splitForTts(text);
+    for (const chunk of chunks) {
+      if (speakTokenRef.current !== myToken) return;
+      let buf: ArrayBuffer;
+      try {
+        const res = await fetch('https://sever-18.ru/api/tts.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: chunk }),
+        });
+        if (!res.ok) return; // Yandex недоступен/лимит — тихо молчим, текст в чате остаётся
+        buf = await res.arrayBuffer();
+      } catch {
+        return; // сеть недоступна — тихо молчим
+      }
+      if (speakTokenRef.current !== myToken) return;
+      const url = URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' }));
+      el.src = url;
+      await new Promise<void>(resolve => {
+        const cleanup = () => { URL.revokeObjectURL(url); resolve(); };
+        el.onended = cleanup;
+        el.onerror = cleanup;
+        el.play().then(() => setAiIsSpeaking(true)).catch(cleanup);
+      });
+      if (speakTokenRef.current !== myToken) return;
     }
-    window.speechSynthesis.cancel(); // не наложить новый ответ поверх ещё звучащего
-    const utterance = new SpeechSynthesisUtterance(stripMarkdownForSpeech(text));
-    // Если конкретный голос так и не нашёлся — НЕ молчим: оставляем выбор
-    // движку по lang='ru-RU' (на Android это штатный путь, и он работает
-    // даже когда getVoices() пустой).
-    if (aiVoiceRef.current) utterance.voice = aiVoiceRef.current;
-    utterance.lang = 'ru-RU';
-    utterance.rate = 1;
-    // Ни на Android, ни на iOS сайт не может поставить конкретный голос на
-    // телефон клиента — это системная функция ОС, требующая действий
-    // самого владельца устройства, и просить об этом рядового клиента
-    // печатного сервиса не вариант. Поэтому берём тот голос, что стоит на
-    // телефоне из коробки (обычно единственный доступный женский, без
-    // скачиваний), и просто понижаем тон синтеза — звучит ниже и нейтральнее,
-    // это финальное решение, а не временная заглушка.
-    utterance.pitch = 0.75;
-    utterance.onstart = () => setAiIsSpeaking(true);
-    utterance.onend = () => { setAiIsSpeaking(false); clearInterval(keepAliveTimer); };
-    utterance.onerror = () => { setAiIsSpeaking(false); clearInterval(keepAliveTimer); };
-    window.speechSynthesis.speak(utterance);
-    // Известный баг Chrome на Android: озвучка длинных фраз обрывается
-    // рывками сама по себе, если её периодически не "подталкивать" через
-    // pause()+resume(). Без этого длинный ответ звучит кусками с паузами.
-    const keepAliveTimer = setInterval(() => {
-      if (!window.speechSynthesis.speaking) { clearInterval(keepAliveTimer); return; }
-      window.speechSynthesis.pause();
-      window.speechSynthesis.resume();
-    }, 5000);
+    if (speakTokenRef.current === myToken) setAiIsSpeaking(false);
   };
 
   const handleOpenAiChat = () => {
@@ -1579,10 +1598,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     // (переход в вкладку "Чат"), и при закрытии окна оголяло вкладку
     // "Загрузка" по умолчанию позади вместо "Главной", с которой открывали.
     setShowAiChat(true);
+    unlockAiAudio();
   };
   const handleCloseAiChat = () => {
     setShowAiChat(false);
-    window.speechSynthesis?.cancel(); // не договаривать в свёрнутое окно
+    stopAiSpeaking(); // не договаривать в свёрнутое окно
   };
 
   // Общая логика "отправить текст в ИИ и получить ответ" — используется и
@@ -1643,7 +1663,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     try { voiceOverlayRecognitionRef.current?.abort(); } catch { /* ignore */ }
     setVoiceHolding(false);
     setShowVoiceOverlay(false);
-    window.speechSynthesis?.cancel();
+    stopAiSpeaking();
   };
 
   const handleOpenVoiceOverlay = () => {
@@ -1653,16 +1673,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     setVoiceOverlayReply('');
     setVoiceOverlayPhase('idle');
     setShowVoiceOverlay(true);
-    // Разблокировка озвучки на iOS: speechSynthesis "оживает" только если
-    // первый speak() случился внутри реального тапа — говорим пустую фразу.
-    try { window.speechSynthesis?.speak(new SpeechSynthesisUtterance('')); } catch { /* ignore */ }
+    unlockAiAudio();
   };
 
   const startVoiceCapture = () => {
     const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionCtor) return;
     try { voiceOverlayRecognitionRef.current?.abort(); } catch { /* ignore */ }
-    window.speechSynthesis?.cancel(); // не слушать поверх говорящего ИИ
+    stopAiSpeaking(); // не слушать поверх говорящего ИИ
     const recognition = new SpeechRecognitionCtor();
     voiceOverlayRecognitionRef.current = recognition;
     recognition.lang = 'ru-RU';
