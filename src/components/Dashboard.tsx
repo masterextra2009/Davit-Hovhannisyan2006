@@ -12,6 +12,7 @@ import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
 import { AnimatedTitle } from './AnimatedTitle';
+import { AiPriceCard } from './AiPriceCard';
 import JSZip from 'jszip';
 import logoImg from '../assets/logo.webp';
 import printerInkIcon from '../assets/printer-ink-icon.svg';
@@ -1456,11 +1457,28 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // оператором окно: клиент задаёт вопрос текстом или голосом, ответ идёт
   // через Claude API (сервер сам подтягивает живые цены из Firestore и
   // подставляет их в системный промпт — на клиенте цены нигде не хранятся).
-  type AiChatMessage = { role: 'user' | 'assistant'; content: string; showRoute?: boolean };
+  type AiPriceItem = { label: string; qty: number; unitPrice: number; subtotal: number };
+  type AiPriceBreakdown = { items: AiPriceItem[]; total: number };
+  type AiChatMessage = { role: 'user' | 'assistant'; content: string; showRoute?: boolean; price?: AiPriceBreakdown };
   // Маршрут.md — модель добавляет эту метку в конце ответа, когда клиент
   // спрашивает "как добраться"; код (не модель) вырезает метку из текста
   // и рисует вместо неё кнопку с готовой ссылкой на Яндекс.Карты.
   const AI_ROUTE_MARKER = '[ПОКАЗАТЬ_МАРШРУТ]';
+  // [ЦЕНА]{...JSON...}[/ЦЕНА] — модель добавляет это в конце ответа, когда
+  // считает клиенту стоимость (см. system-промпт в ai-chat.php); код вырезает
+  // JSON из текста/озвучки и рисует вместо него красивую карточку с разбивкой
+  // и итогом, а не читает JSON вслух.
+  const AI_PRICE_MARKER_RE = /\[ЦЕНА\]([\s\S]*?)\[\/ЦЕНА\]/;
+  function extractAiPriceCard(rawReply: string): { text: string; price?: AiPriceBreakdown } {
+    const match = rawReply.match(AI_PRICE_MARKER_RE);
+    if (!match) return { text: rawReply };
+    let price: AiPriceBreakdown | undefined;
+    try {
+      const parsed = JSON.parse(match[1]);
+      if (parsed && Array.isArray(parsed.items) && typeof parsed.total === 'number') price = parsed;
+    } catch { /* модель могла отдать невалидный JSON — просто не показываем карточку */ }
+    return { text: rawReply.replace(match[0], '').trim(), price };
+  }
   const AI_STUDIO_ADDRESS = 'Северное шоссе 18, Раменское, Московская область';
   const openAiChatRoute = () => {
     // Геолокацию должен спросить сам браузер по клику на ссылку карт —
@@ -1608,7 +1626,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // Общая логика "отправить текст в ИИ и получить ответ" — используется и
   // обычной текстовой формой, и голосовым оверлеем (см. ниже), чтобы не
   // дублировать fetch/обработку ошибок/парсинг метки маршрута в двух местах.
-  const sendAiChatText = async (text: string): Promise<{ reply: string; showRoute: boolean }> => {
+  const sendAiChatText = async (text: string): Promise<{ reply: string; showRoute: boolean; price?: AiPriceBreakdown }> => {
     const nextMessages: AiChatMessage[] = [...aiChatMessages, { role: 'user', content: text }];
     setAiChatMessages(nextMessages);
     const fallbackReply = 'Не могу ответить прямо сейчас, напишите нам в Telegram @photosever18 или позвоните 8 (968) 050-88-00';
@@ -1621,10 +1639,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       const data = await res.json();
       const rawReply: string = data.reply || fallbackReply;
       const showRoute = rawReply.includes(AI_ROUTE_MARKER);
-      const reply = rawReply.replace(AI_ROUTE_MARKER, '').trim();
-      setAiChatMessages(prev => [...prev, { role: 'assistant', content: reply, showRoute }]);
+      const { text: reply, price } = extractAiPriceCard(rawReply.replace(AI_ROUTE_MARKER, '').trim());
+      setAiChatMessages(prev => [...prev, { role: 'assistant', content: reply, showRoute, price }]);
       speakAiReply(reply);
-      return { reply, showRoute };
+      return { reply, showRoute, price };
     } catch {
       setAiChatMessages(prev => [...prev, { role: 'assistant', content: fallbackReply }]);
       speakAiReply(fallbackReply);
@@ -1653,6 +1671,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [showVoiceOverlay, setShowVoiceOverlay] = useState(false);
   const [voiceOverlayPhase, setVoiceOverlayPhase] = useState<VoiceOverlayPhase>('idle');
   const [voiceOverlayReply, setVoiceOverlayReply] = useState('');
+  const [voiceOverlayPrice, setVoiceOverlayPrice] = useState<AiPriceBreakdown | undefined>(undefined);
   const [voiceOverlayError, setVoiceOverlayError] = useState<string | null>(null);
   const voiceOverlayRecognitionRef = useRef<any>(null);
   // Рация: микрофон слушает, только пока палец на кружке. Отпустил —
@@ -1731,12 +1750,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         return;
       }
       setVoiceOverlayPhase('thinking');
-      const { reply } = await sendAiChatText(text);
+      const { reply, price } = await sendAiChatText(text);
       setVoiceOverlayReply(reply);
+      setVoiceOverlayPrice(price);
       setVoiceOverlayPhase('answered');
     };
     setVoiceOverlayError(null);
     setVoiceOverlayReply('');
+    setVoiceOverlayPrice(undefined);
     setVoiceOverlayPhase('listening');
     setVoiceHolding(true);
     voicePressStartRef.current = Date.now();
@@ -7634,6 +7655,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       <MapPin className="w-3.5 h-3.5" /> Построить маршрут 📍
                     </button>
                   )}
+                  {m.price && <AiPriceCard price={m.price} />}
                 </div>
               ))}
               {aiChatSending && (
@@ -7745,7 +7767,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <p className="text-rose-400 text-sm font-bold">{voiceOverlayError}</p>
               )}
               {voiceOverlayPhase === 'answered' && (
-                <p className="text-white text-sm leading-relaxed">{voiceOverlayReply}</p>
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-white text-sm leading-relaxed text-center">{voiceOverlayReply}</p>
+                  {voiceOverlayPrice && <AiPriceCard price={voiceOverlayPrice} />}
+                </div>
               )}
             </div>
 
