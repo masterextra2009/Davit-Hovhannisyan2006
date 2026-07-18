@@ -3623,7 +3623,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 {homeTilePages.map((page, pageIdx) => (
                   <nav
                     key={pageIdx}
-                    className="mobile-tile-nav grid grid-cols-4 gap-y-4 gap-x-3 w-full shrink-0"
+                    className="mobile-tile-nav grid grid-cols-4 gap-y-4 gap-x-2 w-full shrink-0"
                     style={{ scrollSnapAlign: 'start' }}
                   >
                     {page.map((item, i) => {
@@ -3700,7 +3700,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           } ${isDragged ? 'tile-dragging' : ''}`}
                         >
                           <div className="relative">
-                            <GlassIcon icon={item.icon} glow={item.glow} size={60} colored noOuterShadow />
+                            <GlassIcon icon={item.icon} glow={item.glow} size={68} colored noOuterShadow />
                             {item.badge}
                           </div>
                           {/* Фиксированная высота подписи (под 2 строки) — иначе у подписей
