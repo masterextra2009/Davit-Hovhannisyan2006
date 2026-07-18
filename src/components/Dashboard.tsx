@@ -11,6 +11,7 @@ import { RatingWidget } from './RatingWidget';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
+import { AnimatedTitle } from './AnimatedTitle';
 import logoImg from '../assets/logo.webp';
 import printerInkIcon from '../assets/printer-ink-icon.svg';
 import chatIconRefImg from '../assets/chat-icon-ref-cropped.webp';
@@ -415,12 +416,15 @@ function navShapePath(w: number) {
 }
 
 // Стеклянная иконка с бегущим бликом по кромке (см. .glass-icon в index.css).
-// Пропорции 31/124 (радиус) и 96/124 (иконка) — утверждённые в ТЗ, не менять.
+// Обновлено 2026-07-18 по просьбе клиента — скругление 22.37% повторяет
+// реальную форму значков iOS ("squircle", ближайшее приближение через
+// border-radius; настоящая суперэллиптическая кривая Apple тут не нужна —
+// разница на глаз не видна). Пропорция глифа внутри (96/124) не менялась.
 // colored=true красит саму капсулу градиентом по имени glow (см. .capsule-glow-*
 // в index.css) — глиф внутри остаётся белым, только фон плитки цветной.
 function GlassIcon({ icon: Icon, glow, size = 56, colored = false, noOuterShadow = false }: { icon: typeof Upload; glow?: string; size?: number; colored?: boolean; noOuterShadow?: boolean }) {
   return (
-    <span className={`glass-icon${colored ? ` colored ${glow || ''}` : ''}${noOuterShadow ? ' glass-icon-pill' : ''}`} style={{ width: size, height: size, borderRadius: size * (31 / 124) }}>
+    <span className={`glass-icon${colored ? ` colored ${glow || ''}` : ''}${noOuterShadow ? ' glass-icon-pill' : ''}`} style={{ width: size, height: size, borderRadius: size * 0.2237 }}>
       <span className="beam"><i /></span>
       <Icon
         style={{
@@ -3572,7 +3576,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           } ${isDragged ? 'tile-dragging' : ''}`}
                         >
                           <div className="relative">
-                            <GlassIcon icon={item.icon} glow={item.glow} size={60} colored noOuterShadow />
+                            <GlassIcon icon={item.icon} glow={item.glow} size={68} colored noOuterShadow />
                             {item.badge}
                           </div>
                           <span className="text-[12px] font-semibold text-center leading-tight text-slate-800 dark:text-white/85">
@@ -3794,7 +3798,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <div className="icon-3d-badge p-2 bg-indigo-50 dark:bg-indigo-950/40">
                     <Upload className="w-4 h-4 text-indigo-600 icon-3d-svg" />
                   </div>
-                  <span>Шаг 1. Перетащите файлы</span>
+                  <AnimatedTitle><span>Шаг 1. Перетащите файлы</span></AnimatedTitle>
                 </h3>
 
                 {!isWorkingHours() && (
@@ -4233,7 +4237,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <div className="glass-icon-capsule glass-icon-indigo p-2">
                     <FileCheck className="w-4 h-4" />
                   </div>
-                  <span>Шаг 2. Оформление</span>
+                  <AnimatedTitle><span>Шаг 2. Оформление</span></AnimatedTitle>
                 </h3>
 
                 <form onSubmit={handlePlaceOrder} className="space-y-5">
@@ -5295,7 +5299,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6">
                   <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
                     <img src={settingsIconRefImg} alt="" className="w-6 h-6 rounded-lg shrink-0" />
-                    Безопасность и Настройки
+                    <AnimatedTitle>Безопасность и Настройки</AnimatedTitle>
                   </h3>
 
                   <div className="space-y-4">
@@ -5334,7 +5338,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-5">
                   <div className="flex items-center gap-2">
                     <Share2 className="w-4.5 h-4.5 text-indigo-650" />
-                    <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">Поделиться Сервисом</h3>
+                    <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider"><AnimatedTitle>Поделиться Сервисом</AnimatedTitle></h3>
                   </div>
                   
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
@@ -5429,7 +5433,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <div className="glass-panel rounded-3xl p-6 md:p-8">
                 <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-150 dark:border-slate-800">
                   <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    <Bell className="w-4.5 h-4.5 text-indigo-650" /> Журнал уведомлений
+                    <Bell className="w-4.5 h-4.5 text-indigo-650" /> <AnimatedTitle>Журнал уведомлений</AnimatedTitle>
                   </h3>
                   <button
                     onClick={handleMarkNotificationsRead}
@@ -5482,7 +5486,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             className="space-y-5 pb-8 md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1 w-full overflow-x-hidden"
           >
             <div className="mb-6 max-w-2xl mx-auto text-center">
-              <h2 className="text-xl font-black text-white mb-1">Контакты студии</h2>
+              <h2 className="text-xl font-black text-white mb-1"><AnimatedTitle>Контакты студии</AnimatedTitle></h2>
               <p className="text-sm text-slate-400">Мы всегда рады помочь вам!</p>
             </div>
 
@@ -5584,7 +5588,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           >
             <div className="mb-6 max-w-4xl mx-auto text-center">
               <h2 className="text-xl font-black text-white mb-1">
-                {serviceCategoryFilter ? serviceCategoryLabels[serviceCategoryFilter] : 'Наши услуги'}
+                <AnimatedTitle>{serviceCategoryFilter ? serviceCategoryLabels[serviceCategoryFilter] : 'Наши услуги'}</AnimatedTitle>
               </h2>
               {serviceCategoryFilter && (
                 <button
@@ -5854,7 +5858,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <div className="flex-1 flex flex-col px-5 pt-5"
                 style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
               >
-                <h2 className="text-2xl font-black text-slate-800 dark:text-white leading-tight">{expandedService.title}</h2>
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white leading-tight"><AnimatedTitle>{expandedService.title}</AnimatedTitle></h2>
                 {expandedService.description && (
                   <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mt-2 whitespace-pre-wrap">{expandedService.description}</p>
                 )}
@@ -5883,7 +5887,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         <div className="fixed inset-0 z-50 bg-black flex flex-col animate-fade-in">
           <div className="p-4 pt-5 flex items-start justify-between shrink-0 bg-gradient-to-b from-black/70 to-transparent absolute top-0 left-0 right-0 z-10">
             <div className="overflow-hidden mr-2">
-              <h3 className="text-xs font-black text-white truncate">{previewFile.name}</h3>
+              <h3 className="text-xs font-black text-white truncate"><AnimatedTitle>{previewFile.name}</AnimatedTitle></h3>
               <span className="text-[10px] text-white/50 font-medium block mt-0.5">
                 {formatFileSize(previewFile.size)}
                 {previewPdfPages.length > 1 && ` · Страница ${previewPageIndex + 1} из ${previewPdfPages.length}`}
@@ -6031,7 +6035,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
               >
                 <div className="p-5 pb-0 text-center">
-                  <h3 className="text-sm font-black text-slate-800 dark:text-white">Полароид</h3>
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>Полароид</AnimatedTitle></h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{file.name}</p>
                 </div>
 
@@ -6122,7 +6126,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex items-center gap-3 bg-slate-50/50 dark:bg-slate-950/30 shrink-0">
                 <img src={printerInkIcon} alt="" className="w-16 h-16 shrink-0" />
                 <div className="overflow-hidden flex-1">
-                  <h3 className="text-sm font-black text-slate-800 dark:text-white">Настройте параметры печати</h3>
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>Настройте параметры печати</AnimatedTitle></h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{file.name}</p>
                 </div>
                 {file.url ? (
@@ -6414,7 +6418,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                    <span>Интерактивный 3D-осмотр тиража партии</span>
+                    <AnimatedTitle><span>Интерактивный 3D-осмотр тиража партии</span></AnimatedTitle>
                     <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-0.5 rounded-full border border-emerald-250/30">В ФОКУСЕ 100%</span>
                   </h3>
                   <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold block mt-0.5 leading-none">
@@ -6837,7 +6841,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
               {/* Text info */}
               <div className="space-y-2">
-                <h3 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-wide">Заказ принят на обработку!</h3>
+                <h3 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-wide"><AnimatedTitle>Заказ принят на обработку!</AnimatedTitle></h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
                   Ваш заказ успешно принят. Мы уже получили файлы и начинаем предпечатную подготовку оборудования на Северном шоссе, 18.
                 </p>
@@ -6902,7 +6906,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <Trash2 className="w-6 h-6 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-white">Удаление аккаунта</h3>
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-white"><AnimatedTitle>Удаление аккаунта</AnimatedTitle></h3>
                 <p className="text-[10px] text-slate-400 font-bold">Это действие невозможно отменить</p>
               </div>
             </div>
@@ -7033,7 +7037,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               🖨️
             </div>
             <div className="text-center">
-              <h2 className="text-xl font-black text-white mb-1">Добро пожаловать!</h2>
+              <h2 className="text-xl font-black text-white mb-1"><AnimatedTitle>Добро пожаловать!</AnimatedTitle></h2>
               <p className="text-sm text-white/50">Фото-Север — печать онлайн за 3 шага</p>
             </div>
 
@@ -7125,7 +7129,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <div className="p-6 sm:p-8 pt-3 space-y-5 text-center">
               <div className="space-y-1.5">
                 <h3 className="text-lg font-black text-slate-850 dark:text-white uppercase tracking-wider font-sans">
-                  Скидочный купон!
+                  <AnimatedTitle>Скидочный купон!</AnimatedTitle>
                 </h3>
                 <p className="text-xs text-slate-400 font-bold">
                   Специально для пользователя: <span className="text-slate-700 dark:text-slate-200">{user.fullName}</span>
@@ -7197,7 +7201,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <Layers className="w-5 h-5" />
               </div>
               <div className="overflow-hidden flex-1">
-                <h3 className="text-sm font-black text-slate-800 dark:text-white">Конструктор коллажа А4</h3>
+                <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>Конструктор коллажа А4</AnimatedTitle></h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Выберите фото — сетка на листе подберётся автоматически
                 </p>
@@ -7365,7 +7369,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
             <div className="flex items-center gap-2">
               <Send className="w-4.5 h-4.5 text-sky-500" />
-              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">Telegram-уведомления</h3>
+              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider"><AnimatedTitle>Telegram-уведомления</AnimatedTitle></h3>
             </div>
 
             <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
@@ -7472,7 +7476,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <source src={aiAssistantCoinWebm} type="video/webm" />
                   <source src={aiAssistantCoinMp4} type="video/mp4" />
                 </video>
-                <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">ИИ-консультант</h3>
+                <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider"><AnimatedTitle>ИИ-консультант</AnimatedTitle></h3>
               </div>
               <div className="flex items-center gap-1.5">
                 <button
@@ -7713,7 +7717,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       {scanRawImageUrl && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col animate-fade-in">
           <div className="p-4 pt-5 shrink-0">
-            <h3 className="text-xs font-black text-white uppercase tracking-wider text-center">Результат скана</h3>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider text-center"><AnimatedTitle>Результат скана</AnimatedTitle></h3>
           </div>
           <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
             {scanProcessing ? (
@@ -7778,7 +7782,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
             <div className="flex items-center gap-2">
               <span className="text-lg">🐞</span>
-              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">Заметили ошибку?</h3>
+              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider"><AnimatedTitle>Заметили ошибку?</AnimatedTitle></h3>
             </div>
 
             {bugReportSent ? (
@@ -7998,9 +8002,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             </button>
             
             <h2 className="text-sm font-black uppercase tracking-wider text-slate-850 dark:text-white border-b border-slate-100 dark:border-slate-850 pb-3 mb-4 select-none text-left">
-              {activeLegalDoc === 'privacy' && 'Политика конфиденциальности (152-ФЗ РФ)'}
-              {activeLegalDoc === 'terms' && 'Договор публичной оферты'}
-              {activeLegalDoc === 'delivery' && 'Условия оплаты, доставки и возврата средств'}
+              <AnimatedTitle>
+                {activeLegalDoc === 'privacy' && 'Политика конфиденциальности (152-ФЗ РФ)'}
+                {activeLegalDoc === 'terms' && 'Договор публичной оферты'}
+                {activeLegalDoc === 'delivery' && 'Условия оплаты, доставки и возврата средств'}
+              </AnimatedTitle>
             </h2>
             
             <div className="overflow-y-auto space-y-4 text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium md:pr-2 text-left">

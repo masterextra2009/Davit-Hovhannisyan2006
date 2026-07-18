@@ -9,6 +9,7 @@ import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, O
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
 import { ServicesShowcaseDemo } from './ServicesShowcaseDemo';
+import { AnimatedTitle } from './AnimatedTitle';
 import logoImg from '../assets/logo.webp';
 import { 
   FileText, Users, Clock, MessageSquare, Download, CheckCircle, 
@@ -2185,7 +2186,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           {activeTab === 'feedback' && (
             <div className="space-y-6">
               <div className="glass-panel rounded-3xl p-6">
-                <h3 className="text-sm font-black text-white uppercase tracking-wider mb-1">Пожелания и замечания</h3>
+                <h3 className="text-sm font-black text-white uppercase tracking-wider mb-1"><AnimatedTitle>Пожелания и замечания</AnimatedTitle></h3>
                 <p className="text-[10px] text-white/50 mb-6">Ответ уходит клиенту обычным сообщением в чате.</p>
 
                 {(database.feedback || []).length === 0 ? (
@@ -2259,7 +2260,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               <div className="glass-panel rounded-3xl p-6 overflow-x-auto">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
                   <div>
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider">База зарегистрированных пользователей</h3>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider"><AnimatedTitle>База зарегистрированных пользователей</AnimatedTitle></h3>
                     <p className="text-[10px] text-white/50 mt-1">Нажмите на строку любого пользователя для просмотра реестра всех его загруженных файлов.</p>
                   </div>
                   <div className="search-glow-wrap w-full sm:w-72">
@@ -2477,7 +2478,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         </div>
                         <div>
                           <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider font-sans">
-                            Файлы пользователя: {selectedUserForFiles.fullName}
+                            <AnimatedTitle>Файлы пользователя: {selectedUserForFiles.fullName}</AnimatedTitle>
                           </h3>
                           <p className="text-[10px] text-slate-400 mt-0.5">
                             Email: {selectedUserForFiles.email} &bull; Телефон: {selectedUserForFiles.phone || '—'}
@@ -2565,7 +2566,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <div className="flex items-center gap-2">
                         <Gift className="w-5 h-5 text-emerald-500 animate-bounce" />
                         <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                          Подарить промокод
+                          <AnimatedTitle>Подарить промокод</AnimatedTitle>
                         </h3>
                       </div>
                       <button
@@ -2746,7 +2747,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           <div className="flex items-center gap-2">
                             <Mail className="w-5 h-5 text-sky-500" />
                             <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                              Написать клиенту
+                              <AnimatedTitle>Написать клиенту</AnimatedTitle>
                             </h3>
                           </div>
                           <button
@@ -2948,7 +2949,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 {/* SVG format groups stats card */}
                 <div className="lg:col-span-6 glass-panel p-6 md:p-8 rounded-3xl space-y-6">
                   <div>
-                    <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider">Популярные форматы файлов на печать</h3>
+                    <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider"><AnimatedTitle>Популярные форматы файлов на печать</AnimatedTitle></h3>
                     <p className="text-[10px] text-slate-400 mt-1">Рейтинг типов расширений загружаемых архивов, документов и фото.</p>
                   </div>
 
@@ -2985,7 +2986,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 {/* SVG Orders Trend Chart - Flowchart */}
                 <div className="lg:col-span-6 glass-panel p-6 md:p-8 rounded-3xl flex flex-col justify-between">
                   <div>
-                    <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider">Динамика заказов по дням недели</h3>
+                    <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider"><AnimatedTitle>Динамика заказов по дням недели</AnimatedTitle></h3>
                     <p className="text-[10px] text-slate-400 mt-1">Обороты транзакций и число успешных печатных партий.</p>
                   </div>
 
@@ -3074,7 +3075,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6">
                   <div>
                     <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
-                      <Camera className="text-indigo-650 w-5 h-5" /> Профиль & Персональная аватарка
+                      <Camera className="text-indigo-650 w-5 h-5" /> <AnimatedTitle>Профиль & Персональная аватарка</AnimatedTitle>
                     </h3>
                     <p className="text-[11px] text-slate-400 mt-1">Отредактируйте свои личные данные и настройте графический аватар, отображаемый в чате с клиентами.</p>
                   </div>
@@ -3177,7 +3178,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-4">
                 <div>
                   <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
-                    <Download className="text-indigo-650 w-5 h-5" /> Резервная копия базы данных
+                    <Download className="text-indigo-650 w-5 h-5" /> <AnimatedTitle>Резервная копия базы данных</AnimatedTitle>
                   </h3>
                   <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
                     Скачивает JSON-файл со всеми заказами, клиентами, перепиской и уведомлениями на этот момент.
@@ -3277,7 +3278,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     <Trash2 className="w-6 h-6 animate-pulse" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">Подтверждение удаления</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white"><AnimatedTitle>Подтверждение удаления</AnimatedTitle></h3>
                     <p className="text-[10px] text-slate-400 font-bold">Это действие абсолютно необратимо</p>
                   </div>
                 </div>
@@ -3335,7 +3336,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   <div>
                     <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
                       {serviceAdminFilter === 'souvenirs' ? <Gift className="text-orange-500 w-5 h-5" /> : <Printer className="text-indigo-650 w-5 h-5" />}
-                      {serviceAdminFilter === 'souvenirs' ? 'Сувениры' : 'Витрина услуг'}
+                      <AnimatedTitle>{serviceAdminFilter === 'souvenirs' ? 'Сувениры' : 'Витрина услуг'}</AnimatedTitle>
                     </h3>
                     <p className="text-[11px] text-slate-400 mt-1">
                       {serviceAdminFilter === 'souvenirs'
@@ -3585,7 +3586,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
                   >
                     <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/20 shrink-0">
-                      <h3 className="text-sm font-black text-slate-800 dark:text-white">Новая услуга</h3>
+                      <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>Новая услуга</AnimatedTitle></h3>
                       <button
                         onClick={() => setShowAddServiceModal(false)}
                         className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 flex items-center justify-center text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
@@ -3768,7 +3769,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     <div className="p-5 border-b border-white/10 flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-2 text-white">
                         <Eye className="w-4 h-4" />
-                        <h3 className="text-sm font-black">Демо — так видит клиент</h3>
+                        <h3 className="text-sm font-black"><AnimatedTitle>Демо — так видит клиент</AnimatedTitle></h3>
                       </div>
                       <button
                         onClick={() => setShowServicesDemo(false)}
@@ -3779,7 +3780,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     </div>
                     <div className="p-5 md:p-8 overflow-y-auto">
                       <div className="mb-6 max-w-4xl mx-auto text-center">
-                        <h2 className="text-xl font-black text-white mb-1">Наши услуги</h2>
+                        <h2 className="text-xl font-black text-white mb-1"><AnimatedTitle>Наши услуги</AnimatedTitle></h2>
                       </div>
                       <ServicesShowcaseDemo services={database.services || []} />
                     </div>
@@ -3794,7 +3795,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           {activeTab === 'archive' && (
             <div className="p-5 space-y-4">
               <div>
-                <h2 className="text-lg font-black text-white">Архив выданных</h2>
+                <h2 className="text-lg font-black text-white"><AnimatedTitle>Архив выданных</AnimatedTitle></h2>
                 <p className="text-xs text-white/50 mt-0.5">Заказы удаляются через 48 часов после выдачи</p>
               </div>
 

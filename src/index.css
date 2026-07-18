@@ -2407,6 +2407,42 @@ button:hover .glass-icon-capsule {
     inset 0 2px 3px rgba(255,255,255,.65),
     inset 0 -3px 6px rgba(255,255,255,.25);
 }
+/* Заголовки открывающихся окон/вкладок — "въезжают" снизу с затуханием,
+   следом слева направо проходит и гаснет цветная полоска-акцент (по
+   референсу клиента — заставка-титры вроде логотипа "STEPS", адаптировано
+   под произвольный текст). Играет один раз при монтировании — см.
+   AnimatedTitle.tsx. */
+@keyframes title-reveal-text-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes title-reveal-accent-sweep {
+  0%   { transform: scaleX(0); opacity: 0.9; }
+  55%  { transform: scaleX(1); opacity: 0.9; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+.title-reveal-text {
+  display: inline-block;
+  animation: title-reveal-text-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.title-reveal-accent {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 3px;
+  border-radius: 2px;
+  transform-origin: left;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  animation: title-reveal-accent-sweep 0.6s 0.15s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-reveal-text,
+  .title-reveal-accent {
+    animation-duration: 0.001ms;
+  }
+}
+
 .glass-icon.colored.capsule-glow-rainbow {
   background: linear-gradient(145deg, #f472b6 0%, #a855f7 50%, #6366f1 100%);
 }
