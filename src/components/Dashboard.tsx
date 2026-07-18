@@ -1684,44 +1684,56 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     const recognition = new SpeechRecognitionCtor();
     voiceOverlayRecognitionRef.current = recognition;
     recognition.lang = 'ru-RU';
+    // continuous=true — без этого браузер сам обрывал распознавание на первой
+    // же короткой паузе в середине длинной фразы (клиент делает вдох/думает
+    // на 1-2 секунды посреди вопроса подлиннее — раньше это читалось как
+    // "конец речи", и получали "не расслышал" на полностью нормальный, но
+    // не самый короткий вопрос). Теперь слушаем без авто-обрыва, пока сами
+    // не остановим через .stop() на отпускание кружка.
+    recognition.continuous = true;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-    // На отпускание кружка recognition.stop() не всегда вызывает onresult
-    // или onerror — если ничего не успело распознаться (отпустили слишком
-    // рано/тихо сказали), браузер просто молча завершает запись через
-    // onend, и без этого флага экран навсегда застревал на "Слушаю".
+    // В continuous-режиме onresult может сработать несколько раз подряд —
+    // по одному финальному куску на каждую паузу внутри фразы, а не один раз
+    // на всю фразу целиком. Копим все куски и обрабатываем их вместе только
+    // когда распознавание реально закончилось (onend, после .stop() на
+    // отпускание кружка), а не на первый же промежуточный кусок.
+    let accumulatedText = '';
     let settled = false;
-    recognition.onresult = async (event: any) => {
+    recognition.onresult = (event: any) => {
       settled = true;
-      const text = event.results?.[0]?.[0]?.transcript;
-      if (!text) { setVoiceOverlayPhase('idle'); return; }
+      for (let i = event.resultIndex ?? 0; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal && result[0]?.transcript) {
+          accumulatedText += (accumulatedText ? ' ' : '') + result[0].transcript;
+        }
+      }
+    };
+    recognition.onerror = (event: any) => {
+      if (event.error === 'not-allowed' || event.error === 'permission-denied' || event.error === 'service-not-allowed') {
+        settled = true;
+        setVoiceOverlayError('Разреши доступ к микрофону в браузере');
+        setVoiceOverlayPhase('error');
+      } else if (event.error === 'aborted') {
+        return; // сами прервали через abort() — не показываем это как ошибку
+      }
+      // Остальные ошибки (no-speech и т.п.) не считаем settled — если что-то
+      // уже успели распознать до сбоя, onend всё равно обработает накопленный
+      // текст; если нет — onend честно покажет "не расслышал".
+    };
+    recognition.onend = async () => {
+      clearTimeout(safetyTimer);
+      setVoiceHolding(false);
+      const text = accumulatedText.trim();
+      if (!text) {
+        setVoiceOverlayError('Не расслышал — держи кружок подольше и говори чётче');
+        setVoiceOverlayPhase('error');
+        return;
+      }
       setVoiceOverlayPhase('thinking');
       const { reply } = await sendAiChatText(text);
       setVoiceOverlayReply(reply);
       setVoiceOverlayPhase('answered');
-    };
-    recognition.onerror = (event: any) => {
-      settled = true;
-      if (event.error === 'not-allowed' || event.error === 'permission-denied' || event.error === 'service-not-allowed') {
-        setVoiceOverlayError('Разреши доступ к микрофону в браузере');
-      } else if (event.error !== 'aborted') {
-        setVoiceOverlayError('Не расслышал, попробуй ещё раз');
-      } else {
-        return; // сами прервали через abort() — не показываем это как ошибку
-      }
-      setVoiceOverlayPhase('error');
-    };
-    recognition.onend = () => {
-      clearTimeout(safetyTimer);
-      setVoiceHolding(false);
-      // Ничего не распозналось и явной ошибки не было (браузер просто молча
-      // закрыл сессию) — раньше это выглядело как "ничего не произошло",
-      // теперь честно показываем, что не расслышали, а не тишина.
-      if (!settled) {
-        setVoiceOverlayError('Не расслышал — держи кружок подольше и говори чётче');
-        setVoiceOverlayPhase('error');
-      }
-      settled = true;
     };
     setVoiceOverlayError(null);
     setVoiceOverlayReply('');
