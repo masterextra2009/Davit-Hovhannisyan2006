@@ -12,6 +12,7 @@ import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
 import { AnimatedTitle } from './AnimatedTitle';
+import JSZip from 'jszip';
 import logoImg from '../assets/logo.webp';
 import printerInkIcon from '../assets/printer-ink-icon.svg';
 import chatIconRefImg from '../assets/chat-icon-ref-cropped.webp';
@@ -2082,6 +2083,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 МБ — заявлено на лендинге, но раньше нигде не проверялось
     const oversizedNames: string[] = [];
     const newFiles: PrintFile[] = [];
+    // Больше 2 файлов за раз (любых, не только фото) — клиент явно просил
+    // "чтобы не приходилось прокручивать много карточек": вместо N отдельных
+    // записей в заказе собираем один zip-архив и кладём его одной строкой.
+    // Реальные файлы для печати внутри — админ распаковывает архив сам перед
+    // печатью (обсуждено и подтверждено явно, это не побочный эффект).
+    const willZip = filesList.length > 2;
+    const rawFilesForZip: File[] = [];
     // Расходуем флаги ровно один раз — на эту порцию файлов, дальше снова обычный режим.
     const forcePhoto = nextUploadIsPhotoRef.current;
     nextUploadIsPhotoRef.current = false;
@@ -2100,7 +2108,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       const formatGroup = getFileFormatGroup(file.name);
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       const fileId = 'file_' + Date.now() + '_' + i + '_' + Math.floor(Math.random() * 1000);
-      
+
       let previewUrl = '';
       if (file.type.startsWith('image/') || formatGroup === 'image' || isPdf) {
         try {
@@ -2127,6 +2135,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         ...(simplifiedDocs && !isImage ? { simplifiedDocsMode: true } : {}),
       });
 
+      if (willZip) {
+        rawFilesForZip.push(file);
+        continue; // архив собирается и грузится одним блоком ниже — не трогаем сеть/стейт на каждый файл
+      }
+
       if (isPdf) {
         countPdfPages(file).then(pages => {
           patchFileState(fileId, { pageCount: pages });
@@ -2152,11 +2165,47 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
     if (newFiles.length === 0) return;
 
+    if (willZip) {
+      const bundleId = 'bundle_' + Date.now();
+      (async () => {
+        let total = 0;
+        for (let i = 0; i < newFiles.length; i++) {
+          const meta = newFiles[i];
+          if (meta.formatGroup === 'image') {
+            total += 20; // фото по умолчанию — 10×15, цвет
+          } else {
+            const raw = rawFilesForZip[i];
+            const isPdf = raw.type === 'application/pdf' || meta.name.toLowerCase().endsWith('.pdf');
+            const pages = isPdf ? await countPdfPages(raw).catch(() => 1) : 1;
+            total += 20 * pages; // документ по умолчанию — Ч/Б А4
+          }
+        }
+        const zip = new JSZip();
+        rawFilesForZip.forEach((raw, i) => zip.file(newFiles[i].name, raw));
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const zipFile = new File([zipBlob], `Архив (${newFiles.length} файлов).zip`, { type: 'application/zip' });
+        const bundleEntry: PrintFile = {
+          id: bundleId,
+          name: zipFile.name,
+          size: zipFile.size,
+          type: 'application/zip',
+          uploadedAt: new Date().toISOString(),
+          formatGroup: 'archive',
+          bundleFixedPrice: total,
+          bundleFileCount: newFiles.length,
+        };
+        setUploadedFiles(prev => [...prev, bundleEntry]);
+        uploadFileToFirebaseStorage(zipFile, bundleId);
+      })();
+      return;
+    }
+
     // Массовая загрузка фото (клиент выбрал/перетащил больше одного фото за
-    // раз) — вообще без модалки настроек: сразу проставляем цвет+10×15+1 копия
-    // и кладём готовыми файлами в заказ. Поправить размер/цвет/копии потом
-    // можно прямо в списке загруженных файлов. Документы (не фото) и одиночные
-    // фото по-прежнему идут через обычную модалку настройки.
+    // раз, но 2 и меньше — иначе архивируется выше) — вообще без модалки
+    // настроек: сразу проставляем цвет+10×15+1 копия и кладём готовыми
+    // файлами в заказ. Поправить размер/цвет/копии потом можно прямо в
+    // списке загруженных файлов. Документы (не фото) и одиночные фото
+    // по-прежнему идут через обычную модалку настройки.
     const imageFilesInThisBatch = newFiles.filter(f => f.formatGroup === 'image');
     const isBulkPhotoBatch = imageFilesInThisBatch.length > 1;
     const bulkReadyFiles = isBulkPhotoBatch
@@ -3947,12 +3996,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         const pages = file.pageCount || 1;
                         const fillPct = file.colorFillPercent ?? 50;
                         const isA3 = file.format === 'a3';
+                        const isBundle = file.bundleFixedPrice !== undefined;
                         const filePP = isCollage ? collagePriceFor(file.collagePaper)
                           : isPhoto ? selSize.price
                           : ((file.printColor || 'bw') === 'bw'
                             ? (isA3 ? 100 : 20)
                             : (isA3 ? 150 : colorFillPrice(fillPct)));
-                        const fileCost = file.bundleFixedPrice !== undefined ? file.bundleFixedPrice : filePP * (isPhoto || isCollage ? 1 : pages) * copies;
+                        const fileCost = isBundle ? file.bundleFixedPrice! : filePP * (isPhoto || isCollage ? 1 : pages) * copies;
 
                         return (
                           <div key={file.id} className="glass-panel rounded-2xl overflow-hidden">
@@ -3965,7 +4015,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 <p className="text-base font-bold text-white truncate">{file.name}</p>
                                 <span className="text-sm text-white/60 block mt-1">
                                   {formatFileSize(file.size)} · {file.formatGroup.toUpperCase()}
-                                  {file.pageCount !== undefined ? ` · ${file.pageCount} стр.` : ' · сканирование...'}
+                                  {isBundle
+                                    ? ` · ${file.bundleFileCount} файлов`
+                                    : (file.pageCount !== undefined ? ` · ${file.pageCount} стр.` : ' · сканирование...')}
                                   {file.url ? ' · ✓ Загружено' : ' · Загрузка...'}
                                   {file.colorFillPercent !== undefined && (file.printColor || 'bw') !== 'bw' && !isPhoto && !isCollage && (
                                     <span className="text-amber-400 font-black ml-1"> · 🎨 {colorFillLabel(file.colorFillPercent)} ({file.colorFillPercent}%)</span>
@@ -3980,7 +4032,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             </div>
 
                             {/* Краткая сводка выбранных параметров — можно передумать и открыть
-                                настройку заново, не удаляя и не перезагружая файл. */}
+                                настройку заново, не удаляя и не перезагружая файл. Для
+                                zip-архива (bundleFixedPrice) редактировать нечего — внутри
+                                несколько разных файлов с настройками по умолчанию. */}
+                            {isBundle ? (
+                              <div className="border-t border-white/8 px-3.5 py-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-bold text-white/50">
+                                <span className="px-2 py-1 rounded-lg bg-white/5">📦 Архив · {file.bundleFileCount} файлов</span>
+                                <span className="px-2 py-1 rounded-lg bg-white/5">по умолчанию: фото — цвет 10×15, документы — Ч/Б</span>
+                              </div>
+                            ) : (
                             <div className="border-t border-white/8 px-3.5 py-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-bold text-white/50">
                               {!isCollage && <span className="px-2 py-1 rounded-lg bg-white/5">{(file.printColor || 'bw') === 'bw' ? '⚪ Ч/Б' : '🔵 Цвет'}</span>}
                               <span className="px-2 py-1 rounded-lg bg-white/5">
@@ -3998,6 +4058,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 </button>
                               )}
                             </div>
+                            )}
 
                             {/* Стоимость файла */}
                             <div className="px-3.5 pb-3 flex justify-between items-center text-sm text-white/60">
