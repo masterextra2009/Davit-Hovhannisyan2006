@@ -6944,7 +6944,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.9 }}
             className="coupon-neon-frame rounded-3xl max-w-md w-full relative"
           >
-          <div className="glass-window overflow-hidden max-w-md w-full relative flex flex-col rounded-3xl">
+          <div data-css-anim-off className="glass-window overflow-hidden max-w-md w-full relative flex flex-col rounded-3xl">
             {/* Купон — логотип по центру, неоновая анимированная рамка вокруг всей
                 карточки (та же техника, что у .btn-holo-glass, только ярче и толще).
                 Рамка — на ОТДЕЛЬНОЙ обёртке без overflow-hidden, иначе её обрезает
@@ -7045,6 +7045,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.9 }}
             onClick={(e) => e.stopPropagation()}
+            data-css-anim-off
             className="glass-window w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             {/* Header */}

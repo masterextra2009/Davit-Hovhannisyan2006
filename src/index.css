@@ -3935,6 +3935,29 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
   color: #ffffff;
 }
 
+/* Открытие окон в стиле macOS — пружинный "выпрыг" из центра с лёгким
+   перелётом (0.82 -> 1.012 -> 1.0). Не применяется к окнам, у которых
+   анимацией уже управляет framer-motion (data-css-anim-off), иначе
+   CSS-анимация transform/opacity перебивает инлайновые стили framer. */
+@keyframes mac-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mac-window-pop {
+  0%   { opacity: 0; transform: scale(0.82) translateY(8px); }
+  55%  { opacity: 1; transform: scale(1.012) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-fade-in {
+  animation: mac-backdrop-in 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.glass-window:not([data-css-anim-off]) {
+  animation: mac-window-pop 0.42s cubic-bezier(0.34, 1.56, 0.44, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .glass-window:not([data-css-anim-off]) {
+    animation-duration: 0.001ms;
+  }
+}
+
 /* ============================================
    ЗОНА ЗАГРУЗКИ ФАЙЛОВ — стеклянная карточка с покачивающимися
    слоями и свечением позади (по мотивам CodePen "Glass Cards")
