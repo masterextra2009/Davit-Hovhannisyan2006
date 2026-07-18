@@ -2152,7 +2152,33 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
     if (newFiles.length === 0) return;
 
-    setPendingUploads(prev => [...prev, ...newFiles]);
+    // Массовая загрузка фото (клиент выбрал/перетащил больше одного фото за
+    // раз) — вообще без модалки настроек: сразу проставляем цвет+10×15+1 копия
+    // и кладём готовыми файлами в заказ. Поправить размер/цвет/копии потом
+    // можно прямо в списке загруженных файлов. Документы (не фото) и одиночные
+    // фото по-прежнему идут через обычную модалку настройки.
+    const imageFilesInThisBatch = newFiles.filter(f => f.formatGroup === 'image');
+    const isBulkPhotoBatch = imageFilesInThisBatch.length > 1;
+    const bulkReadyFiles = isBulkPhotoBatch
+      ? imageFilesInThisBatch.map(f => ({
+          ...f,
+          paperType: f.paperType || 'photo',
+          photoSize: f.photoSize || '10x15',
+          photoBorder: f.photoBorder || 'borderless',
+          printColor: f.printColor || 'color',
+          fileCopies: f.fileCopies || 1,
+        } as PrintFile))
+      : [];
+    const remainingFiles = isBulkPhotoBatch
+      ? newFiles.filter(f => f.formatGroup !== 'image')
+      : newFiles;
+
+    if (bulkReadyFiles.length > 0) {
+      setUploadedFiles(prev => [...prev, ...bulkReadyFiles]);
+    }
+    if (remainingFiles.length > 0) {
+      setPendingUploads(prev => [...prev, ...remainingFiles]);
+    }
 
     // Create system notification for uploaded file
     const newNotif: Notification = {
