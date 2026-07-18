@@ -56,6 +56,13 @@ export interface PrintFile {
   // собрана в единое изображение и лежит в url/previewUrl как обычно.
   collageCount?: number;
   collagePaper?: 'plain' | 'photo';
+  // Автособранный zip-архив (клиент разом загрузил больше 2 файлов) — один
+  // PrintFile представляет весь архив, обычная per-file формула цены (по
+  // paperType/photoSize/pageCount) для него не подходит, т.к. внутри могут
+  // быть файлы разных типов. Цена вместо этого — просто сумма того, что
+  // стоили бы отдельные файлы внутри по умолчанию (см. handleFiles).
+  bundleFixedPrice?: number;
+  bundleFileCount?: number;
 }
 
 export type OrderStatus = 'pending' | 'approved' | 'printing' | 'ready' | 'printed';

@@ -113,9 +113,16 @@ export function ServicesShowcaseDemo({ services }: { services: Service[] }) {
           <motion.div
             key={svc.id}
             layoutId={`svc-demo-card-${svc.id}`}
-            onClick={() => setExpanded(svc)}
-            className="service-glass-card relative cursor-pointer select-none flex flex-col"
+            className="service-glass-card relative select-none flex flex-col"
           >
+            <button
+              type="button"
+              onClick={() => setExpanded(svc)}
+              title="Демо — открыть как видит клиент"
+              className="absolute top-2.5 right-2.5 z-20 w-7 h-7 rounded-full bg-black/45 hover:bg-black/60 text-white flex items-center justify-center cursor-pointer backdrop-blur-sm transition-colors"
+            >
+              👁
+            </button>
             <div className="service-glass-card-media h-40 shrink-0 flex items-center justify-center relative">
               <div className="service-card-glow absolute inset-0 pointer-events-none" />
               {svc.imageUrl ? (
@@ -142,9 +149,9 @@ export function ServicesShowcaseDemo({ services }: { services: Service[] }) {
         ))}
       </div>
 
-      {/* Раскрытие карточки на весь экран — та же механика (общий layoutId,
-          пружина), что у настоящей карточки в кабинете клиента. Кнопка
-          "Заказать" тут неактивна — это только предпросмотр для админа. */}
+      {/* Раскрытие карточки — центрированное окно (не на весь экран, это же
+          админка на десктопе, не телефон клиента), та же пружина для
+          плавности. Кнопка "Заказать" тут неактивна — только предпросмотр. */}
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -152,45 +159,47 @@ export function ServicesShowcaseDemo({ services }: { services: Service[] }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] bg-black/55 backdrop-blur-sm"
+            className="fixed inset-0 z-[70] bg-black/55 backdrop-blur-sm flex items-center justify-center p-4"
             onClick={() => setExpanded(null)}
           >
+            {/* Ширина ровно как у экрана iPhone (390px, тот же ориентир, что и
+                в остальном проекте, см. feedback-sever18-ios-reference) — это
+                демо специально нужно, чтобы админ с широкого ПК-монитора
+                увидел, как карточка на самом деле выглядит на телефоне у
+                клиента, а не растянутую под десктоп версию. */}
             <motion.div
               layoutId={`svc-demo-card-${expanded.id}`}
               transition={{ type: 'spring', damping: 30, stiffness: 320 }}
               onClick={(e) => e.stopPropagation()}
-              className="absolute inset-0 bg-white dark:bg-[#101422] flex flex-col overflow-y-auto overscroll-contain"
+              className="glass-window w-[390px] max-w-[calc(100vw-2rem)] overflow-hidden flex flex-col max-h-[85vh] relative"
             >
               <button
                 onClick={() => setExpanded(null)}
                 aria-label="Закрыть"
-                className="fixed z-20 right-4 w-9 h-9 rounded-full bg-black/45 text-white text-lg font-black flex items-center justify-center cursor-pointer backdrop-blur-sm"
-                style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
+                className="absolute z-20 top-3 right-3 w-8 h-8 rounded-full bg-black/45 text-white text-sm font-black flex items-center justify-center cursor-pointer backdrop-blur-sm"
               >✕</button>
 
-              <div className="w-full shrink-0 bg-slate-100 dark:bg-slate-900/60 flex items-center justify-center">
+              <div className="w-full h-56 shrink-0 bg-slate-100 dark:bg-slate-900/60 flex items-center justify-center">
                 {expanded.imageUrl ? (
                   <img
                     src={expanded.imageUrl}
                     alt={expanded.title}
-                    className="w-full max-h-[55dvh] object-contain"
+                    className="w-full h-full object-cover"
                   />
                 ) : expanded.iconUrl ? (
-                  <img src={expanded.iconUrl} alt={expanded.title} className="w-40 h-40 object-contain my-16" />
+                  <img src={expanded.iconUrl} alt={expanded.title} className="w-32 h-32 object-contain" />
                 ) : (
-                  <span className="text-[96px] leading-none my-16">{expanded.emoji}</span>
+                  <span className="text-[80px] leading-none">{expanded.emoji}</span>
                 )}
               </div>
 
-              <div className="flex-1 flex flex-col px-5 pt-5"
-                style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
-              >
-                <h2 className="text-2xl font-black text-slate-800 dark:text-white leading-tight">{expanded.title}</h2>
+              <div className="flex-1 flex flex-col px-5 py-5 overflow-y-auto">
+                <h2 className="text-xl font-black text-slate-800 dark:text-white leading-tight">{expanded.title}</h2>
                 {expanded.description && (
                   <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mt-2 whitespace-pre-wrap">{expanded.description}</p>
                 )}
-                <p className="font-black text-3xl text-indigo-600 dark:text-indigo-400 mt-4">{expanded.price}</p>
-                <button className="btn-3d-choose w-full mt-6 py-3.5 rounded-2xl font-black text-sm text-white cursor-default">Заказать →</button>
+                <p className="font-black text-2xl text-indigo-600 dark:text-indigo-400 mt-4">{expanded.price}</p>
+                <button className="btn-3d-choose w-full mt-4 py-3 rounded-2xl font-black text-sm text-white cursor-default">Заказать →</button>
               </div>
             </motion.div>
           </motion.div>

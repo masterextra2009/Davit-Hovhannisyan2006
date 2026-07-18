@@ -3952,7 +3952,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           : ((file.printColor || 'bw') === 'bw'
                             ? (isA3 ? 100 : 20)
                             : (isA3 ? 150 : colorFillPrice(fillPct)));
-                        const fileCost = filePP * (isPhoto || isCollage ? 1 : pages) * copies;
+                        const fileCost = file.bundleFixedPrice !== undefined ? file.bundleFixedPrice : filePP * (isPhoto || isCollage ? 1 : pages) * copies;
 
                         return (
                           <div key={file.id} className="glass-panel rounded-2xl overflow-hidden">
@@ -4341,7 +4341,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             : ((f.printColor || 'bw') === 'bw'
                               ? (isA3 ? 100 : 20)
                               : (isA3 ? 150 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65)));
-                          const fileCost = pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies;
+                          const fileCost = f.bundleFixedPrice !== undefined ? f.bundleFixedPrice : pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies;
                           return (
                             <div key={f.id} className="flex justify-between items-start gap-2 text-white/70">
                               <span className="truncate max-w-[160px] text-white/60">{idx+1}. {f.name}</span>
@@ -4372,7 +4372,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 : ((f.printColor || 'bw') === 'bw'
                                   ? (isA3 ? 100 : 20)
                                   : (isA3 ? 150 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65)));
-                              return acc + pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies;
+                              return acc + (f.bundleFixedPrice !== undefined ? f.bundleFixedPrice : pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies);
                             }, 0);
                             const discount = activePromo ? getActiveDiscountPercent(activePromo) : 0;
                             const total = Math.round(subtotal * (1 - discount / 100));
