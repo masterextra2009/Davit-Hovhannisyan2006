@@ -1740,6 +1740,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [voiceOverlayPhase, setVoiceOverlayPhase] = useState<VoiceOverlayPhase>('idle');
   const [voiceOverlayReply, setVoiceOverlayReply] = useState('');
   const [voiceOverlayPrice, setVoiceOverlayPrice] = useState<AiPriceBreakdown | undefined>(undefined);
+  const [voiceOverlayShowRoute, setVoiceOverlayShowRoute] = useState(false);
   const [voiceOverlayError, setVoiceOverlayError] = useState<string | null>(null);
   const voiceOverlayRecognitionRef = useRef<any>(null);
   // Рация: микрофон слушает, только пока палец на кружке. Отпустил —
@@ -1758,6 +1759,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     if (!SpeechRecognitionCtor) return;
     setVoiceOverlayError(null);
     setVoiceOverlayReply('');
+    setVoiceOverlayShowRoute(false);
     setVoiceOverlayPhase('idle');
     setShowVoiceOverlay(true);
     unlockAiAudio();
@@ -1818,14 +1820,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         return;
       }
       setVoiceOverlayPhase('thinking');
-      const { reply, price } = await sendAiChatText(text);
+      const { reply, price, showRoute } = await sendAiChatText(text);
       setVoiceOverlayReply(reply);
       setVoiceOverlayPrice(price);
+      setVoiceOverlayShowRoute(showRoute);
       setVoiceOverlayPhase('answered');
     };
     setVoiceOverlayError(null);
     setVoiceOverlayReply('');
     setVoiceOverlayPrice(undefined);
+    setVoiceOverlayShowRoute(false);
     setVoiceOverlayPhase('listening');
     setVoiceHolding(true);
     voicePressStartRef.current = Date.now();
@@ -7938,6 +7942,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               {voiceOverlayPhase === 'answered' && (
                 <div className="flex flex-col items-center gap-3">
                   <p className="text-slate-900 text-sm leading-relaxed text-center">{voiceOverlayReply}</p>
+                  {voiceOverlayShowRoute && (
+                    <button
+                      onClick={openAiChatRoute}
+                      className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition cursor-pointer"
+                    >
+                      <MapPin className="w-3.5 h-3.5" /> Построить маршрут 📍
+                    </button>
+                  )}
                   {voiceOverlayPrice && <AiPriceCard price={voiceOverlayPrice} />}
                 </div>
               )}
