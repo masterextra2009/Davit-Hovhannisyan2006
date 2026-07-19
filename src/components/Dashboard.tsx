@@ -221,6 +221,17 @@ async function analyzeColorFill(imageUrl: string): Promise<number> {
 function colorFillPrice(pct: number) { return pct <= 20 ? 25 : pct <= 60 ? 40 : 65; }
 function colorFillLabel(pct: number) { return pct <= 20 ? 'Мелкий цвет' : pct <= 60 ? '~50% заливка' : '100% заливка'; }
 
+// А3-прайс (цены от 2026-07-19): "Чертёж" — Ч/Б или Цвет на офисной бумаге,
+// цена зависит от плотности (80/200 г/м²); "Фото" — фотобумага 200г,
+// глянец/матовая без разницы в цене, фиксированные 250₽ за лист.
+function a3FilePrice(file: PrintFile): number {
+  if (file.a3Kind === 'photo') return 250;
+  const isColor = (file.printColor || 'bw') === 'color';
+  const is200g = file.a3PaperWeight === '200';
+  if (isColor) return is200g ? 150 : 100;
+  return is200g ? 100 : 70;
+}
+
 // На нестабильной (особенно мобильной) сети запрос может зависнуть без ошибки
 // и без ответа — обрываем его по таймауту, чтобы UI не застревал навсегда.
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -2666,9 +2677,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         ? collagePriceFor(f.collagePaper)
         : isPhotoFile
         ? (photoSizePrices[f.photoSize || '10x15'] || 20)
-        : ((f.printColor || 'bw') === 'bw'
-          ? (isA3 ? 100 : 20)
-          : (isA3 ? 150 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65)));
+        : isA3
+        ? a3FilePrice(f)
+        : ((f.printColor || 'bw') === 'bw' ? 20 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65));
       return acc + pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies;
     }, 0);
     const totalCost = finalDiscount ? Math.round(subtotal * (1 - finalDiscount / 100)) : subtotal;
@@ -4157,9 +4168,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         const isBundle = file.bundleFixedPrice !== undefined;
                         const filePP = isCollage ? collagePriceFor(file.collagePaper)
                           : isPhoto ? selSize.price
-                          : ((file.printColor || 'bw') === 'bw'
-                            ? (isA3 ? 100 : 20)
-                            : (isA3 ? 150 : colorFillPrice(fillPct)));
+                          : isA3 ? a3FilePrice(file)
+                          : ((file.printColor || 'bw') === 'bw' ? 20 : colorFillPrice(fillPct));
                         const fileCost = isBundle ? file.bundleFixedPrice! : filePP * (isPhoto || isCollage ? 1 : pages) * copies;
 
                         return (
@@ -4557,9 +4567,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           const isA3 = f.format === 'a3';
                           const pp = isCollageFile ? collagePriceFor(f.collagePaper)
                             : isPhotoFile ? selSize.price
-                            : ((f.printColor || 'bw') === 'bw'
-                              ? (isA3 ? 100 : 20)
-                              : (isA3 ? 150 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65)));
+                            : isA3 ? a3FilePrice(f)
+                            : ((f.printColor || 'bw') === 'bw' ? 20 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65));
                           const fileCost = f.bundleFixedPrice !== undefined ? f.bundleFixedPrice : pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies;
                           return (
                             <div key={f.id} className="flex justify-between items-start gap-2 text-white/70">
@@ -4588,9 +4597,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               const isA3 = f.format === 'a3';
                               const pp = isCollageFile ? collagePriceFor(f.collagePaper)
                                 : isPhotoFile ? selSize.price
-                                : ((f.printColor || 'bw') === 'bw'
-                                  ? (isA3 ? 100 : 20)
-                                  : (isA3 ? 150 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65)));
+                                : isA3 ? a3FilePrice(f)
+                                : ((f.printColor || 'bw') === 'bw' ? 20 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65));
                               return acc + (f.bundleFixedPrice !== undefined ? f.bundleFixedPrice : pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies);
                             }, 0);
                             const discount = activePromo ? getActiveDiscountPercent(activePromo) : 0;
@@ -6232,11 +6240,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         // не может содержать ни цветных букв, ни картинок) — печать в цвете
         // тут ничем не отличается от Ч/Б, доплата за неё не имеет смысла.
         const isColorless = file.name.toLowerCase().endsWith('.txt');
-        const bwPrice = isA3 ? 100 : 20;
-        const colorPrice = isColorless ? 0 : (isA3 ? 150 : (canAnalyzeFill ? (fillReady ? colorFillPrice(fillPct) : undefined) : 25));
+        const bwPrice = 20;
+        const colorPrice = isColorless ? 0 : (canAnalyzeFill ? (fillReady ? colorFillPrice(fillPct) : undefined) : 25);
         const colorlessBlocksConfirm = isColorless && !isPhoto && (file.printColor || 'bw') === 'color';
-        const thickPrice = 250; // Плотная бумага (А3) — фиксированная цена, заливка не учитывается
-        const isThick = isA3 && file.paperType === 'thick';
 
         const photoSizes = [
           { key: '10x15', label: '10×15', price: 20 },
@@ -6252,7 +6258,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         // "Полароид" на Главной, выбор размера/рамки тут просто не показываем.
         const isPolaroidSize = isPhoto && file.photoSize === 'polaroid';
 
-        const filePP = isPhoto ? selSize.price : (isThick ? thickPrice : ((file.printColor || 'bw') === 'bw' ? bwPrice : (colorPrice ?? 0)));
+        const filePP = isPhoto ? selSize.price : (isA3 ? a3FilePrice(file) : ((file.printColor || 'bw') === 'bw' ? bwPrice : (colorPrice ?? 0)));
         const fileCost = filePP * (isPhoto ? 1 : pages) * copies;
         const canConfirm = (!isPhoto || !!file.photoSize) && !colorlessBlocksConfirm;
 
@@ -6352,12 +6358,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         }
 
         // А3 — тоже отдельная, самостоятельная модалка (по тому же принципу, что
-        // и Полароид выше): клиент выбирает между "Чертёж" (тех. рисунок, печать
-        // Ч/Б) и "Фото" (полноцветная печать) — видео-превью над каждой кнопкой
-        // показывает, что получится, вместо сухих иконок Ч/Б/Цвет. Выбор пишется
-        // и в a3Kind (для этого экрана), и в printColor (тот же bw/color, что
-        // уже участвует в существующем расчёте цены filePP/fileCost выше —
-        // никакой отдельной ценовой логики заводить не пришлось).
+        // и Полароид выше): клиент сперва выбирает "Чертёж" (офисная бумага —
+        // затем ещё Ч/Б или Цвет, и плотность 80/200 г/м²) или "Фото" (фотобумага —
+        // затем покрытие глянец/матовая, цена не зависит от покрытия). Цены —
+        // см. a3FilePrice выше (прайс от 2026-07-19).
         if (isA3) {
           return (
             <motion.div
@@ -6391,7 +6395,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         <button
                           key={opt.key}
                           type="button"
-                          onClick={() => patch({ a3Kind: opt.key, printColor: opt.key === 'photo' ? 'color' : 'bw' })}
+                          onClick={() => patch(opt.key === 'photo' ? { a3Kind: opt.key, printColor: 'color' } : { a3Kind: opt.key })}
                           className={`btn-glass-sheen relative p-2.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
                             selected
                               ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25 scale-[1.03]'
@@ -6413,6 +6417,91 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       );
                     })}
                   </div>
+
+                  {file.a3Kind === 'chertyozh' && (
+                    <>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Цветность</p>
+                        <div className="grid grid-cols-2 gap-2.5">
+                          {([
+                            { key: 'bw', label: 'Ч/Б' },
+                            { key: 'color', label: 'Цвет' },
+                          ] as const).map(opt => {
+                            const selected = (file.printColor || 'bw') === opt.key;
+                            return (
+                              <button
+                                key={opt.key}
+                                type="button"
+                                onClick={() => patch({ printColor: opt.key })}
+                                className={`btn-glass-sheen relative p-2.5 rounded-xl border text-xs font-black cursor-pointer transition-all ${
+                                  selected
+                                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25 text-indigo-700 dark:text-indigo-300'
+                                    : 'border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white hover:border-indigo-300'
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Плотность бумаги</p>
+                        <div className="grid grid-cols-2 gap-2.5">
+                          {([
+                            { key: '80', label: '80 г/м²', sub: 'тонкая офисная' },
+                            { key: '200', label: '200 г/м²', sub: 'плотная' },
+                          ] as const).map(opt => {
+                            const selected = file.a3PaperWeight === opt.key;
+                            const price = a3FilePrice({ ...file, a3PaperWeight: opt.key });
+                            return (
+                              <button
+                                key={opt.key}
+                                type="button"
+                                onClick={() => patch({ a3PaperWeight: opt.key })}
+                                className={`btn-glass-sheen relative p-2.5 rounded-xl border text-center cursor-pointer flex flex-col items-center gap-0.5 transition-all ${
+                                  selected
+                                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25'
+                                    : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                                }`}
+                              >
+                                <span className={`text-xs font-black ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{opt.label}</span>
+                                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">{opt.sub} · {price}₽</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {file.a3Kind === 'photo' && (
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Покрытие</p>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        {([
+                          { key: 'glossy', label: 'Глянец' },
+                          { key: 'matte', label: 'Матовая' },
+                        ] as const).map(opt => {
+                          const selected = file.a3PhotoFinish === opt.key;
+                          return (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => patch({ a3PhotoFinish: opt.key })}
+                              className={`btn-glass-sheen relative p-2.5 rounded-xl border text-xs font-black cursor-pointer transition-all ${
+                                selected
+                                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25 text-indigo-700 dark:text-indigo-300'
+                                  : 'border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white hover:border-indigo-300'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {pendingUploads.filter(f => f.id !== file.id && f.format === 'a3').length > 0 && (
                     <label className="flex items-center gap-2.5 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/25 border border-indigo-200/50 dark:border-indigo-900/40 cursor-pointer">
@@ -6457,15 +6546,22 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 </div>
 
                 <div className="p-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2.5 shrink-0">
-                  <button
-                    type="button"
-                    disabled={!file.a3Kind}
-                    onClick={() => confirmFileConfig(file.id, applyToAllPending)}
-                    className={`glass-icon colored capsule-glow-purple glass-icon-pill w-full py-3.5 rounded-2xl text-white font-black text-sm ${!file.a3Kind ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
-                  >
-                    <span className="beam"><i /></span>
-                    <span className="relative z-[3]">{applyToAllPending ? `Применить ко всем и продолжить →` : 'Выбрать →'}</span>
-                  </button>
+                  {(() => {
+                    const a3Incomplete = !file.a3Kind
+                      || (file.a3Kind === 'chertyozh' && !file.a3PaperWeight)
+                      || (file.a3Kind === 'photo' && !file.a3PhotoFinish);
+                    return (
+                      <button
+                        type="button"
+                        disabled={a3Incomplete}
+                        onClick={() => confirmFileConfig(file.id, applyToAllPending)}
+                        className={`glass-icon colored capsule-glow-purple glass-icon-pill w-full py-3.5 rounded-2xl text-white font-black text-sm ${a3Incomplete ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <span className="beam"><i /></span>
+                        <span className="relative z-[3]">{applyToAllPending ? `Применить ко всем и продолжить →` : 'Выбрать →'}</span>
+                      </button>
+                    );
+                  })()}
                   <button
                     type="button"
                     onClick={() => cancelFileConfig(file.id)}
