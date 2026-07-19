@@ -993,12 +993,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     setUploadedFiles(prev => prev.map(f => (f.id === fileId ? { ...f, ...updates } : f)));
   };
 
-  // Когда закрывается окно настройки одного файла — открываем следующий из очереди
+  // Когда закрывается окно настройки одного файла — открываем следующий из очереди.
+  // Ждём uploadAnimPhase === 'idle' — чтобы окно не перекрывало собой ещё не
+  // доигравшую анимацию диска/полосы (busy → done → idle), а открывалось
+  // только после того, как клиент увидел весь эффект целиком.
   useEffect(() => {
-    if (activeConfigFileId === null && pendingUploads.length > 0) {
+    if (activeConfigFileId === null && pendingUploads.length > 0 && uploadAnimPhase === 'idle') {
       setActiveConfigFileId(pendingUploads[0].id);
     }
-  }, [activeConfigFileId, pendingUploads]);
+  }, [activeConfigFileId, pendingUploads, uploadAnimPhase]);
 
   // Чекбокс "применить ко всем" — включаем им по умолчанию, когда в очереди
   // больше одного фото сразу (массовая загрузка): раньше клиенту приходилось
@@ -6401,11 +6404,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>Настройте параметры печати</AnimatedTitle></h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{file.name}</p>
                 </div>
-                {file.url ? (
-                  <span className="shrink-0 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-emerald-500">
-                    <CheckCircle className="w-3.5 h-3.5" /> Загружен
-                  </span>
-                ) : (
+                {/* "Загружен" не показываем — анимация в зоне дропа перед
+                    открытием этого окна уже показала клиенту, что файл
+                    загрузился, дублировать незачем. Спиннер "Загрузка..."
+                    оставляем — на случай, если реальная отправка на сервер
+                    (отдельно от визуальной анимации) ещё не успела закончиться. */}
+                {!file.url && (
                   <span className="shrink-0 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-indigo-500">
                     <span className="w-3 h-3 rounded-full border-2 border-indigo-300 border-t-indigo-600 animate-spin" />
                     Загрузка...
