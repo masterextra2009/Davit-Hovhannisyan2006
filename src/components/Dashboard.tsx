@@ -35,6 +35,8 @@ import settingsIconRefImg from '../assets/settings-icon-ref.webp';
 import aiAssistantCoinWebm from '../assets/ai-assistant-coin.webm';
 import aiAssistantCoinMp4 from '../assets/ai-assistant-coin.mp4';
 import polaroidCameraAnim from '../assets/polaroid-camera.webp';
+import a3ChertyozhAnim from '../assets/a3-chertyozh.mp4';
+import a3PhotoAnim from '../assets/a3-photo.mp4';
 import {
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 
   Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, Mic, Volume2, VolumeX,
@@ -6332,6 +6334,134 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     type="button"
                     onClick={() => confirmFileConfig(file.id, applyToAllPending)}
                     className="glass-icon colored capsule-glow-purple glass-icon-pill w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer"
+                  >
+                    <span className="beam"><i /></span>
+                    <span className="relative z-[3]">{applyToAllPending ? `Применить ко всем и продолжить →` : 'Выбрать →'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => cancelFileConfig(file.id)}
+                    className="w-full py-2 text-xs font-bold text-rose-500 hover:text-rose-600 cursor-pointer"
+                  >
+                    Убрать файл
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        }
+
+        // А3 — тоже отдельная, самостоятельная модалка (по тому же принципу, что
+        // и Полароид выше): клиент выбирает между "Чертёж" (тех. рисунок, печать
+        // Ч/Б) и "Фото" (полноцветная печать) — видео-превью над каждой кнопкой
+        // показывает, что получится, вместо сухих иконок Ч/Б/Цвет. Выбор пишется
+        // и в a3Kind (для этого экрана), и в printColor (тот же bw/color, что
+        // уже участвует в существующем расчёте цены filePP/fileCost выше —
+        // никакой отдельной ценовой логики заводить не пришлось).
+        if (isA3) {
+          return (
+            <motion.div
+              key="a3ConfigModal"
+              className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+              exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+            >
+              <motion.div
+                className="glass-window w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+                data-css-anim-off
+                initial={{ opacity: 0, scale: 0.82, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+                exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
+              >
+                <div className="p-5 pb-0 text-center">
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>А3</AnimatedTitle></h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{file.name}</p>
+                </div>
+
+                <div className="p-5 space-y-4 overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {([
+                      { key: 'chertyozh', label: 'Чертёж', video: a3ChertyozhAnim },
+                      { key: 'photo', label: 'Фото', video: a3PhotoAnim },
+                    ] as const).map(opt => {
+                      const selected = file.a3Kind === opt.key;
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() => patch({ a3Kind: opt.key, printColor: opt.key === 'photo' ? 'color' : 'bw' })}
+                          className={`btn-glass-sheen relative p-2.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
+                            selected
+                              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25 scale-[1.03]'
+                              : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                          }`}
+                        >
+                          {selected && (
+                            <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                              <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                            </div>
+                          )}
+                          <video
+                            src={opt.video}
+                            autoPlay loop muted playsInline
+                            className="w-full aspect-square rounded-xl object-cover pointer-events-none"
+                          />
+                          <div className={`text-[11px] font-black ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{opt.label}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {pendingUploads.filter(f => f.id !== file.id && f.format === 'a3').length > 0 && (
+                    <label className="flex items-center gap-2.5 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/25 border border-indigo-200/50 dark:border-indigo-900/40 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={applyToAllPending}
+                        onChange={(e) => setApplyToAllPending(e.target.checked)}
+                        className="w-4 h-4 accent-indigo-600 cursor-pointer shrink-0"
+                      />
+                      <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                        Применить эти настройки ко всем {pendingUploads.filter(f => f.format === 'a3').length} файлам А3 сразу
+                      </span>
+                    </label>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Копий</p>
+                    <div className="flex items-center gap-3">
+                      <button type="button" onClick={() => patch({ fileCopies: Math.max(1, copies - 1) })}
+                        className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">−</button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={copies}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          patch({ fileCopies: Number.isNaN(v) || v < 1 ? 1 : v });
+                        }}
+                        className="w-12 text-sm font-black text-slate-800 dark:text-white text-center bg-slate-100 dark:bg-slate-800 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <button type="button" onClick={() => patch({ fileCopies: copies + 1 })}
+                        className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">+</button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-150 dark:border-slate-800">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {file.a3Kind === 'photo' ? 'Фото А3' : file.a3Kind === 'chertyozh' ? 'Чертёж А3' : 'А3'} × {pages > 1 ? `${pages} стр. × ` : ''}{copies} шт.
+                    </span>
+                    <strong className="text-xl font-black text-slate-800 dark:text-white">{fileCost} ₽</strong>
+                  </div>
+                </div>
+
+                <div className="p-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2.5 shrink-0">
+                  <button
+                    type="button"
+                    disabled={!file.a3Kind}
+                    onClick={() => confirmFileConfig(file.id, applyToAllPending)}
+                    className={`glass-icon colored capsule-glow-purple glass-icon-pill w-full py-3.5 rounded-2xl text-white font-black text-sm ${!file.a3Kind ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     <span className="beam"><i /></span>
                     <span className="relative z-[3]">{applyToAllPending ? `Применить ко всем и продолжить →` : 'Выбрать →'}</span>
