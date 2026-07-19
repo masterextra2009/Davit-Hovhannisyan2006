@@ -4075,26 +4075,21 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       accept=".zip,.rar,.7z,.doc,.docx,.pdf,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.heic,.heif,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     />
 
-                    {/* Тот же "диск" (кольцо из 11 сегментов + бегущий по нему луч),
-                        что и у кнопки загрузки в нижней панели — только не
-                        абсолютно спозиционирован (position:relative вместо
-                        absolute из .disc), а отцентрирован обычным margin. */}
-                    <div className="disc" style={{ position: 'relative', margin: '0 auto 1rem', transform: 'none' }}>
-                      {Array.from({ length: 11 }).map((_, i) => (
-                        <span
-                          key={i}
-                          className="seg"
-                          style={{ transform: `rotate(${i * 32.7}deg) translateY(-17.83px)`, opacity: uploadAnimPhase === 'idle' ? 1 : 0.35 }}
-                        />
-                      ))}
-                      <span className="ringbeam" style={{ opacity: uploadAnimPhase === 'idle' ? 1 : 0 }}><i /></span>
-                      {!isWorkingHours() ? (
-                        <Clock className="animate-pulse" style={{ color: '#fb7185' }} />
-                      ) : uploadAnimPhase === 'done' ? (
-                        <Check className="upload-anim-check" style={{ width: 26, height: 26 }} strokeWidth={3} />
-                      ) : (
-                        <Upload style={{ color: '#c4b5fd' }} />
-                      )}
+                    {/* Диск в стиле присланного макета progress-bar-only.html —
+                        простое тёмное кольцо с одним бегущим лучом по ободку,
+                        отдельный класс от общего .disc (кнопка нижней панели),
+                        чтобы её вид не менялся заодно. */}
+                    <div className="upload-disc-wrap">
+                      <span className="upload-beam-ring" style={{ opacity: uploadAnimPhase === 'idle' ? 1 : 0 }}><i /></span>
+                      <div className="upload-disc">
+                        {!isWorkingHours() ? (
+                          <Clock className="animate-pulse" style={{ color: '#fb7185' }} />
+                        ) : uploadAnimPhase === 'done' ? (
+                          <Check className="upload-anim-check" style={{ width: 26, height: 26 }} strokeWidth={3} />
+                        ) : (
+                          <Upload style={{ color: '#c4b5fd' }} />
+                        )}
+                      </div>
                       {uploadAnimPhase === 'done' && uploadAnimSparks.map((s, i) => (
                         <span
                           key={i}
