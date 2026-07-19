@@ -562,9 +562,16 @@ export async function trackSiteVisit(): Promise<void> {
 
     const today = getLocalDateKey();
     const statsRef = doc(db, 'stats', 'visits');
+    // ВАЖНО: setDoc(..., {merge:true}) НЕ разворачивает ключ-строку с точкой
+    // ('history.2026-07-19') в путь до вложенного поля — в отличие от
+    // updateDoc(), он пишет её как один буквальный ключ верхнего уровня.
+    // Из-за этого запись годами тихо падала с permission-denied (в правилах
+    // разрешены только поля total/history, а получалось total + "history.…").
+    // Настоящий вложенный merge — через вложенный объект, а не через
+    // строку-путь с точкой.
     await setDoc(statsRef, {
       total: increment(1),
-      [`history.${today}`]: increment(1),
+      history: { [today]: increment(1) },
     }, { merge: true });
   } catch (err) {
     // Тихо игнорируем — счётчик посещений не должен ломать загрузку сайта
