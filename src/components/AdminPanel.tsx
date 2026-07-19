@@ -11,11 +11,11 @@ import { LiveClock } from './LiveClock';
 import { ServicesShowcaseDemo } from './ServicesShowcaseDemo';
 import { AnimatedTitle } from './AnimatedTitle';
 import logoImg from '../assets/logo.webp';
-import { 
-  FileText, Users, Clock, MessageSquare, Download, CheckCircle, 
-  Send, RefreshCw, BarChart3, Trash2, Edit3, Save, FileSpreadsheet, 
+import {
+  FileText, Users, Clock, MessageSquare, Download, CheckCircle,
+  Send, RefreshCw, BarChart3, Trash2, Edit3, Save, FileSpreadsheet,
   Printer, ArrowRight, TrendingUp, DollarSign, Files, Eye, HelpCircle,
-  BellRing, LogOut, FileCheck, Settings, Camera, Image as ImageIcon, Key, CreditCard, Check, ShieldAlert, X, ShieldCheck, Gift, Search, Archive, ChevronLeft, Mail, Phone, User as UserIconLucide, Upload, Lightbulb
+  BellRing, LogOut, FileCheck, Settings, Camera, Image as ImageIcon, Key, CreditCard, Check, ShieldAlert, X, ShieldCheck, Gift, Search, Archive, ChevronLeft, Mail, Phone, User as UserIconLucide, Upload, Lightbulb, GripVertical
 } from 'lucide-react';
 import {
   formatFileSize, formatDateTime, getStatusLabel,
@@ -557,6 +557,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     iconUrl: '',
   });
   const [newServiceUploading, setNewServiceUploading] = useState(false);
+  // Перетаскивание карточек услуг за ручку (⠿) — чтобы поставить топовые
+  // услуги в начало витрины. Обычный HTML5 drag-and-drop (не jiggle-mode,
+  // как на "Главной" у клиента — тут десктопная админка, мышь, а не палец).
+  const [draggedServiceId, setDraggedServiceId] = useState<string | null>(null);
 
   const handleNewServicePhotoUpload = async (file: File) => {
     setNewServiceUploading(true);
@@ -635,6 +639,25 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     const svc = database.services?.find(s => s.id === id);
     if (!svc) return;
     setDoc(doc(db, 'services', id), { ...svc, [field]: value }, { merge: true }).catch(console.error);
+  };
+
+  // Перетащил карточку draggedId на место карточки targetId — двигаем её
+  // туда в полном списке (не в отфильтрованном, чтобы порядок оставался
+  // осмысленным и при активном фильтре "Сувениры" и т.п.), затем
+  // перезаписываем order у всех, кто сдвинулся.
+  const handleReorderServices = (draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return;
+    const list = [...(database.services || [])];
+    const fromIdx = list.findIndex(s => s.id === draggedId);
+    const toIdx = list.findIndex(s => s.id === targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const [moved] = list.splice(fromIdx, 1);
+    list.splice(toIdx, 0, moved);
+    list.forEach((s, i) => {
+      if (s.order !== i) {
+        setDoc(doc(db, 'services', s.id), { ...s, order: i }, { merge: true }).catch(console.error);
+      }
+    });
   };
 
   const handleDeleteService = (id: string, title: string) => {
@@ -3396,8 +3419,27 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         key={svc.id}
                         onMouseMove={handleServiceCardTilt}
                         onMouseLeave={handleServiceCardTiltReset}
-                        className="service-glass-row rounded-2xl flex flex-col relative overflow-hidden"
+                        onDragOver={(e) => { if (draggedServiceId) e.preventDefault(); }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedServiceId) handleReorderServices(draggedServiceId, svc.id);
+                          setDraggedServiceId(null);
+                        }}
+                        className={`service-glass-row rounded-2xl flex flex-col relative overflow-hidden transition-opacity ${draggedServiceId === svc.id ? 'opacity-40' : ''}`}
                       >
+                        {/* Ручка для перетаскивания карточки (поставить услугу выше/ниже
+                            в витрине) — отдельная от остальной карточки, чтобы драг не
+                            конфликтовал с кликами по полям/кнопкам/загрузке фото. */}
+                        <div
+                          draggable
+                          onDragStart={(e) => { e.stopPropagation(); setDraggedServiceId(svc.id); }}
+                          onDragEnd={() => setDraggedServiceId(null)}
+                          title="Перетащить, чтобы изменить порядок"
+                          className="absolute top-2 left-2 z-20 w-6 h-6 rounded-lg bg-black/40 hover:bg-black/55 backdrop-blur-sm flex items-center justify-center cursor-grab active:cursor-grabbing text-white/70 hover:text-white"
+                        >
+                          <GripVertical className="w-3.5 h-3.5" />
+                        </div>
+
                         {/* Фото услуги — залито от самого верха карточки, без полей по бокам.
                             Кнопки статус/удалить вынесены ИЗ label в отдельный слой рядом —
                             раньше они были внутри label и перехватывали клик, из-за чего
