@@ -4109,6 +4109,95 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
 @keyframes upload-rotate { to { transform: rotate(360deg); } }
 
 /* ============================================
+   АНИМАЦИЯ ПРОЦЕССА В ЗОНЕ ДРОПА — цветная полоса (красный→жёлтый→зелёный)
+   с переливом и точками-сегментами во время "busy", разлетающиеся искры у
+   галочки при "done" (см. .upload-anim-check в Dashboard.tsx). Имитация
+   прогресса, не побайтовая — по образцу присланного макета
+   progress-bar-only.html.
+   ============================================ */
+.upload-anim-bar-wrap {
+  max-width: 260px;
+  margin: 14px auto 0;
+}
+.upload-anim-track {
+  height: 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .08);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, .1);
+}
+:root:not(.dark) .upload-anim-track {
+  background: rgba(15, 23, 42, .08);
+  border-color: rgba(15, 23, 42, .12);
+}
+.upload-anim-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.upload-anim-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .55) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: upload-anim-shimmer-move 1.1s linear infinite;
+}
+@keyframes upload-anim-shimmer-move {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+.upload-anim-num {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f1f5f9;
+}
+:root:not(.dark) .upload-anim-num { color: #334155; }
+.upload-anim-segs {
+  display: flex;
+  gap: 5px;
+  margin-top: 10px;
+  justify-content: center;
+}
+.upload-anim-seg {
+  width: 16px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, .1);
+  transition: background .2s ease, box-shadow .2s ease;
+}
+:root:not(.dark) .upload-anim-seg { background: rgba(15, 23, 42, .1); }
+
+.upload-anim-check {
+  color: #34d399;
+  animation: upload-anim-pop-in .45s cubic-bezier(.34, 1.56, .64, 1);
+}
+@keyframes upload-anim-pop-in {
+  0% { transform: scale(.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.upload-anim-spark {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #34d399;
+  pointer-events: none;
+  left: 50%;
+  top: 50%;
+  opacity: 1;
+  animation: upload-anim-spark-fly .7s ease-out forwards;
+}
+@keyframes upload-anim-spark-fly {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); }
+}
+
+/* ============================================
    ПОИСК — стекло с бегущей радужной подсветкой
    (glass-glow-input.html), уменьшено под размер строки поиска
    ============================================ */

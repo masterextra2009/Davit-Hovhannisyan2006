@@ -916,6 +916,57 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // подтверждение "заказ принят" до того как страница уйдёт на ЮKassa.
   const [orderAcceptPhase, setOrderAcceptPhase] = useState<'idle' | 'loading' | 'success'>('idle');
   const [dragActive, setDragActive] = useState(false);
+  // Анимация зоны загрузки (диск -> цветная полоса прогресса -> галочка с
+  // искрами), по образцу присланного макета progress-bar-only.html — чисто
+  // визуальный слой поверх handleFiles/uploadFileToFirebaseStorage ниже,
+  // прогресс имитированный (как в самом макете), а не побайтовый.
+  const [uploadAnimPhase, setUploadAnimPhase] = useState<'idle' | 'busy' | 'done'>('idle');
+  const [uploadAnimProgress, setUploadAnimProgress] = useState(0);
+  const [uploadAnimSparks, setUploadAnimSparks] = useState<{ dx: number; dy: number }[]>([]);
+  const uploadAnimTimerRef = useRef<number | null>(null);
+  const uploadAnimResetRef = useRef<number | null>(null);
+  useEffect(() => {
+    return () => {
+      if (uploadAnimTimerRef.current) window.clearTimeout(uploadAnimTimerRef.current);
+      if (uploadAnimResetRef.current) window.clearTimeout(uploadAnimResetRef.current);
+    };
+  }, []);
+  const uploadAnimProgressColor = (p: number) => {
+    const stops: [number, [number, number, number]][] = [[0, [255, 95, 95]], [50, [255, 196, 92]], [100, [95, 219, 143]]];
+    let a = stops[0], b = stops[stops.length - 1];
+    for (let i = 0; i < stops.length - 1; i++) {
+      if (p >= stops[i][0] && p <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
+    }
+    const range = b[0] - a[0] || 1;
+    const t = (p - a[0]) / range;
+    const c = a[1].map((v, i) => Math.round(v + (b[1][i] - v) * t));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  };
+  const playUploadDropAnimation = () => {
+    if (uploadAnimTimerRef.current) window.clearTimeout(uploadAnimTimerRef.current);
+    if (uploadAnimResetRef.current) window.clearTimeout(uploadAnimResetRef.current);
+    setUploadAnimPhase('busy');
+    setUploadAnimProgress(0);
+    const tick = (p: number) => {
+      const next = Math.min(100, p + Math.random() * 9 + 3);
+      setUploadAnimProgress(next);
+      if (next >= 100) {
+        setUploadAnimSparks(Array.from({ length: 10 }).map((_, i) => {
+          const angle = (Math.PI * 2 / 10) * i;
+          const dist = 30 + Math.random() * 12;
+          return { dx: Math.cos(angle) * dist, dy: Math.sin(angle) * dist };
+        }));
+        setUploadAnimPhase('done');
+        uploadAnimResetRef.current = window.setTimeout(() => {
+          setUploadAnimPhase('idle');
+          setUploadAnimProgress(0);
+        }, 1800);
+        return;
+      }
+      uploadAnimTimerRef.current = window.setTimeout(() => tick(next), 150 + Math.random() * 100);
+    };
+    uploadAnimTimerRef.current = window.setTimeout(() => tick(0), 150);
+  };
   // Новые файлы сначала попадают сюда — "Настройте параметры печати" открывается
   // для каждого по очереди, и только после подтверждения файл переезжает в uploadedFiles
   const [pendingUploads, setPendingUploads] = useState<PrintFile[]>([]);
@@ -2093,12 +2144,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     setDragActive(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      playUploadDropAnimation();
       handleFiles(e.dataTransfer.files);
     }
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      playUploadDropAnimation();
       handleFiles(e.target.files);
     }
   };
@@ -4012,23 +4065,70 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         absolute из .disc), а отцентрирован обычным margin. */}
                     <div className="disc" style={{ position: 'relative', margin: '0 auto 1rem', transform: 'none' }}>
                       {Array.from({ length: 11 }).map((_, i) => (
-                        <span key={i} className="seg" style={{ transform: `rotate(${i * 32.7}deg) translateY(-17.83px)` }} />
+                        <span
+                          key={i}
+                          className="seg"
+                          style={{ transform: `rotate(${i * 32.7}deg) translateY(-17.83px)`, opacity: uploadAnimPhase === 'idle' ? 1 : 0.35 }}
+                        />
                       ))}
-                      <span className="ringbeam"><i /></span>
-                      {!isWorkingHours()
-                        ? <Clock className="animate-pulse" style={{ color: '#fb7185' }} />
-                        : <Upload style={{ color: '#c4b5fd' }} />}
+                      <span className="ringbeam" style={{ opacity: uploadAnimPhase === 'idle' ? 1 : 0 }}><i /></span>
+                      {!isWorkingHours() ? (
+                        <Clock className="animate-pulse" style={{ color: '#fb7185' }} />
+                      ) : uploadAnimPhase === 'done' ? (
+                        <Check className="upload-anim-check" style={{ width: 26, height: 26 }} strokeWidth={3} />
+                      ) : (
+                        <Upload style={{ color: '#c4b5fd' }} />
+                      )}
+                      {uploadAnimPhase === 'done' && uploadAnimSparks.map((s, i) => (
+                        <span
+                          key={i}
+                          className="upload-anim-spark"
+                          style={{ '--dx': `${s.dx}px`, '--dy': `${s.dy}px` } as React.CSSProperties}
+                        />
+                      ))}
                     </div>
 
                     <p className={`text-sm font-bold ${!isWorkingHours() ? 'text-rose-400' : 'text-white'}`}>
-                      {!isWorkingHours() ? 'Прием файлов приостановлен (Центр Закрыт)' : 'Выберите файлы или перетащите их сюда'}
-                    </p>
-                    <p className="text-xs text-slate-400 mt-2">
                       {!isWorkingHours()
-                        ? 'Мы принимаем файлы только в рабочие часы Пн-Пт 09:00 - 19:00, Сб-Вс 10:00 - 19:00. Приходите к нам завтра!'
-                        : 'Поддерживаются любые типы форматов: архивы (zip, rar), изображения (jpg, png) и документы (pdf, docx, xlsx, txt) до 100 МБ.'
-                      }
+                        ? 'Прием файлов приостановлен (Центр Закрыт)'
+                        : uploadAnimPhase === 'busy' ? 'Загружаем файл…'
+                        : uploadAnimPhase === 'done' ? 'Файл загружен'
+                        : 'Выберите файлы или перетащите их сюда'}
                     </p>
+                    {uploadAnimPhase === 'idle' && (
+                      <p className="text-xs text-slate-400 mt-2">
+                        {!isWorkingHours()
+                          ? 'Мы принимаем файлы только в рабочие часы Пн-Пт 09:00 - 19:00, Сб-Вс 10:00 - 19:00. Приходите к нам завтра!'
+                          : 'Поддерживаются любые типы форматов: архивы (zip, rar), изображения (jpg, png) и документы (pdf, docx, xlsx, txt) до 100 МБ.'
+                        }
+                      </p>
+                    )}
+                    {uploadAnimPhase === 'busy' && (
+                      <div className="upload-anim-bar-wrap">
+                        <div className="upload-anim-track">
+                          <div
+                            className="upload-anim-fill"
+                            style={{ width: `${uploadAnimProgress}%`, background: uploadAnimProgressColor(uploadAnimProgress) }}
+                          >
+                            <div className="upload-anim-shimmer" />
+                          </div>
+                        </div>
+                        <div className="upload-anim-num">Загружаем… {Math.round(uploadAnimProgress)}%</div>
+                        <div className="upload-anim-segs">
+                          {Array.from({ length: 10 }).map((_, i) => {
+                            const lit = i < Math.round((uploadAnimProgress / 100) * 10);
+                            const col = uploadAnimProgressColor(uploadAnimProgress);
+                            return (
+                              <div
+                                key={i}
+                                className="upload-anim-seg"
+                                style={lit ? { background: col, boxShadow: `0 0 6px ${col}` } : undefined}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
