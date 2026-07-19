@@ -884,6 +884,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         if (newStatus === 'printed') {
           updates.completedAt = new Date().toISOString();
         }
+        if (newStatus === 'ready') {
+          updates.readyAt = new Date().toISOString();
+          updates.readyReminderSent = false;
+        }
         return { ...o, ...updates };
       }
       return o;

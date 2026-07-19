@@ -108,6 +108,11 @@ export interface Order {
   // Оценка клиента после выдачи заказа (см. RatingWidget/handleRate в Dashboard.tsx).
   rating?: 1 | 2 | 3 | 4 | 5;
   ratingComment?: string;
+  // Момент, когда заказ перешёл в статус "ready" — нужен серверному напоминанию
+  // (Важное.md, часть 3), чтобы посчитать "готов больше 2-3 дней". readyReminderSent
+  // защищает от повторной отправки одного и того же напоминания.
+  readyAt?: string;
+  readyReminderSent?: boolean;
 }
 
 export interface ChatMessage {
