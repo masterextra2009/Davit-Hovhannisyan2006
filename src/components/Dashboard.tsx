@@ -2274,6 +2274,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         });
       }
 
+      // Настоящее разрешение фото в пикселях — нужно только для предупреждения
+      // "маловато для этого размера печати" (Важное.md, часть 2). Для PDF
+      // такое предупреждение не считаем — там печать постранично из PDF, не
+      // из растровой картинки, natural-размер PDF-превью тут не показателен.
+      if (previewUrl && isImage) {
+        const probe = new Image();
+        probe.onload = () => {
+          patchFileState(fileId, { imagePixelWidth: probe.naturalWidth, imagePixelHeight: probe.naturalHeight });
+        };
+        probe.src = previewUrl;
+      }
+
       // Upload file directly to Firebase Storage bucket asynchronously
       uploadFileToFirebaseStorage(file, fileId);
     }
@@ -6526,6 +6538,38 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         );
                       })}
                     </div>
+                    {/* Предупреждение о качестве (Важное.md, часть 2) — не блокирует
+                        заказ, просто честно предупреждает, если реального
+                        разрешения фото не хватает на выбранный размер при 150
+                        DPI (общепринятый минимум для фотопечати без видимой
+                        размытости). Сравниваем без привязки к ориентации
+                        (большая/меньшая сторона), т.к. кадрирование при печати
+                        и так меняет пропорции. */}
+                    {(() => {
+                      const PHOTO_SIZE_CM: Record<string, [number, number]> = {
+                        '10x15': [10, 15], '13x18': [13, 18], '15x21': [15, 21], '20x30': [20, 30], '30x40': [30, 40],
+                      };
+                      const cm = PHOTO_SIZE_CM[selSize.key];
+                      const hasRes = !!(file.imagePixelWidth && file.imagePixelHeight);
+                      if (!cm || !hasRes) return null;
+                      const MIN_DPI = 150;
+                      const needA = Math.round((cm[0] / 2.54) * MIN_DPI);
+                      const needB = Math.round((cm[1] / 2.54) * MIN_DPI);
+                      const needMax = Math.max(needA, needB);
+                      const needMin = Math.min(needA, needB);
+                      const imgMax = Math.max(file.imagePixelWidth!, file.imagePixelHeight!);
+                      const imgMin = Math.min(file.imagePixelWidth!, file.imagePixelHeight!);
+                      const isLowRes = imgMax < needMax || imgMin < needMin;
+                      if (!isLowRes) return null;
+                      return (
+                        <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/25 border border-amber-200/60 dark:border-amber-900/40 flex items-start gap-2">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                          <p className="text-[10px] text-amber-800 dark:text-amber-300 leading-snug">
+                            Это фото маловато для печати {selSize.label} — при печати может быть размыто. Если есть оригинал большего размера, лучше загрузить его; можно печатать и как есть.
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
