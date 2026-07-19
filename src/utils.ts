@@ -856,6 +856,14 @@ export function isWorkingHours(): boolean {
 // new Date().toISOString() режет сутки по UTC-полуночи, которая в Москве
 // наступает только в 03:00 — из-за этого дневной счётчик посещений "обновлялся"
 // на 3 часа позже настоящей полуночи.
+// Админ иногда вводит цену без пробела перед "₽" (например "20₽") — в
+// жирном крупном шрифте горизонтальная черта символа рубля садится прямо
+// на "0" и выглядит как зачёркнутая цена. Нормализуем пробел, не трогая
+// остальной текст (суффиксы вроде "/шт" не задеты).
+export function formatServicePrice(price: string): string {
+  return price.replace(/(\d)\s*₽/g, '$1 ₽');
+}
+
 export function getLocalDateKey(d: Date = new Date()): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');

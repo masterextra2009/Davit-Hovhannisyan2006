@@ -46,7 +46,8 @@ import {
   calculateOrderCost, getFileFormatGroup, formatFileSize, 
   formatDateTime, getStatusLabel, getStatusColor, 
   getPaymentStatusLabel, getPaymentStatusColor, printInvoiceHTML,
-  getClientTierForUser, isWorkingHours, showBrowserNotification, trackAnalyticsEvent
+  getClientTierForUser, isWorkingHours, showBrowserNotification, trackAnalyticsEvent,
+  formatServicePrice
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
 import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase } from '../firebaseUtils';
@@ -562,7 +563,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       if (!scrollerEl || !sampleTileEl) return;
       const TILE_ROW_GAP = 16; // gap-y-4
       const DOTS_RESERVE = 24; // высота полосы точек-индикаторов под страницами
-      const DOCK_NAV_RESERVE = 112; // высота дока (90) + отступ снизу (bottom-3=12) + запас
+      // Сам док сидит на bottom-0 (не bottom-3, старый комментарий был неточным)
+      // и его высота фиксирована style={{height:90}} — резервируем только её
+      // плюс небольшой запас, а не выдуманный дополнительный отступ.
+      const DOCK_NAV_RESERVE = 96;
       const tileHeight = sampleTileEl.getBoundingClientRect().height;
       if (tileHeight <= 0) return;
       const viewportH = window.visualViewport?.height || window.innerHeight;
@@ -575,7 +579,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     const ro = new ResizeObserver(recompute);
     if (homeAreaRef.current) ro.observe(homeAreaRef.current);
     window.addEventListener('resize', recompute);
-    return () => { ro.disconnect(); window.removeEventListener('resize', recompute); };
+    // window 'resize' почти никогда не срабатывает на телефоне, когда
+    // адресная строка браузера сворачивается/разворачивается при скролле —
+    // это меняет именно visualViewport.height. Без этого слушателя расчёт
+    // "застревал" на первом (самом маленьком, с развёрнутой адресной строкой)
+    // замере на весь сеанс, и плитка, которая реально помещается, уезжала
+    // на вторую страницу.
+    window.visualViewport?.addEventListener('resize', recompute);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', recompute);
+      window.visualViewport?.removeEventListener('resize', recompute);
+    };
   }, [clockSize, mobileHome, jiggleMode]);
 
   const reorderHomeTiles = (allKeys: string[]) => {
@@ -5936,7 +5951,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
                           {svc.description?.slice(0,50)}{(svc.description?.length||0) > 50 ? '...' : ''}
                         </p>
-                        <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mt-2 mb-2">{svc.price}</p>
+                        <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mt-2 mb-2">{formatServicePrice(svc.price)}</p>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -6008,7 +6023,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 {expandedService.description && (
                   <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mt-2 whitespace-pre-wrap">{expandedService.description}</p>
                 )}
-                <p className="font-black text-3xl text-indigo-600 dark:text-indigo-400 mt-4">{expandedService.price}</p>
+                <p className="font-black text-3xl text-indigo-600 dark:text-indigo-400 mt-4">{formatServicePrice(expandedService.price)}</p>
                 <button
                   onClick={() => {
                     const priceNum = parseInt(expandedService.price.replace(/[^0-9]/g, ''), 10) || 0;
@@ -7716,7 +7731,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       {/* Полноэкранный голосовой режим ИИ-чата (как voice mode в GPT-чатах) */}
       <AnimatePresence>
       {showVoiceOverlay && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-lg flex flex-col items-center justify-center p-6 z-[60]">
+        <div className="fixed inset-0 bg-white backdrop-blur-lg flex flex-col items-center justify-center p-6 z-[60]">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -7755,7 +7770,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   {[0, 1, 2, 3, 4].map(i => (
                     <span
                       key={i}
-                      className="w-1 rounded-full bg-white voice-track-bar"
+                      className="w-1 rounded-full bg-slate-900 voice-track-bar"
                       style={{ height: 34, animationDelay: `${i * 0.12}s` }}
                     />
                   ))}
@@ -7765,20 +7780,20 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
             <div className="text-center min-h-[3em] px-2">
               {voiceOverlayPhase === 'idle' && (
-                <p className="text-white/60 text-sm font-bold">Зажми кружок и говори</p>
+                <p className="text-slate-500 text-sm font-bold">Зажми кружок и говори</p>
               )}
               {voiceOverlayPhase === 'listening' && (
-                <p className="text-white text-sm font-bold">Слушаю…</p>
+                <p className="text-slate-900 text-sm font-bold">Слушаю…</p>
               )}
               {voiceOverlayPhase === 'thinking' && (
-                <p className="text-white/70 text-sm font-bold">Думаю…</p>
+                <p className="text-slate-600 text-sm font-bold">Думаю…</p>
               )}
               {voiceOverlayPhase === 'error' && (
-                <p className="text-rose-400 text-sm font-bold">{voiceOverlayError}</p>
+                <p className="text-rose-500 text-sm font-bold">{voiceOverlayError}</p>
               )}
               {voiceOverlayPhase === 'answered' && (
                 <div className="flex flex-col items-center gap-3">
-                  <p className="text-white text-sm leading-relaxed text-center">{voiceOverlayReply}</p>
+                  <p className="text-slate-900 text-sm leading-relaxed text-center">{voiceOverlayReply}</p>
                   {voiceOverlayPrice && <AiPriceCard price={voiceOverlayPrice} />}
                 </div>
               )}
@@ -7786,11 +7801,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
             <div className="flex items-center gap-3">
               {(voiceOverlayPhase === 'answered' || voiceOverlayPhase === 'error') && (
-                <p className="text-white/50 text-[11px] font-bold">Зажми кружок, чтобы спросить ещё</p>
+                <p className="text-slate-400 text-[11px] font-bold">Зажми кружок, чтобы спросить ещё</p>
               )}
               <button
                 onClick={handleCloseVoiceOverlay}
-                className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center text-white transition cursor-pointer"
+                className="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition cursor-pointer"
                 aria-label="Закрыть"
               >
                 <X className="w-5 h-5" />

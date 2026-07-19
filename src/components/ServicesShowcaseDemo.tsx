@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Service } from '../types';
+import { formatServicePrice } from '../utils';
 
 /* Те же 3D SVG-иконки-заглушки (когда у услуги нет своего фото/иконки),
    что и в клиентском кабинете (Dashboard.tsx, вкладка "Услуги") — держим
@@ -147,7 +148,7 @@ export function ServicesShowcaseDemo({ services }: { services: Service[] }) {
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
                 {svc.description?.slice(0, 50)}{(svc.description?.length || 0) > 50 ? '...' : ''}
               </p>
-              <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mt-2 mb-2">{svc.price}</p>
+              <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mt-2 mb-2">{formatServicePrice(svc.price)}</p>
               <button className="btn-3d-choose w-full mt-auto py-2.5 rounded-xl font-black text-xs text-white cursor-default">Заказать →</button>
             </div>
           </motion.div>
@@ -203,7 +204,7 @@ export function ServicesShowcaseDemo({ services }: { services: Service[] }) {
                 {expanded.description && (
                   <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mt-2 whitespace-pre-wrap">{expanded.description}</p>
                 )}
-                <p className="font-black text-2xl text-indigo-600 dark:text-indigo-400 mt-4">{expanded.price}</p>
+                <p className="font-black text-2xl text-indigo-600 dark:text-indigo-400 mt-4">{formatServicePrice(expanded.price)}</p>
                 <button className="btn-3d-choose w-full mt-4 py-3 rounded-2xl font-black text-sm text-white cursor-default">Заказать →</button>
               </div>
             </motion.div>
