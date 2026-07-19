@@ -909,7 +909,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     } catch {}
   }, [uploadedFiles]);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [showUploadSuccessAnim, setShowUploadSuccessAnim] = useState(false);
   // Круг-загрузчик, перетекающий в галочку, при нажатии "Оформить заказ" —
   // 'loading' пока идёт создание платежа, 'success' на короткий миг перед
   // переходом на оплату/переключением вкладки, чтобы клиент увидел явное
@@ -2188,8 +2187,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       }
 
       patchFileState(fileId, { url: data.url });
-      setShowUploadSuccessAnim(true);
-      setTimeout(() => setShowUploadSuccessAnim(false), 2200);
     } catch (error: any) {
       console.error('Server upload error for fileId ' + fileId + ':', error);
       const isTimeout = error instanceof Error && error.message === 'timeout';
@@ -2608,8 +2605,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         uploadFileToFirebaseStorage(compositeFile, fileId);
       }
       setUploadedFiles(prev => prev.filter(f => !includedIds.has(f.id)));
-      setShowUploadSuccessAnim(true);
-      setTimeout(() => setShowUploadSuccessAnim(false), 2200);
       setCollageSelectedIds([]);
       setShowCollageBuilder(false);
     } catch (err) {
@@ -3313,43 +3308,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     <div id="client-dashboard-root" className="liquid-glass-bg min-h-dvh md:h-dvh text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative overflow-x-hidden overflow-y-auto md:overflow-hidden">
 
       {/* Neutral frosted glow accents (no color tint) */}
-
-      {/* Upload success animation — glowing burst + "Файл загружен", in the spirit
-          of the reference clip (glowing icon -> colorful particle burst -> text reveal) */}
-      <AnimatePresence>
-        {showUploadSuccessAnim && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md pointer-events-none"
-          >
-            <div className="flex flex-col items-center gap-5">
-              <div className="relative w-28 h-28 flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full upload-success-burst" style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.55), rgba(99,102,241,0.35) 55%, transparent 75%)' }} />
-                <div className="absolute inset-0 rounded-full border-2 border-emerald-400/40 upload-success-ring" />
-                <motion.div
-                  initial={{ scale: 0.4, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 260, damping: 16, delay: 0.1 }}
-                  className="relative w-16 h-16 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/40"
-                >
-                  <Check className="w-9 h-9 text-white" strokeWidth={3} />
-                </motion.div>
-              </div>
-              <motion.p
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35, duration: 0.3 }}
-                className="text-white font-black text-sm uppercase tracking-widest"
-              >
-                Файл загружен
-              </motion.p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Заказ принят — круг-загрузчик плавно перетекает в галочку (по мотивам
           asynchrone-loader: круг рисуется/крутится пока идёт запрос, затем
@@ -6607,7 +6565,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 <img
                                   src={file.previewUrl}
                                   alt=""
-                                  className={`w-full h-full ${opt.key === 'bordered' ? 'object-contain' : 'object-cover'}`}
+                                  // Тонкая рамка вокруг самого фото у "С рамкой" — белый фон
+                                  // иначе "съедает" светлые фото (например, скриншоты),
+                                  // они становятся не видны на превью.
+                                  className={`w-full h-full ${opt.key === 'bordered' ? 'object-contain border border-slate-200' : 'object-cover'}`}
                                 />
                               ) : (
                                 <div className="w-full h-full bg-gradient-to-br from-sky-300 to-indigo-400" />
