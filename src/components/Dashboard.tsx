@@ -493,11 +493,21 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const getLiveUserId = () => auth.currentUser?.uid || user.id;
 
   // Navigation
-  const [activeTab, setActiveTab] = useState<'upload' | 'orders' | 'chat' | 'profile' | 'contacts' | 'services'>('upload');
+  // На каком экране клиент был — храним в sessionStorage, чтобы обновление
+  // страницы (F5/pull-to-refresh) не сбрасывало его на "Главную" с иконками,
+  // а оставляло там же, где он был до обновления (в рамках одной вкладки/сессии).
+  const NAV_STATE_KEY = 'nav_state';
+  const savedNavState = (() => {
+    try { return JSON.parse(sessionStorage.getItem(NAV_STATE_KEY) || 'null'); } catch { return null; }
+  })();
+  const [activeTab, setActiveTab] = useState<'upload' | 'orders' | 'chat' | 'profile' | 'contacts' | 'services'>(savedNavState?.activeTab || 'upload');
   // На телефоне кабинет открывается с отдельного экрана "Главная" (крупные плитки);
   // переход в раздел скрывает плитки и показывает контент activeTab. На десктопе не используется —
   // там сайдбар и контент видны одновременно всегда.
-  const [mobileHome, setMobileHome] = useState(true);
+  const [mobileHome, setMobileHome] = useState(savedNavState?.mobileHome ?? true);
+  useEffect(() => {
+    try { sessionStorage.setItem(NAV_STATE_KEY, JSON.stringify({ activeTab, mobileHome })); } catch {}
+  }, [activeTab, mobileHome]);
   // Перестановка плиток на "Главной" зажатием, как на iPhone — порядок
   // хранится персонально на устройстве (localStorage по user.id), ключи
   // плиток не в сохранённом порядке (новые появились после последней
