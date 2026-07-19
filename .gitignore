@@ -7,3 +7,4 @@ coverage/
 .env*
 !.env.example
 .claude/settings.local.json
+sever18-backup-*.json
