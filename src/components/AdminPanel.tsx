@@ -1291,6 +1291,18 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const activeOrdersCount = pendingCount + inPrintCount + readyCount;
   const printingPercent = activeOrdersCount > 0 ? Math.round((inPrintCount / activeOrdersCount) * 100) : 0;
 
+  // Ежедневная сводка по чату — сколько сообщений от клиентов пришло сегодня,
+  // от скольких разных клиентов, и сколько всего пока не прочитано (readByAdmin).
+  const todayClientMessages = database.chatMessages.filter(
+    m => m.senderRole === 'client' && getLocalDateKey(new Date(m.timestamp)) === getLocalDateKey()
+  );
+  const todayUniqueChatClients = new Set(todayClientMessages.map(m => m.userId)).size;
+  const unreadChatCount = database.chatMessages.filter(m => m.senderRole === 'client' && !m.readByAdmin).length;
+  const chatHistory7d = useMemo(() => buildLast7Days(
+    database.chatMessages.filter(m => m.senderRole === 'client'),
+    m => m.timestamp
+  ), [database.chatMessages]);
+
   // File Format Analytics Count
   let fileFormatGroupsStats = {
     document: 0,
@@ -2855,7 +2867,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <div className="space-y-6">
               
               {/* Top stats grid widgets */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                 
                 <div className="glass-panel p-5 rounded-3xl">
                   <div className="flex justify-between items-start">
@@ -2966,6 +2978,23 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       );
                     })}
                   </div>
+                </div>
+
+                <div className="glass-panel p-5 rounded-3xl">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Сводка по чату</span>
+                      <p className="text-2xl font-black text-slate-800 dark:text-white">{todayClientMessages.length}</p>
+                      <div className="text-[10px] text-slate-400">Сообщений сегодня • от {todayUniqueChatClients} клиентов</div>
+                      {unreadChatCount > 0 && (
+                        <div className="text-[10px] text-rose-500 font-bold">{unreadChatCount} непрочитанных</div>
+                      )}
+                    </div>
+                    <div className="p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-500 rounded-2xl">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <MiniSparkline data={chatHistory7d} colorClass="bg-sky-500" />
                 </div>
 
               </div>

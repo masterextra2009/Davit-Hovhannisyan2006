@@ -2279,7 +2279,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         previewUrl: previewUrl || undefined,
         ...(forcePhoto && isImage ? { paperType: 'photo', photoSize: '10x15', photoBorder: 'borderless', printColor: 'color' } : {}),
         ...(forcePolaroid && isImage ? { paperType: 'photo', photoSize: 'polaroid', photoBorder: 'borderless', printColor: 'color' } : {}),
-        ...(forceA3 && !isImage ? { format: 'a3' } : {}),
+        // Раньше А3 нарочно не ставился фото/картинкам (isImage) — тогда в А3
+        // был только формат для документов. Теперь у А3 есть режим "Фото"
+        // (печать снимков на А3), так что ограничение больше не нужно.
+        ...(forceA3 ? { format: 'a3' } : {}),
         ...(simplifiedDocs && !isImage ? { simplifiedDocsMode: true } : {}),
       });
 
@@ -6696,17 +6699,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     )}
                   </div>
                 )}
-
-                {/* А3 — единая группа: три фиксированные цены, заливка тут не учитывается.
-                    Формат/Бумага больше нигде не выбираются вручную (убрано по просьбе —
-                    только Цветность имеет значение для обычных файлов); "фото" теперь
-                    включается исключительно плиткой "Печать фото" на Главной
-                    (nextUploadIsPhotoRef), так что isA3/isThick ниже практически не
-                    достижимы, но оставлены на случай уже существующих старых файлов
-                    с format:'a3', чтобы не терять их корректную цену. */}
-                {/* А3 — временно без настроек в этой модалке (по просьбе клиента,
-                    будем добавлять поля постепенно); печатается Ч/Б по
-                    умолчанию, пока сюда не добавили выбор. */}
 
                 {/* Размер фото — обязателен для фотобумаги, кроме полароида (там
                     размер один и тот же, настраивать нечего) */}
