@@ -876,7 +876,7 @@ export async function syncLocalUpdatesToFirebase(updates: Partial<DatabaseState>
 
 // Публичный VAPID-ключ (не секрет, безопасно хранить в клиентском коде) —
 // в паре с приватным ключом на сервере (Cloud Functions) для отправки push.
-const VAPID_PUBLIC_KEY = 'BHpcBBIXLUxqklTcwkQreC_6c9usIN3SHlRSZHzlQEgJMkfVTvrlbl1jsCHF8lckjCIXA2xYEWbL5wHXatdSaUI';
+const VAPID_PUBLIC_KEY = 'BAWT1sZ2a1ES2-anphGlydEvZNAA4xM6ty-g-_I9um9VWexVqAlbNZPYKMh8sMKIAgW6WA2iJP1T09wF4mtpo1M';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);

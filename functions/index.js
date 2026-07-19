@@ -10,7 +10,7 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const webpush = require('web-push');
 
 const FIRESTORE_DATABASE_ID = 'ai-studio-c87ec184-5aa1-432c-bb2a-801c9b1876b2';
-const VAPID_PUBLIC_KEY = 'BHpcBBIXLUxqklTcwkQreC_6c9usIN3SHlRSZHzlQEgJMkfVTvrlbl1jsCHF8lckjCIXA2xYEWbL5wHXatdSaUI';
+const VAPID_PUBLIC_KEY = 'BAWT1sZ2a1ES2-anphGlydEvZNAA4xM6ty-g-_I9um9VWexVqAlbNZPYKMh8sMKIAgW6WA2iJP1T09wF4mtpo1M';
 // Пользователь считается "онлайн" максимум это время после последнего heartbeat
 // (сайт шлёт heartbeat каждые 45с) — запас на случай задержки сети.
 const ONLINE_FRESHNESS_MS = 2 * 60 * 1000;
