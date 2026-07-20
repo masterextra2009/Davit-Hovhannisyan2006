@@ -37,6 +37,7 @@ import aiAssistantCoinMp4 from '../assets/ai-assistant-coin.mp4';
 import polaroidCameraAnim from '../assets/polaroid-camera.webp';
 import a3ChertyozhAnim from '../assets/a3-chertyozh.mp4';
 import a3PhotoAnim from '../assets/a3-photo.mp4';
+import docCheckIconRefImg from '../assets/doc-check-icon-ref.webp';
 import {
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 
   Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, Mic, Volume2, VolumeX,
@@ -372,6 +373,15 @@ function GlassPolaroidRefIcon(_props: { style?: React.CSSProperties }) {
   return (
     <img
       src={polaroidIconRefImg}
+      alt=""
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+}
+function GlassDocCheckRefIcon(_props: { style?: React.CSSProperties }) {
+  return (
+    <img
+      src={docCheckIconRefImg}
       alt=""
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
     />
@@ -3386,7 +3396,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     {
       key: 'category-doc-check',
       label: 'Проверка фото',
-      icon: FileCheck,
+      icon: GlassDocCheckRefIcon,
       glow: 'capsule-glow-green',
       isActive: false,
       onClick: () => setShowDocCheckModal(true),
