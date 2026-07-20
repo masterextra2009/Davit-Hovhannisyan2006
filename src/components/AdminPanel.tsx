@@ -1529,7 +1529,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <div className={`glass-icon-capsule glass-icon-orange w-9 h-9 shrink-0 ${activeTab === 'analytics' ? 'glass-icon-active' : ''}`}>
               <BarChart3 className="w-4.5 h-4.5 text-white" />
             </div>
-            <span className="hidden sm:inline">Финансы & Аналитика</span>
+            <span className="hidden sm:inline">Финансы и Аналитика</span>
           </button>
 
           <button
@@ -1627,9 +1627,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {activeTab === 'orders' && 'Очередь печати документов'}
               {activeTab === 'chat' && 'Оперативная чат-линия клиентов'}
               {activeTab === 'feedback' && 'Пожелания и замечания клиентов'}
-              {activeTab === 'users' && 'Управление пользователями & Конфиденциальность'}
+              {activeTab === 'users' && 'Управление пользователями и конфиденциальность'}
               {activeTab === 'analytics' && 'Статистика копи-центра в реальном времени'}
-              {activeTab === 'settings' && 'Редактирование профиля & Интеграция банка'}
+              {activeTab === 'settings' && 'Редактирование профиля и интеграция банка'}
             </h1>
             <p className="text-xs text-white/60 mt-1">
               {activeTab === 'chat' && 'Контролируйте ветки диалогов всех активных клиентов вашего копи-точки.'}
@@ -3214,7 +3214,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6">
                   <div>
                     <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
-                      <Camera className="text-indigo-650 w-5 h-5" /> <AnimatedTitle>Профиль & Персональная аватарка</AnimatedTitle>
+                      <Camera className="text-indigo-650 w-5 h-5" /> <AnimatedTitle>Профиль и персональная аватарка</AnimatedTitle>
                     </h3>
                     <p className="text-[11px] text-slate-400 mt-1">Отредактируйте свои личные данные и настройте графический аватар, отображаемый в чате с клиентами.</p>
                   </div>
@@ -4026,6 +4026,16 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             <p className="text-amber-400/80 text-[10px] mt-0.5 font-bold">
                               🗑 Автоудаление через {daysLeft} {daysLeft === 1 ? 'день' : daysLeft < 5 ? 'дня' : 'дней'}
                             </p>
+                            {order.rating && (
+                              <div className="mt-2 flex items-start gap-1.5">
+                                <span className="text-amber-400 text-xs shrink-0" title={`${order.rating} из 5`}>
+                                  {'★'.repeat(order.rating)}{'☆'.repeat(5 - order.rating)}
+                                </span>
+                                {order.ratingComment && (
+                                  <span className="text-white/50 text-[11px] italic">«{order.ratingComment}»</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-emerald-400 font-black text-sm">{order.totalCost} ₽</p>

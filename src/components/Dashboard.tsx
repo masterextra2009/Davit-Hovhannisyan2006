@@ -1649,6 +1649,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // на экране. Держим готовый к воспроизведению URL, чтобы показать кнопку
   // "Озвучить" — обычный тап по ней WebKit точно разрешит.
   const [blockedSpeechUrl, setBlockedSpeechUrl] = useState<string | null>(null);
+  // Раньше сбой запроса к tts.php (сеть/ошибка сервера) просто молча
+  // прерывал озвучку без единого следа на экране — теперь показываем,
+  // что именно пошло не так, чтобы при следующем сбое не гадать вслепую.
+  const [speechDiag, setSpeechDiag] = useState<string | null>(null);
   const playBlockedSpeech = () => {
     if (!blockedSpeechUrl) return;
     const el = getAiAudioEl();
@@ -1690,6 +1694,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const speakAiReply = async (text: string) => {
     if (!aiChatSpeakEnabled) return;
     stopAiSpeaking();
+    setSpeechDiag(null);
+    setBlockedSpeechUrl(null);
     const myToken = speakTokenRef.current;
     const el = getAiAudioEl();
     const chunks = splitForTts(text);
@@ -1702,10 +1708,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: chunk }),
         });
-        if (!res.ok) return; // Yandex недоступен/лимит — тихо молчим, текст в чате остаётся
+        if (!res.ok) {
+          // Раньше здесь просто тихо молчали — из-за этого невозможно было
+          // понять, что именно ломается на конкретном телефоне. Показываем
+          // код ответа, чтобы при следующем сбое было видно причину, а не
+          // угадывать вслепую.
+          setSpeechDiag(`Сервер озвучки ответил ошибкой ${res.status}`);
+          return;
+        }
         buf = await res.arrayBuffer();
       } catch {
-        return; // сеть недоступна — тихо молчим
+        setSpeechDiag('Не удалось соединиться с сервером озвучки (сеть)');
+        return;
       }
       if (speakTokenRef.current !== myToken) return;
       const url = URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' }));
@@ -8191,6 +8205,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     </button>
                   )}
                   {voiceOverlayPrice && <AiPriceCard price={voiceOverlayPrice} />}
+                  {blockedSpeechUrl && (
+                    <button
+                      onClick={playBlockedSpeech}
+                      className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition cursor-pointer animate-pulse"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" /> Озвучить
+                    </button>
+                  )}
+                  {speechDiag && (
+                    <p className="text-rose-500 text-[10px] font-bold text-center">Озвучка не удалась: {speechDiag}</p>
+                  )}
                 </div>
               )}
             </div>
