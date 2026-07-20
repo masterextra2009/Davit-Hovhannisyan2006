@@ -833,6 +833,89 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     }
   };
 
+  // "Проверка фото на документы" — клиент выбирает тип документа, делает
+  // селфи или загружает готовое фото, оно уходит на photo-doc-check.php
+  // (Claude через Anthropic API проверяет по требованиям конкретного
+  // документа) и результат показывается прямо в модалке — 4 пункта
+  // (размер/положение лица, фон, освещение, выражение) с ok/issue.
+  const DOC_CHECK_TYPES: { key: string; label: string }[] = [
+    { key: 'ru_passport', label: 'Паспорт РФ' },
+    { key: 'ru_foreign_passport', label: 'Загранпаспорт РФ' },
+    { key: 'driver_license', label: 'Водительское удостоверение' },
+    { key: 'military_id', label: 'Военный билет' },
+    { key: 'medical_book', label: 'Медицинская книжка' },
+    { key: 'student_id', label: 'Студенческий билет' },
+    { key: 'gosuslugi', label: 'Госуслуги (цифровое фото)' },
+    { key: 'us_visa', label: 'Виза США' },
+    { key: 'green_card', label: 'Green Card США' },
+    { key: 'schengen_visa', label: 'Виза Шенген' },
+    { key: 'uk_visa', label: 'Виза Великобритании' },
+    { key: 'china_visa', label: 'Виза Китая' },
+    { key: 'japan_visa', label: 'Виза Японии' },
+    { key: 'thailand_visa', label: 'Виза Таиланда' },
+    { key: 'india_visa', label: 'Виза Индии' },
+    { key: 'uae_visa', label: 'Виза ОАЭ' },
+    { key: 'israel_visa', label: 'Виза Израиля' },
+    { key: 'turkey_residence', label: 'ВНЖ Турции' },
+    { key: 'canada_visa', label: 'Виза/ВНЖ Канады' },
+    { key: 'size_3x4', label: 'Формат 3×4 см' },
+    { key: 'size_3x3', label: 'Формат 3×3 см' },
+    { key: 'size_4x6', label: 'Формат 4×6 см' },
+  ];
+  const [showDocCheckModal, setShowDocCheckModal] = useState(false);
+  const [docCheckType, setDocCheckType] = useState(DOC_CHECK_TYPES[0].key);
+  const [docCheckImage, setDocCheckImage] = useState<string | null>(null);
+  const [docCheckLoading, setDocCheckLoading] = useState(false);
+  const [docCheckResult, setDocCheckResult] = useState<{ id: string; label: string; ok: boolean; issue: string }[] | null>(null);
+  const [docCheckError, setDocCheckError] = useState<string | null>(null);
+  const docCheckSelfieInputRef = useRef<HTMLInputElement>(null);
+  const docCheckUploadInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDocCheckFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setDocCheckImage(reader.result as string);
+      setDocCheckResult(null);
+      setDocCheckError(null);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleDocCheckSubmit = async () => {
+    if (!docCheckImage) return;
+    setDocCheckLoading(true);
+    setDocCheckError(null);
+    setDocCheckResult(null);
+    try {
+      const res = await fetch('https://sever-18.ru/api/photo-doc-check.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: docCheckImage, docType: docCheckType }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setDocCheckError(typeof data.error === 'string' ? data.error : 'Не удалось проверить фото');
+        return;
+      }
+      setDocCheckResult(data.checks || []);
+    } catch {
+      setDocCheckError('Не удалось соединиться с сервером проверки');
+    } finally {
+      setDocCheckLoading(false);
+    }
+  };
+
+  const handleCloseDocCheckModal = () => {
+    setShowDocCheckModal(false);
+    setDocCheckImage(null);
+    setDocCheckResult(null);
+    setDocCheckError(null);
+    setDocCheckLoading(false);
+  };
+
   // Keep edits synced with user updates
   useEffect(() => {
     setEditFullName(user.fullName);
@@ -3299,6 +3382,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       glow: 'capsule-glow-cyan',
       isActive: false,
       onClick: () => { nextUploadIsPolaroidRef.current = true; setActiveTab('upload'); setMobileHome(false); },
+    },
+    {
+      key: 'category-doc-check',
+      label: 'Проверка фото',
+      icon: FileCheck,
+      glow: 'capsule-glow-green',
+      isActive: false,
+      onClick: () => setShowDocCheckModal(true),
     },
   ];
 
@@ -8002,6 +8093,130 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 )}
               </div>
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {showDocCheckModal && (
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in" onClick={handleCloseDocCheckModal}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.9 }}
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel glass-panel-modal p-6 md:p-8 rounded-3xl space-y-5 max-w-md w-full relative max-h-[85vh] overflow-y-auto"
+            style={{ boxShadow: '0 0 0 1px rgba(16,185,129,0.15), 0 20px 60px -20px rgba(16,185,129,0.35)' }}
+          >
+            <button
+              onClick={handleCloseDocCheckModal}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <FileCheck className="w-4.5 h-4.5 text-emerald-500" />
+              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider"><AnimatedTitle>Проверка фото на документы</AnimatedTitle></h3>
+            </div>
+
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+              Выберите документ, сделайте селфи или загрузите фото — покажем, соответствует ли оно требованиям, прежде чем печатать.
+            </p>
+
+            <div>
+              <label className="block text-[10px] font-black text-white/50 uppercase tracking-widest mb-2">Тип документа</label>
+              <select
+                value={docCheckType}
+                onChange={(e) => { setDocCheckType(e.target.value); setDocCheckResult(null); setDocCheckError(null); }}
+                className="w-full py-3 px-3.5 rounded-2xl bg-white/5 border border-white/10 text-white text-xs font-bold outline-none focus:border-emerald-500/50 cursor-pointer"
+              >
+                {DOC_CHECK_TYPES.map(t => (
+                  <option key={t.key} value={t.key} className="bg-slate-900 text-white">{t.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {docCheckImage ? (
+              <div className="relative">
+                <img src={docCheckImage} alt="Фото для проверки" className="w-full max-h-64 object-contain rounded-2xl border border-white/10 bg-black/20" />
+                <button
+                  onClick={() => { setDocCheckImage(null); setDocCheckResult(null); setDocCheckError(null); }}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => docCheckSelfieInputRef.current?.click()}
+                  className="flex flex-col items-center gap-1.5 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition cursor-pointer"
+                >
+                  <Camera className="w-5 h-5 text-emerald-400" />
+                  <span className="text-[10px] font-black text-white/70 uppercase tracking-wider">Сделать селфи</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => docCheckUploadInputRef.current?.click()}
+                  className="flex flex-col items-center gap-1.5 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition cursor-pointer"
+                >
+                  <Upload className="w-5 h-5 text-emerald-400" />
+                  <span className="text-[10px] font-black text-white/70 uppercase tracking-wider">Загрузить фото</span>
+                </button>
+              </div>
+            )}
+            <input type="file" accept="image/*" capture="user" ref={docCheckSelfieInputRef} onChange={handleDocCheckFile} className="hidden" aria-label="Сделать селфи для проверки документа" />
+            <input type="file" accept="image/*" ref={docCheckUploadInputRef} onChange={handleDocCheckFile} className="hidden" aria-label="Загрузить фото для проверки документа" />
+
+            {docCheckImage && !docCheckResult && (
+              <button
+                type="button"
+                onClick={handleDocCheckSubmit}
+                disabled={docCheckLoading}
+                className="w-full py-3.5 px-4 disabled:opacity-50 text-white font-black text-sm rounded-2xl transition-transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
+                style={{
+                  background: 'linear-gradient(135deg, #34d399, #10b981 60%, #059669)',
+                  boxShadow: '0 8px 24px -6px rgba(16,185,129,0.55), inset 0 1px 0 rgba(255,255,255,0.25)',
+                }}
+              >
+                {docCheckLoading ? (
+                  <><RefreshCw className="w-4 h-4 animate-spin" /> Проверяем...</>
+                ) : (
+                  <><FileCheck className="w-4 h-4" /> Проверить фото</>
+                )}
+              </button>
+            )}
+
+            {docCheckError && (
+              <p className="text-[11px] text-rose-400 font-bold bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2.5">{docCheckError}</p>
+            )}
+
+            {docCheckResult && (
+              <div className="space-y-2">
+                {docCheckResult.map(check => (
+                  <div key={check.id} className={`flex items-start gap-2.5 p-3 rounded-2xl border ${check.ok ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'}`}>
+                    {check.ok ? (
+                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    )}
+                    <div>
+                      <p className={`text-xs font-black ${check.ok ? 'text-emerald-400' : 'text-rose-400'}`}>{check.label}</p>
+                      {check.issue && <p className="text-[11px] text-white/60 mt-0.5">{check.issue}</p>}
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => { setDocCheckImage(null); setDocCheckResult(null); setDocCheckError(null); }}
+                  className="w-full py-3 px-4 text-white/70 hover:text-white font-bold text-xs rounded-2xl bg-white/5 hover:bg-white/10 transition cursor-pointer mt-1"
+                >
+                  Проверить другое фото
+                </button>
+              </div>
+            )}
           </motion.div>
         </div>
       )}
