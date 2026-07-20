@@ -1286,6 +1286,41 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     u => u.createdAt
   ), [clientsOnly]);
 
+  // Таблички "Регистрации по дням/по месяцам" в аналитике — те же счётчики,
+  // что и newClientsHistory выше, только на более длинном окне и в виде
+  // построчного списка вместо спарклайна.
+  const registrationsByDay = useMemo(() => {
+    const days: { date: string; count: number }[] = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push({ date: getLocalDateKey(d), count: 0 });
+    }
+    const byDate = new Map(days.map(d => [d.date, d]));
+    clientsOnly.forEach(u => {
+      const entry = byDate.get(getLocalDateKey(new Date(u.createdAt)));
+      if (entry) entry.count += 1;
+    });
+    return days.reverse();
+  }, [clientsOnly]);
+
+  const registrationsByMonth = useMemo(() => {
+    const MONTH_NAMES = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+    const now = new Date();
+    const months: { key: string; label: string; count: number }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, label: `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`, count: 0 });
+    }
+    const byMonth = new Map(months.map(m => [m.key, m]));
+    clientsOnly.forEach(u => {
+      const d = new Date(u.createdAt);
+      const entry = byMonth.get(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+      if (entry) entry.count += 1;
+    });
+    return months.reverse();
+  }, [clientsOnly]);
+
   const printedCount = database.orders.filter(o => o.status === 'printed').length;
   const completedPercent = database.orders.length > 0 ? Math.round((printedCount / database.orders.length) * 100) : 0;
   const activeOrdersCount = pendingCount + inPrintCount + readyCount;
@@ -1597,7 +1632,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {activeTab === 'settings' && 'Редактирование профиля & Интеграция банка'}
             </h1>
             <p className="text-xs text-white/60 mt-1">
-              {activeTab === 'orders' && 'Управляйте приоритетами очередей принтера Epson, изменяйте статусы готовности, выгружайте CSV накладные.'}
               {activeTab === 'chat' && 'Контролируйте ветки диалогов всех активных клиентов вашего копи-точки.'}
               {activeTab === 'feedback' && 'Сообщения из формы "Есть пожелание или замечание?" в кабинете клиента.'}
               {activeTab === 'users' && 'Просмотр контактов, редактирование профилей и полное удаление согласно регламенту.'}
@@ -3116,6 +3150,55 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         </div>
                       </div>
                     ))}
+                </div>
+              </div>
+
+              {/* Таблицы регистраций по дням/по месяцам */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="glass-panel rounded-3xl p-6 md:p-8">
+                  <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider mb-1"><AnimatedTitle>Регистрации по дням</AnimatedTitle></h3>
+                  <p className="text-[10px] text-slate-400 mb-4">Новые клиенты за последние 14 дней.</p>
+                  <div className="max-h-72 overflow-y-auto overscroll-contain">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-[10px] text-slate-400 uppercase tracking-wider">
+                          <th className="pb-2 font-black">Дата</th>
+                          <th className="pb-2 font-black text-right">Регистраций</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {registrationsByDay.map(d => (
+                          <tr key={d.date} className="border-t border-slate-100 dark:border-slate-850">
+                            <td className="py-2 text-slate-600 dark:text-slate-300">{new Date(d.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Moscow' })}</td>
+                            <td className={`py-2 text-right font-black ${d.count > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-300 dark:text-slate-700'}`}>{d.count}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="glass-panel rounded-3xl p-6 md:p-8">
+                  <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider mb-1"><AnimatedTitle>Регистрации по месяцам</AnimatedTitle></h3>
+                  <p className="text-[10px] text-slate-400 mb-4">Новые клиенты за последние 12 месяцев.</p>
+                  <div className="max-h-72 overflow-y-auto overscroll-contain">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-[10px] text-slate-400 uppercase tracking-wider">
+                          <th className="pb-2 font-black">Месяц</th>
+                          <th className="pb-2 font-black text-right">Регистраций</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {registrationsByMonth.map(m => (
+                          <tr key={m.key} className="border-t border-slate-100 dark:border-slate-850">
+                            <td className="py-2 text-slate-600 dark:text-slate-300">{m.label}</td>
+                            <td className={`py-2 text-right font-black ${m.count > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-300 dark:text-slate-700'}`}>{m.count}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
 
