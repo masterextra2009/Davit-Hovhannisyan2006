@@ -3829,6 +3829,16 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
   color: #ffffff !important;
 }
 
+/* Карточка "Расчёт стоимости" в ИИ-чате всегда рисуется тёмной (свой
+   градиент indigo/slate), независимо от темы сайта — белый текст внутри
+   неё должен остаться белым и в светлой теме, а не перебиваться общим
+   #id#id * {color:#000} выше. Тот же приём с двойным ID для победы по
+   специфичности. */
+#client-dashboard-root#client-dashboard-root .ai-price-card,
+#client-dashboard-root#client-dashboard-root .ai-price-card * {
+  color: #ffffff !important;
+}
+
 .dark #client-dashboard-root#client-dashboard-root input,
 .dark #client-dashboard-root#client-dashboard-root textarea,
 .dark #admin-dashboard-root#admin-dashboard-root input,
