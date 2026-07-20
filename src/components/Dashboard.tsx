@@ -585,11 +585,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       const sampleTileEl = Object.values(homeTileElsRef.current).find((el): el is HTMLElement => !!el);
       if (!scrollerEl || !sampleTileEl) return;
       const TILE_ROW_GAP = 16; // gap-y-4
-      const DOTS_RESERVE = 24; // высота полосы точек-индикаторов под страницами
-      // Сам док сидит на bottom-0 (не bottom-3, старый комментарий был неточным)
-      // и его высота фиксирована style={{height:90}} — резервируем только её
-      // плюс небольшой запас, а не выдуманный дополнительный отступ.
-      const DOCK_NAV_RESERVE = 96;
+      // Оба резерва были заметно больше реальных элементов (точки страниц —
+      // не 24px, доку хватает своих 90px без лишнего запаса) — из-за этого
+      // расчёт терял почти целый ряд плиток и уводил их на вторую страницу
+      // даже когда внизу ещё оставалось видимое место.
+      const DOTS_RESERVE = 8; // высота полосы точек-индикаторов под страницами
+      const DOCK_NAV_RESERVE = 90; // сам док сидит на bottom-0, его высота ровно 90px
+
       const tileHeight = sampleTileEl.getBoundingClientRect().height;
       if (tileHeight <= 0) return;
       const viewportH = window.visualViewport?.height || window.innerHeight;
