@@ -1643,6 +1643,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // Пока идёт озвучка ответа — кружок в голосовом оверлее "оживает"
   // (пульс + бегущая звуковая дорожка), как в голосовом режиме GPT-чатов.
   const [aiIsSpeaking, setAiIsSpeaking] = useState(false);
+  // iOS Safari иногда блокирует programmatic play() даже после разблокировки
+  // жестом (если ответ пришёл через несколько секунд — окно "доверия" к
+  // жесту уже истекло) — раньше это тихо проглатывалось без всякого следа
+  // на экране. Держим готовый к воспроизведению URL, чтобы показать кнопку
+  // "Озвучить" — обычный тап по ней WebKit точно разрешит.
+  const [blockedSpeechUrl, setBlockedSpeechUrl] = useState<string | null>(null);
+  const playBlockedSpeech = () => {
+    if (!blockedSpeechUrl) return;
+    const el = getAiAudioEl();
+    el.src = blockedSpeechUrl;
+    el.play().then(() => setAiIsSpeaking(true)).catch(() => {});
+    setBlockedSpeechUrl(null);
+  };
 
   // Один и тот же <audio>-элемент для всей озвучки (не новый на каждый
   // кусок) — на iOS Safari programmatic play() разрешён без нового жеста
@@ -1701,7 +1714,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         const cleanup = () => { URL.revokeObjectURL(url); resolve(); };
         el.onended = cleanup;
         el.onerror = cleanup;
-        el.play().then(() => setAiIsSpeaking(true)).catch(cleanup);
+        el.play().then(() => setAiIsSpeaking(true)).catch(() => {
+          // Не отзываем url — даём кнопке "Озвучить" воспроизвести его по
+          // настоящему тапу вместо того, чтобы тихо остаться без звука.
+          setBlockedSpeechUrl(url);
+          resolve();
+        });
       });
       if (speakTokenRef.current !== myToken) return;
     }
@@ -7999,6 +8017,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider"><AnimatedTitle>ИИ-консультант</AnimatedTitle></h3>
               </div>
               <div className="flex items-center gap-1.5">
+                {blockedSpeechUrl && (
+                  <button
+                    onClick={playBlockedSpeech}
+                    title="Браузер заблокировал автопроигрывание — нажми, чтобы услышать ответ"
+                    aria-label="Озвучить ответ"
+                    className="px-2.5 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center gap-1 text-[10px] font-bold text-white transition cursor-pointer animate-pulse"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                    Озвучить
+                  </button>
+                )}
                 <button
                   onClick={toggleAiChatSpeak}
                   title={aiChatSpeakEnabled ? 'Озвучивать ответы: вкл' : 'Озвучивать ответы: выкл'}
