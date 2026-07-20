@@ -3702,13 +3702,25 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 className="mobile-tile-pages flex w-full overflow-x-auto"
                 style={{ scrollSnapType: jiggleMode ? 'none' : 'x mandatory' }}
               >
-                {homeTilePages.map((page, pageIdx) => (
+                {homeTilePages.map((page, pageIdx) => {
+                  // Разбиваем страницу плиток на ряды по 4 — если последний ряд
+                  // неполный (например 2 плитки из 4), центрируем его по сетке
+                  // явным gridColumnStart, а не оставляем прижатым к левому краю:
+                  // рядом с полным рядом сверху это выглядело "оборванным".
+                  const tileRows: typeof page[] = [];
+                  for (let r = 0; r < page.length; r += 4) tileRows.push(page.slice(r, r + 4));
+                  return (
                   <nav
                     key={pageIdx}
-                    className="mobile-tile-nav grid grid-cols-4 gap-y-4 gap-x-2 w-full shrink-0"
+                    className="mobile-tile-nav flex flex-col gap-y-4 w-full shrink-0"
                     style={{ scrollSnapAlign: 'start' }}
                   >
-                    {page.map((item, i) => {
+                    {tileRows.map((row, rowIdx) => {
+                      const rowStartCol = row.length < 4 ? Math.floor((4 - row.length) / 2) + 1 : undefined;
+                      return (
+                    <div key={rowIdx} className="grid grid-cols-4 gap-x-2">
+                    {row.map((item, ri) => {
+                      const i = rowIdx * 4 + ri;
                       const isDragged = draggedTileKey === item.key;
                       return (
                         <button
@@ -3717,6 +3729,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           ref={(el) => { homeTileElsRef.current[item.key] = el; }}
                           style={{
                             '--jiggle-i': i,
+                            gridColumnStart: rowStartCol !== undefined ? rowStartCol + ri : undefined,
                             transform: isDragged && tileDragPos ? `translate(${tileDragPos.x}px, ${tileDragPos.y}px) scale(1.08)` : undefined,
                             touchAction: jiggleMode ? 'none' : undefined,
                             WebkitTouchCallout: 'none',
@@ -3794,8 +3807,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         </button>
                       );
                     })}
+                    </div>
+                      );
+                    })}
                   </nav>
-                ))}
+                  );
+                })}
               </div>
               {homeTilePages.length > 1 && (
                 <div className="flex justify-center gap-1.5 mt-4">
