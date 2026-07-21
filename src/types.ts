@@ -147,20 +147,6 @@ export interface Notification {
   type: 'order_status' | 'chat' | 'payment' | 'profile';
 }
 
-export interface PaymentConfig {
-  bankId: string;
-  merchantId: string;
-  apiKey: string;
-  enableSbp: boolean;
-  sbpPhone?: string;
-  instructions?: string;
-  companyName?: string;
-  companyInn?: string;
-  companyOgrn?: string;
-  companyAddress?: string;
-  refundPolicy?: string;
-}
-
 export interface Feedback {
   id: string;
   userId: string;
@@ -194,7 +180,6 @@ export interface DatabaseState {
   chatMessages: ChatMessage[];
   notifications: Notification[];
   services?: Service[];
-  paymentConfig?: PaymentConfig;
   siteVisits?: number;
   siteVisitsHistory?: { date: string; count: number }[];
   feedback?: Feedback[];

@@ -5,7 +5,7 @@
 
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, PaymentConfig, Service, Feedback } from '../types';
+import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, Service, Feedback } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
 import { ServicesShowcaseDemo } from './ServicesShowcaseDemo';
@@ -97,7 +97,6 @@ interface AdminPanelProps {
     chatMessages: ChatMessage[];
     notifications: AppNotification[];
     services?: Service[];
-    paymentConfig?: PaymentConfig;
     siteVisits?: number;
     siteVisitsHistory?: { date: string; count: number }[];
     feedback?: Feedback[];
@@ -107,7 +106,6 @@ interface AdminPanelProps {
     chatMessages?: ChatMessage[];
     notifications?: AppNotification[];
     users?: User[];
-    paymentConfig?: PaymentConfig;
   }) => void;
 }
 
@@ -402,32 +400,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const [adminAvatarUrl, setAdminAvatarUrl] = useState(adminUser.avatarUrl || '');
   const avatarFileRef = useRef<HTMLInputElement>(null);
   
-  // Bank gateway setting states
-  const initialPayConfig = database.paymentConfig || {
-    bankId: 'sber',
-    merchantId: 'M-10294-88',
-    apiKey: '',
-    enableSbp: true,
-    sbpPhone: '+79998881122',
-    instructions: 'Для мгновенной оплаты приложите карту к терминалу или отсканируйте SberPay QR-код',
-    companyName: 'ИП Оганнисян Д.В.',
-    companyInn: '501110120673',
-    companyOgrn: '324774600314137',
-    companyAddress: 'г. Раменское, Московская область, Северное шоссе, д. 18',
-    refundPolicy: 'Срок возврата денежных средств при отказе от услуг печати до начала производства составляет 1 рабочий день. При обнаружении брака возможен полный перерасчет или перепечатка.',
-  };
-  const [bankId, setBankId] = useState(initialPayConfig.bankId);
-  const [merchantId, setMerchantId] = useState(initialPayConfig.merchantId);
-  const [apiKey, setApiKey] = useState(initialPayConfig.apiKey);
-  const [enableSbp, setEnableSbp] = useState(initialPayConfig.enableSbp);
-  const [sbpPhone, setSbpPhone] = useState(initialPayConfig.sbpPhone || '');
-  const [instructions, setInstructions] = useState(initialPayConfig.instructions || '');
-  const [companyName, setCompanyName] = useState(initialPayConfig.companyName || 'ИП Оганнисян Д.В.');
-  const [companyInn, setCompanyInn] = useState(initialPayConfig.companyInn || '501110120673');
-  const [companyOgrn, setCompanyOgrn] = useState(initialPayConfig.companyOgrn || '324774600314137');
-  const [companyAddress, setCompanyAddress] = useState(initialPayConfig.companyAddress || 'г. Раменское, Московская область, Северное шоссе, д. 18');
-  const [refundPolicy, setRefundPolicy] = useState(initialPayConfig.refundPolicy || 'Срок возврата денежных средств при отказе от услуг печати до начала производства составляет 1 рабочий день. При обнаружении брака возможен полный перерасчет или перепечатка.');
-
   const [savingSettings, setSavingSettings] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -733,24 +705,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         : u
     );
 
-    const updatedPaymentConfig = {
-      bankId,
-      merchantId,
-      apiKey,
-      enableSbp,
-      sbpPhone,
-      instructions,
-      companyName,
-      companyInn,
-      companyOgrn,
-      companyAddress,
-      refundPolicy,
-    };
-
     setTimeout(() => {
       onUpdateDatabase({
-        users: updatedUsers,
-        paymentConfig: updatedPaymentConfig
+        users: updatedUsers
       });
       setSavingSettings(false);
       setSaveSuccess(true);
