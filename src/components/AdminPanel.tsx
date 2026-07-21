@@ -113,7 +113,41 @@ interface AdminPanelProps {
 
 export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: AdminPanelProps) {
   // Navigation
-  const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services' | 'print-app'>('orders');
+  // Вкладка "Обновления" видна только внутри программы "Фото-Сервер — Печать"
+  // (там window.printerAPI прокинут через preload.js) — на обычном сайте в
+  // браузере этого моста нет, поэтому вкладка там просто не показывается.
+  const hasPrinterApp = typeof window !== 'undefined' && !!(window as any).printerAPI;
+  const [adminUpdateStatus, setAdminUpdateStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [adminUpdateError, setAdminUpdateError] = useState('');
+
+  // Счётчики обращений к ИИ-чату / озвучке / проверке фото — считает сам
+  // usage-counter.php на Beget (простой файловый счётчик, без Firebase),
+  // здесь просто читаем готовые цифры для показа в аналитике.
+  const [usageStats, setUsageStats] = useState<{ ai_chat: number; voice: number; photo_check: number } | null>(null);
+  useEffect(() => {
+    fetch('https://sever-18.ru/api/usage-stats.php')
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data) setUsageStats(data); })
+      .catch(() => {});
+  }, []);
+  const handleUpdateAdminPanel = async () => {
+    setAdminUpdateStatus('loading');
+    setAdminUpdateError('');
+    try {
+      const res = await (window as any).printerAPI.updateAdminPanel();
+      if (res && res.success) {
+        setAdminUpdateStatus('success');
+        setTimeout(() => window.location.reload(), 1200);
+      } else {
+        setAdminUpdateStatus('error');
+        setAdminUpdateError((res && res.message) || 'Неизвестная ошибка');
+      }
+    } catch (err: any) {
+      setAdminUpdateStatus('error');
+      setAdminUpdateError(String(err && err.message ? err.message : err));
+    }
+  };
   // "Сувениры" в меню — тот же список услуг (отдельного типа "товар" в базе
   // нет), просто отфильтрованный по названию тем же принципом, что и на
   // стороне клиента (см. serviceCategoryMatchers.souvenirs в Dashboard.tsx).
@@ -1332,7 +1366,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     m => m.senderRole === 'client' && getLocalDateKey(new Date(m.timestamp)) === getLocalDateKey()
   );
   const todayUniqueChatClients = new Set(todayClientMessages.map(m => m.userId)).size;
-  const unreadChatCount = database.chatMessages.filter(m => m.senderRole === 'client' && !m.readByAdmin).length;
+  // Считаем непрочитанные только у реально существующих клиентов — иначе
+  // сообщение от когда-то удалённого/переименованного пользователя (userId,
+  // которого больше нет в clientsOnly) продолжает светить бейджиком "1" на
+  // вкладке "Чат-Приемная" навсегда, хотя открыть и прочитать его негде —
+  // такого клиента физически нет в списке чатов.
+  const clientIdSet = new Set(clientsOnly.map(c => c.id));
+  const unreadChatCount = database.chatMessages.filter(m => m.senderRole === 'client' && !m.readByAdmin && clientIdSet.has(m.userId)).length;
   const chatHistory7d = useMemo(() => buildLast7Days(
     database.chatMessages.filter(m => m.senderRole === 'client'),
     m => m.timestamp
@@ -1474,9 +1514,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               <div className={`glass-icon-capsule glass-icon-green w-9 h-9 ${activeTab === 'chat' ? 'glass-icon-active' : ''}`}>
                 <MessageSquare className="w-4.5 h-4.5 text-white" />
               </div>
-              {database.chatMessages.filter(m => m.senderRole === 'client' && !m.readByAdmin).length > 0 && (
+              {unreadChatCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 animate-bounce border border-white shadow-md">
-                  {database.chatMessages.filter(m => m.senderRole === 'client' && !m.readByAdmin).length}
+                  {unreadChatCount}
                 </span>
               )}
             </div>
@@ -1573,6 +1613,22 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             </div>
             <span className="hidden sm:inline">Архив</span>
           </button>
+
+          {hasPrinterApp && (
+            <button
+              onClick={() => setActiveTab('print-app')}
+              className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
+                activeTab === 'print-app'
+                  ? 'nav-holo-active bg-white/10 text-white font-black'
+                  : 'text-white/55 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <div className={`glass-icon-capsule glass-icon-blue w-9 h-9 shrink-0 ${activeTab === 'print-app' ? 'glass-icon-active' : ''}`}>
+                <RefreshCw className="w-4.5 h-4.5 text-white" />
+              </div>
+              <span className="hidden sm:inline">Обновления</span>
+            </button>
+          )}
         </nav>
 
         {/* Short info bottom */}
@@ -1630,6 +1686,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {activeTab === 'users' && 'Управление пользователями и конфиденциальность'}
               {activeTab === 'analytics' && 'Статистика копи-центра в реальном времени'}
               {activeTab === 'settings' && 'Редактирование профиля и интеграция банка'}
+              {activeTab === 'print-app' && 'Обновления и баланс'}
             </h1>
             <p className="text-xs text-white/60 mt-1">
               {activeTab === 'chat' && 'Контролируйте ветки диалогов всех активных клиентов вашего копи-точки.'}
@@ -1637,6 +1694,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {activeTab === 'users' && 'Просмотр контактов, редактирование профилей и полное удаление согласно регламенту.'}
               {activeTab === 'analytics' && 'Сводная аналитика выручки, распределение графиков популярности расширений.'}
               {activeTab === 'settings' && 'Настройка вашего профиля администратора, выбор аватаров и банковский СБП терминал.'}
+              {activeTab === 'print-app' && 'Обновление встроенной админки и проверка баланса ИИ/голоса.'}
             </p>
           </div>
 
@@ -3031,6 +3089,24 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   <MiniSparkline data={chatHistory7d} colorClass="bg-sky-500" />
                 </div>
 
+                <div className="glass-panel p-5 rounded-3xl">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">ИИ и Проверка фото</span>
+                      <p className="text-2xl font-black text-slate-800 dark:text-white">{usageStats ? usageStats.ai_chat : '—'}</p>
+                      <div className="text-[10px] text-slate-400">Запросов в ИИ-чат</div>
+                      <div className="text-[10px] text-slate-400">Озвучка (голос): {usageStats ? usageStats.voice : '—'}</div>
+                      <div className="text-[10px] text-slate-400">Проверка фото на документы: {usageStats ? usageStats.photo_check : '—'}</div>
+                    </div>
+                    <div className="p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-500 rounded-2xl">
+                      <BarChart3 className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-1.5">
+                    Считается с момента подключения счётчика — прошлые запросы не входят.
+                  </div>
+                </div>
+
               </div>
 
               {/* Handcrafted precise clean SVG distribution charts to prevent React 19 package mismatch warnings */}
@@ -3951,6 +4027,62 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 </motion.div>
               )}
               </AnimatePresence>
+            </div>
+          )}
+
+          {/* ── PRINT-APP TOOLS TAB (только внутри программы "Фото-Сервер — Печать") ── */}
+          {activeTab === 'print-app' && hasPrinterApp && (
+            <div className="p-5 max-w-2xl mx-auto space-y-4">
+              <div className="glass-panel rounded-3xl p-6 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="glass-icon-capsule glass-icon-blue w-10 h-10 shrink-0">
+                    <RefreshCw className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white">Обновить админку в программе</h3>
+                    <p className="text-xs text-white/50">Подтянет последние изменения сайта, соберёт и подменит — окно перезагрузится само (10-30 сек).</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleUpdateAdminPanel}
+                  disabled={adminUpdateStatus === 'loading'}
+                  className="w-full py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition"
+                >
+                  {adminUpdateStatus === 'loading' && '⏳ Обновляю...'}
+                  {adminUpdateStatus === 'success' && '✅ Готово, перезагружаю...'}
+                  {adminUpdateStatus === 'idle' && '🔄 Обновить админку'}
+                  {adminUpdateStatus === 'error' && '🔄 Обновить админку'}
+                </button>
+                {adminUpdateStatus === 'error' && (
+                  <p className="text-xs text-rose-400">Ошибка: {adminUpdateError}</p>
+                )}
+              </div>
+
+              <div className="glass-panel rounded-3xl p-6 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="glass-icon-capsule glass-icon-green w-10 h-10 shrink-0">
+                    <CreditCard className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white">Проверить баланс</h3>
+                    <p className="text-xs text-white/50">Откроется личный кабинет во внешнем браузере — сам баланс через ключ не получить, надо смотреть там.</p>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <button
+                    onClick={() => (window as any).printerAPI.openBalanceLink('anthropic')}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-white/10 hover:bg-white/15 text-white transition"
+                  >
+                    💳 Баланс ИИ
+                  </button>
+                  <button
+                    onClick={() => (window as any).printerAPI.openBalanceLink('yandex')}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-white/10 hover:bg-white/15 text-white transition"
+                  >
+                    💳 Баланс голоса
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

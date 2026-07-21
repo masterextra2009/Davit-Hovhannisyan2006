@@ -32,6 +32,26 @@ import {
 import type { User as FirebaseAuthUser } from 'firebase/auth';
 import { User, Order, ChatMessage, Notification, Service, Feedback, DatabaseState } from './types';
 
+// Автоматический приветственный промокод для тех, кто регистрируется в
+// период акции 22.07.2026–02.08.2026 (обе даты включительно). После конца
+// периода — как обычно, никаких автоматических промокодов при регистрации
+// (ручной подарок промокода из админки, см. handleGiftPromoSubmit в
+// AdminPanel.tsx, продолжает работать всегда).
+const WELCOME_PROMO_START = new Date('2026-07-22T00:00:00');
+const WELCOME_PROMO_END = new Date('2026-08-03T00:00:00'); // граница — начало 03.08, т.е. весь день 02.08 ещё считается
+function getWelcomePromoFields(): Partial<User> {
+  const now = new Date();
+  if (now < WELCOME_PROMO_START || now >= WELCOME_PROMO_END) return {};
+  const expires = new Date();
+  expires.setDate(expires.getDate() + 30);
+  return {
+    promoCode: 'ПРИВЕТСТВЕННЫЙ',
+    promoDiscount: 15,
+    promoGiftedSeen: false,
+    promoExpiresAt: expires.toISOString(),
+  };
+}
+
 // На нестабильной (особенно мобильной) сети запрос может зависнуть без ошибки
 // и без ответа — обрываем его по таймауту, чтобы UI не застревал навсегда.
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -115,6 +135,7 @@ export async function registerUserWithFirebase(email: string, password: string,f
       role: isExplicitAdmin ? 'admin' : role,
       createdAt: new Date().toISOString(),
       avatarUrl: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
+      ...(isExplicitAdmin ? {} : getWelcomePromoFields()),
     };
 
     // Write profile document in Firestore
@@ -237,6 +258,7 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
     createdAt: new Date().toISOString(),
     avatarUrl: fbUser.photoURL || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
     isSocial: true,
+    ...(isExplicitAdmin ? {} : getWelcomePromoFields()),
   };
 
   try {
