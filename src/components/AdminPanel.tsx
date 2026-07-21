@@ -3089,14 +3089,15 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   <MiniSparkline data={chatHistory7d} colorClass="bg-sky-500" />
                 </div>
 
-                <div className="glass-panel p-5 rounded-3xl">
+                <div className="glass-panel p-5 rounded-3xl col-span-full">
                   <div className="flex justify-between items-start mb-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 flex-1">
                       <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">ИИ и Проверка фото</span>
-                      <p className="text-2xl font-black text-slate-800 dark:text-white">{usageStats ? usageStats.ai_chat : '—'}</p>
-                      <div className="text-[10px] text-slate-400">Запросов в ИИ-чат</div>
-                      <div className="text-[10px] text-slate-400">Озвучка (голос): {usageStats ? usageStats.voice : '—'}</div>
-                      <div className="text-[10px] text-slate-400">Проверка фото на документы: {usageStats ? usageStats.photo_check : '—'}</div>
+                      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+                        <p className="text-2xl font-black text-slate-800 dark:text-white">{usageStats ? usageStats.ai_chat : '—'} <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">запросов в ИИ-чат</span></p>
+                        <div className="text-xs text-slate-400">Озвучка (голос): <span className="font-bold text-slate-600 dark:text-slate-300">{usageStats ? usageStats.voice : '—'}</span></div>
+                        <div className="text-xs text-slate-400">Проверка фото на документы: <span className="font-bold text-slate-600 dark:text-slate-300">{usageStats ? usageStats.photo_check : '—'}</span></div>
+                      </div>
                     </div>
                     <div className="p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-500 rounded-2xl">
                       <BarChart3 className="w-5 h-5" />
