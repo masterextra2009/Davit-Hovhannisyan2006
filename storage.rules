@@ -1,0 +1,34 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{userId}/{allPaths=**} {
+      allow read: if request.auth != null
+        && (request.auth.uid == userId
+        || request.auth.uid == 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23');
+      allow write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // Аватарки клиентов (Dashboard.tsx handleAvatarFileChange) — путь плоский
+    // (avatars/<uid>_<timestamp>_<имя файла>), а не вложенный в users/{userId}/...,
+    // поэтому старое правило выше их не покрывало и загрузка молча падала с
+    // permission-denied. Читать может любой вошедший (аватарки видны другим
+    // в чате/админке), писать — только файл, чьё имя начинается с собственного uid.
+    match /avatars/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && fileName.matches(request.auth.uid + '_.*');
+    }
+
+    // Скриншоты из формы "Заметили ошибку?" (Dashboard.tsx, bug-report upload) —
+    // та же проблема с путём, что и у аватарок. Читает только админ, пишет —
+    // только сам автор (по тому же принципу имени файла).
+    match /bug-reports/{fileName} {
+      allow read: if request.auth != null
+        && (request.auth.uid == 'pRIp0NUg6lSR2ujVhywFkQ5TIW22'
+            || request.auth.uid == 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23');
+      allow write: if request.auth != null
+        && fileName.matches(request.auth.uid + '_.*');
+    }
+  }
+}
