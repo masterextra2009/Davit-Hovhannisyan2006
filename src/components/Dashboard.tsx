@@ -10,7 +10,6 @@ import { LiveClock } from './LiveClock';
 import { RatingWidget } from './RatingWidget';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
-import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
 import { AnimatedTitle } from './AnimatedTitle';
 import { AiPriceCard } from './AiPriceCard';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
@@ -6024,19 +6023,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   @photosever18
                 </a>
                 <p className="text-slate-400 text-sm mt-0.5">Пишите в любое время</p>
-              </div>
-            </div>
-
-            <div className="glass-panel rounded-2xl p-5 flex gap-4 items-start">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(37,211,102,0.2)' }}>
-                <WhatsAppIcon className="w-5 h-5 text-[#25D366]" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">WhatsApp</p>
-                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-white font-bold text-base transition-colors hover:text-[#25D366]">
-                  +7 (968) 050-88-00
-                </a>
-                <p className="text-slate-400 text-sm mt-0.5">Отправьте файл прямо в чат</p>
               </div>
             </div>
 
