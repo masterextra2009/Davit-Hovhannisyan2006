@@ -10,16 +10,18 @@ import {
   getCurrentUser, saveCurrentUser,
   playNotificationSound, showBrowserNotification
 } from './utils';
-import { AuthScreen } from './components/AuthScreen';
 import { LandingPage } from './components/LandingPage';
-import { PaymentReceiptScreen } from './components/PaymentReceiptScreen';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Кабинет клиента и админ-панель — самый тяжёлый код приложения, но нужен
 // только после входа. Ленивая загрузка держит их вне общего бандла, чтобы
-// анонимные посетители лендинга не качали их зря.
+// анонимные посетители лендинга не качали их зря. AuthScreen и
+// PaymentReceiptScreen тоже не нужны на самом первом экране (лендинге),
+// поэтому вынесены туда же.
 const Dashboard = lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
+const AuthScreen = lazy(() => import('./components/AuthScreen').then(m => ({ default: m.AuthScreen })));
+const PaymentReceiptScreen = lazy(() => import('./components/PaymentReceiptScreen').then(m => ({ default: m.PaymentReceiptScreen })));
 
 function AppSectionLoader() {
   return (
@@ -420,18 +422,22 @@ export default function App() {
             className="min-h-dvh"
           >
             {paymentReturnOrderId ? (
-              <PaymentReceiptScreen
-                orderId={paymentReturnOrderId}
-                onClose={() => setPaymentReturnOrderId(null)}
-              />
+              <Suspense fallback={<AppSectionLoader />}>
+                <PaymentReceiptScreen
+                  orderId={paymentReturnOrderId}
+                  onClose={() => setPaymentReturnOrderId(null)}
+                />
+              </Suspense>
             ) : !user && showLanding ? (
               <LandingPage onEnter={() => setShowLanding(false)} />
             ) : !user ? (
-              <AuthScreen
-                onAuthSuccess={handleAuthSuccess}
-                allUsers={database.users}
-                onRegisterUser={handleRegisterUser}
-              />
+              <Suspense fallback={<AppSectionLoader />}>
+                <AuthScreen
+                  onAuthSuccess={handleAuthSuccess}
+                  allUsers={database.users}
+                  onRegisterUser={handleRegisterUser}
+                />
+              </Suspense>
             ) : user.role === 'admin' ? (
               <Suspense fallback={<AppSectionLoader />}>
                 <AdminPanel
