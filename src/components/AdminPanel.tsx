@@ -28,6 +28,14 @@ import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import JSZip from 'jszip';
 
+// Подписи размеров фотобумаги для карточки файла в заказе — должны совпадать
+// с ключами photoSize, которые клиент выбирает в Dashboard.tsx (иначе в
+// админке не видно, какой именно размер выбрал клиент, только общее "Глянцевая").
+const PHOTO_SIZE_LABELS: Record<string, string> = {
+  '10x15': '10×15 см', 'polaroid': 'Полароид', '13x18': '13×18 см',
+  '15x21': '15×21 см', '20x30': '20×30 см', '30x40': '30×40 см',
+};
+
 // Тонкое кольцо прогресса для карточек статистики — одна метрика, один цвет,
 // закруглённый конец дуги (см. dataviz: тонкие марки, скруглённые концы).
 function MiniRing({ percent, colorClass }: { percent: number; colorClass: string }) {
@@ -1931,7 +1939,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                     <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
                                     <div className="overflow-hidden">
                                       <span className="font-bold block truncate text-slate-700 dark:text-slate-300">{file.name}</span>
-                                      <span className="text-[9px] text-slate-400 block mt-0.5">{formatFileSize(file.size)} &bull; ID: {file.id} {file.pageCount !== undefined ? `&bull; Папок/Стр: ${file.pageCount}–стр` : ''} {file.paperType === 'photo' ? `&bull; ${(file.photoBorder || 'borderless') === 'bordered' ? 'С рамкой (белые поля)' : 'Без рамки (край-в-край)'}` : ''}</span>
+                                      <span className="text-[9px] text-slate-400 block mt-0.5">{formatFileSize(file.size)} &bull; ID: {file.id} {file.pageCount !== undefined ? `&bull; Папок/Стр: ${file.pageCount}–стр` : ''} {file.paperType === 'photo' ? `&bull; ${PHOTO_SIZE_LABELS[file.photoSize || '10x15'] || file.photoSize} &bull; ${(file.photoBorder || 'borderless') === 'bordered' ? 'С рамкой (белые поля)' : 'Без рамки (край-в-край)'}` : ''}</span>
                                     </div>
                                   </div>
 
