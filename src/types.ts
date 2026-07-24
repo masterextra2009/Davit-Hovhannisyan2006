@@ -22,6 +22,9 @@ export interface User {
   promoCode?: string;
   promoDiscount?: number;
   promoGiftedSeen?: boolean;
+  // Счётчик успешных бесплатных "Проверка фото на документы" — после
+  // DOC_CHECK_FREE_LIMIT (см. Dashboard.tsx) дальнейшие проверки платные.
+  docCheckFreeUsed?: number;
 }
 
 export type FileFormatGroup = 'archive' | 'image' | 'document' | 'other';

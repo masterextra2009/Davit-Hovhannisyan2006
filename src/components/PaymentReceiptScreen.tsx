@@ -4,11 +4,13 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Loader2, Printer } from 'lucide-react';
+import { CheckCircle2, Loader2, Printer, AlertCircle, FileCheck } from 'lucide-react';
 import { motion } from 'motion/react';
 import { db, doc, getDoc } from '../firebase';
 import { Order } from '../types';
 import { trackAnalyticsEvent } from '../utils';
+
+type DocCheckItem = { id: string; label: string; ok: boolean; issue: string };
 
 interface Props {
   orderId: string;
@@ -37,6 +39,14 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  // Платная "Проверка фото на документы" (см. handleDocCheckPaidSubmit в
+  // Dashboard.tsx) не хранит картинку в заказе — она лежит в sessionStorage
+  // на время оплаты. После возврата с ЮKassa запускаем саму проверку прямо
+  // здесь и показываем результат вместо/вместе с обычным чеком.
+  const [docCheckChecking, setDocCheckChecking] = useState(false);
+  const [docCheckResult, setDocCheckResult] = useState<DocCheckItem[] | null>(null);
+  const [docCheckError, setDocCheckError] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -44,8 +54,38 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
         const snap = await getDoc(doc(db, 'orders', orderId));
         if (cancelled) return;
         if (snap.exists()) {
-          setOrder(snap.data() as Order);
+          const loadedOrder = snap.data() as Order;
+          setOrder(loadedOrder);
           trackAnalyticsEvent('payment_success');
+
+          if (loadedOrder.notes?.startsWith('Платная проверка фото на документы')) {
+            const pendingKey = `doc_check_pending_${orderId}`;
+            const stashed = sessionStorage.getItem(pendingKey);
+            if (stashed) {
+              setDocCheckChecking(true);
+              try {
+                const { image, docType } = JSON.parse(stashed);
+                const res = await fetch('https://sever-18.ru/api/photo-doc-check.php', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ image, docType }),
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                  setDocCheckError(typeof data.error === 'string' ? data.error : 'Не удалось проверить фото');
+                } else {
+                  setDocCheckResult(data.checks || []);
+                }
+              } catch {
+                setDocCheckError('Не удалось соединиться с сервером проверки');
+              } finally {
+                sessionStorage.removeItem(pendingKey);
+                if (!cancelled) setDocCheckChecking(false);
+              }
+            } else {
+              setDocCheckError('Фото для проверки не найдено (возможно, оплата была на другом устройстве) — напишите нам в чат, поможем.');
+            }
+          }
         } else {
           setNotFound(true);
         }
@@ -148,12 +188,19 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
 
                 {/* Позиции */}
                 <div className="space-y-2 mb-2">
-                  {order.files.map((f, i) => (
-                    <div key={f.id || i} className="flex justify-between gap-3 text-[12px]">
-                      <span className="text-slate-600 truncate">{i + 1}. {f.name}</span>
-                      <span className="font-bold shrink-0">{filePrice(f)} ₽</span>
+                  {order.notes?.startsWith('Платная проверка фото на документы') ? (
+                    <div className="flex justify-between gap-3 text-[12px]">
+                      <span className="text-slate-600 truncate">Проверка фото на документы</span>
+                      <span className="font-bold shrink-0">{order.totalCost} ₽</span>
                     </div>
-                  ))}
+                  ) : (
+                    order.files.map((f, i) => (
+                      <div key={f.id || i} className="flex justify-between gap-3 text-[12px]">
+                        <span className="text-slate-600 truncate">{i + 1}. {f.name}</span>
+                        <span className="font-bold shrink-0">{filePrice(f)} ₽</span>
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 <div className="border-t border-dashed border-slate-300 my-4" />
@@ -169,6 +216,39 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
                   <span className="text-xs font-bold uppercase tracking-wide">Итого</span>
                   <span className="text-xl font-black">{order.totalCost} ₽</span>
                 </div>
+
+                {order.notes?.startsWith('Платная проверка фото на документы') && (
+                  <>
+                    <div className="border-t border-dashed border-slate-300 my-4" />
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <FileCheck className="w-3.5 h-3.5 text-slate-500" />
+                        <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Результат проверки</span>
+                      </div>
+                      {docCheckChecking ? (
+                        <div className="flex items-center gap-2 text-slate-500 text-[12px] py-2">
+                          <Loader2 className="w-4 h-4 animate-spin" /> Проверяем фото...
+                        </div>
+                      ) : docCheckError ? (
+                        <p className="text-[12px] text-rose-600 font-bold bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5">{docCheckError}</p>
+                      ) : docCheckResult ? (
+                        docCheckResult.map(check => (
+                          <div key={check.id} className={`flex items-start gap-2 p-2.5 rounded-xl border text-left ${check.ok ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                            {check.ok ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                            ) : (
+                              <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                            )}
+                            <div>
+                              <p className={`text-[11px] font-black ${check.ok ? 'text-emerald-700' : 'text-rose-700'}`}>{check.label}</p>
+                              {check.issue && <p className="text-[11px] text-slate-500 mt-0.5">{check.issue}</p>}
+                            </div>
+                          </div>
+                        ))
+                      ) : null}
+                    </div>
+                  </>
+                )}
 
                 <div className="border-t border-dashed border-slate-300 my-4" />
 

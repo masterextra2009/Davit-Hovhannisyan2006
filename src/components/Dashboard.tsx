@@ -872,6 +872,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     { key: 'size_3x3', label: 'Формат 3×3 см' },
     { key: 'size_4x6', label: 'Формат 4×6 см' },
   ];
+  // Первые DOC_CHECK_FREE_LIMIT проверок клиенту бесплатны (считаем через
+  // user.docCheckFreeUsed), дальше — платно через обычный заказ/ЮKassa,
+  // как остальные услуги.
+  const DOC_CHECK_FREE_LIMIT = 3;
+  const DOC_CHECK_PAID_PRICE = 150;
+  const docCheckFreeRemaining = Math.max(0, DOC_CHECK_FREE_LIMIT - (user.docCheckFreeUsed || 0));
   const [showDocCheckModal, setShowDocCheckModal] = useState(false);
   const [docCheckType, setDocCheckType] = useState(DOC_CHECK_TYPES[0].key);
   const [docCheckImage, setDocCheckImage] = useState<string | null>(null);
@@ -911,9 +917,87 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         return;
       }
       setDocCheckResult(data.checks || []);
+      const updatedUsers = database.users.map(u =>
+        u.id === user.id ? { ...u, docCheckFreeUsed: (u.docCheckFreeUsed || 0) + 1 } : u
+      );
+      onUpdateDatabase({ users: updatedUsers });
     } catch {
       setDocCheckError('Не удалось соединиться с сервером проверки');
     } finally {
+      setDocCheckLoading(false);
+    }
+  };
+
+  // Бесплатный лимит исчерпан — платная проверка идёт через тот же путь
+  // заказ+ЮKassa, что и обычные заказы (см. handlePlaceOrder): пишем
+  // минимальный заказ-услугу в Firestore, создаём платёж, редиректим.
+  // Само фото на время оплаты лежит в sessionStorage (не в заказе — не
+  // хотим раздувать документ заказа base64-картинкой), PaymentReceiptScreen
+  // забирает его по orderId после возврата с оплаты и вызывает проверку.
+  const handleDocCheckPaidSubmit = async () => {
+    if (!docCheckImage) return;
+    setDocCheckLoading(true);
+    setDocCheckError(null);
+    // Сервер (payment-create.php) сверяет сумму платежа-услуги с реальной
+    // ценой в коллекции services — значит нужен настоящий serviceId оттуда,
+    // а не выдуманная строка. Ищем по названию, а не храним ID в коде,
+    // чтобы не зависеть от auto-generated id (`svc_${Date.now()}`),
+    // который не предсказать заранее (см. AdminPanel.handleCreateService).
+    const docCheckService = database.services?.find(
+      s => s.title === 'Доп. проверка фото на документы (после бесплатных)'
+    );
+    if (!docCheckService) {
+      setDocCheckError('Платная проверка временно недоступна — обратитесь в поддержку.');
+      setDocCheckLoading(false);
+      return;
+    }
+    try {
+      let orderId: string;
+      try {
+        const orderNumber = await getNextOrderNumber();
+        orderId = `ORD-${orderNumber}`;
+      } catch {
+        orderId = `ORD-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+      }
+      const docTypeLabel = DOC_CHECK_TYPES.find(t => t.key === docCheckType)?.label || docCheckType;
+      const order: Order = {
+        id: orderId,
+        userId: getLiveUserId(),
+        userName: user.fullName,
+        userEmail: user.email,
+        files: [],
+        orderDate: new Date().toISOString(),
+        status: 'pending',
+        totalCost: DOC_CHECK_PAID_PRICE,
+        paymentStatus: 'unpaid',
+        paperType: 'standard',
+        printColor: 'bw',
+        copies: 1,
+        notes: `Платная проверка фото на документы: ${docTypeLabel}`,
+        serviceId: docCheckService.id,
+      };
+      sessionStorage.setItem(`doc_check_pending_${orderId}`, JSON.stringify({ image: docCheckImage, docType: docCheckType }));
+      await withTimeout(setDoc(doc(db, 'orders', orderId), order), 15000);
+      trackAnalyticsEvent('order_created');
+      const res = await withTimeout(
+        fetch('https://sever-18.ru/api/payment-create.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId, amount: DOC_CHECK_PAID_PRICE, email: user.email }),
+        }),
+        15000
+      );
+      const data = await res.json();
+      if (data.paymentUrl && data.paymentId) {
+        await withTimeout(setDoc(doc(db, 'orders', orderId), { ...order, transactionId: data.paymentId }), 15000);
+        window.location.href = data.paymentUrl;
+      } else {
+        sessionStorage.removeItem(`doc_check_pending_${orderId}`);
+        setDocCheckError('Не удалось создать платёж. Попробуйте ещё раз.');
+        setDocCheckLoading(false);
+      }
+    } catch {
+      setDocCheckError('Ошибка создания платежа. Проверьте интернет и попробуйте ещё раз.');
       setDocCheckLoading(false);
     }
   };
@@ -8133,6 +8217,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-normal">
               Выберите документ, сделайте селфи или загрузите фото — покажем, соответствует ли оно требованиям, прежде чем печатать.
             </p>
+            {docCheckFreeRemaining > 0 ? (
+              <p className="text-[11px] font-bold text-emerald-500">
+                Бесплатных проверок осталось: {docCheckFreeRemaining} из {DOC_CHECK_FREE_LIMIT}
+              </p>
+            ) : (
+              <p className="text-[11px] font-bold text-amber-500">
+                Бесплатные проверки закончились ({DOC_CHECK_FREE_LIMIT} из {DOC_CHECK_FREE_LIMIT} использовано). Следующая проверка — {DOC_CHECK_PAID_PRICE} ₽.
+              </p>
+            )}
 
             <div>
               <label className="block text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">Тип документа</label>
@@ -8180,7 +8273,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <input type="file" accept="image/*" capture="user" ref={docCheckSelfieInputRef} onChange={handleDocCheckFile} className="hidden" aria-label="Сделать селфи для проверки документа" />
             <input type="file" accept="image/*" ref={docCheckUploadInputRef} onChange={handleDocCheckFile} className="hidden" aria-label="Загрузить фото для проверки документа" />
 
-            {docCheckImage && !docCheckResult && (
+            {docCheckImage && !docCheckResult && docCheckFreeRemaining > 0 && (
               <button
                 type="button"
                 onClick={handleDocCheckSubmit}
@@ -8195,6 +8288,25 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <><RefreshCw className="w-4 h-4 animate-spin" /> Проверяем...</>
                 ) : (
                   <><FileCheck className="w-4 h-4" /> Проверить фото</>
+                )}
+              </button>
+            )}
+
+            {docCheckImage && !docCheckResult && docCheckFreeRemaining === 0 && (
+              <button
+                type="button"
+                onClick={handleDocCheckPaidSubmit}
+                disabled={docCheckLoading}
+                className="w-full py-3.5 px-4 disabled:opacity-50 text-white font-black text-sm rounded-2xl transition-transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
+                style={{
+                  background: 'linear-gradient(135deg, #fbbf24, #f59e0b 60%, #d97706)',
+                  boxShadow: '0 8px 24px -6px rgba(245,158,11,0.55), inset 0 1px 0 rgba(255,255,255,0.25)',
+                }}
+              >
+                {docCheckLoading ? (
+                  <><RefreshCw className="w-4 h-4 animate-spin" /> Создаём платёж...</>
+                ) : (
+                  <><FileCheck className="w-4 h-4" /> Оплатить {DOC_CHECK_PAID_PRICE} ₽ и проверить</>
                 )}
               </button>
             )}
