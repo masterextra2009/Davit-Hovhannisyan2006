@@ -52,7 +52,7 @@ import {
   formatServicePrice
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
-import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode } from '../firebaseUtils';
+import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Synthesized high-quality feedback sound chimes using Web Audio API
@@ -1023,6 +1023,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       const code = generateReferralCode(user.id);
       const updatedUsers = database.users.map(u => (u.id === user.id ? { ...u, referralCode: code } : u));
       onUpdateDatabase({ users: updatedUsers });
+      registerReferralCode(code, user.id);
     }
   }, [user.id, user.referralCode]);
 

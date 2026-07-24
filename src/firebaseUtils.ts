@@ -63,18 +63,21 @@ export function generateReferralCode(uid: string): string {
   return uid.slice(0, 6).toUpperCase();
 }
 
+// Обратный индекс код->userId в отдельной коллекции (см. firestore.rules) —
+// query по users.referralCode невозможен: правила запрещают клиенту читать
+// чужие профили, а Firestore не разрешает query, для которого нельзя
+// гарантировать доступ к каждому результату по правилам /users/{userId}.
 async function resolveReferralFields(referralCodeInput?: string): Promise<Partial<User>> {
   if (!referralCodeInput || !referralCodeInput.trim()) return {};
   const code = referralCodeInput.trim().toUpperCase();
   try {
-    const q = query(collection(db, 'users'), where('referralCode', '==', code));
-    const snap = await getDocs(q);
-    if (snap.empty) return {};
-    const referrer = snap.docs[0].data() as User;
+    const snap = await getDoc(doc(db, 'referralCodes', code));
+    if (!snap.exists()) return {};
+    const referrerId = (snap.data() as { userId: string }).userId;
     const expires = new Date();
     expires.setDate(expires.getDate() + 30);
     return {
-      referredBy: referrer.id,
+      referredBy: referrerId,
       promoCode: 'ДРУГ10',
       promoDiscount: 10,
       promoGiftedSeen: false,
@@ -82,6 +85,18 @@ async function resolveReferralFields(referralCodeInput?: string): Promise<Partia
     };
   } catch {
     return {};
+  }
+}
+
+// Регистрирует свой код в обратном индексе (см. выше) — вызывается при
+// генерации кода на всех путях регистрации. Тихо глотает ошибку: это не
+// критично для самой регистрации, а без индекса просто не сработает
+// применение кода у тех, кто попробует его ввести (не аварийный случай).
+export async function registerReferralCode(code: string, userId: string): Promise<void> {
+  try {
+    await setDoc(doc(db, 'referralCodes', code), { userId });
+  } catch (e) {
+    console.warn('Failed to register referral code:', e);
   }
 }
 
@@ -181,6 +196,7 @@ export async function registerUserWithFirebase(email: string, password: string,f
     } catch (e) {
       handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
     }
+    await registerReferralCode(newUser.referralCode!, fbUser.uid);
 
     trackAnalyticsEvent('registration');
     return newUser;
@@ -244,6 +260,7 @@ export async function signInUserWithFirebase(email: string, password: string): P
       } catch (e) {
         handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
       }
+      await registerReferralCode(recoveredUser.referralCode!, fbUser.uid);
       return recoveredUser;
     }
   } catch (error: any) {
@@ -304,6 +321,7 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
   } catch (e) {
     handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
   }
+  await registerReferralCode(newUser.referralCode!, fbUser.uid);
   trackAnalyticsEvent('registration');
   return newUser;
 }
@@ -418,6 +436,7 @@ export async function signInWithTelegram(telegramData: TelegramAuthData): Promis
   } catch (e) {
     handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
   }
+  await registerReferralCode(newUser.referralCode!, fbUser.uid);
   return newUser;
 }
 
