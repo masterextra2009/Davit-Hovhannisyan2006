@@ -356,7 +356,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
         <div className="glass-cozy-card w-full pt-16 pb-8 px-6 sm:px-9 rounded-[36px] shadow-2xl text-center relative">
 
           <h1 className="text-base font-black text-slate-900 dark:text-white leading-none font-display uppercase tracking-tight">Фото-Север</h1>
-          <p className="mt-1.5 mb-5 text-[11px] italic text-slate-500 dark:text-slate-300 font-medium">«Печать фотографий, документов и чертежей за минуты»</p>
+          <p className="mt-1.5 mb-5 text-[12px] italic text-slate-500 dark:text-slate-300 font-medium">«Печать фотографий, документов и чертежей за минуты»</p>
 
           <div className="text-left">
             <h2 className="mb-6 text-xl font-black text-slate-900 dark:text-white leading-snug font-display tracking-tight text-center">
@@ -384,7 +384,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
             {mode === 'login' && (
               <form className="space-y-4" onSubmit={handleLogin}>
                 <div>
-                  <label htmlFor="login-email" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Электронная почта</label>
+                  <label htmlFor="login-email" className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Электронная почта</label>
                   <div className="relative rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <Mail className="h-4.5 w-4.5" />
@@ -403,11 +403,11 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
 
                 <div>
                   <div className="flex justify-between items-center mb-1.5 pl-1">
-                    <label htmlFor="login-password" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Пароль</label>
+                    <label htmlFor="login-password" className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Пароль</label>
                     <button
                       type="button"
                       onClick={() => { setMode('forgot'); resetMessages(); }}
-                      className="text-[11px] font-black text-blue-600 hover:text-blue-500 dark:text-blue-400 uppercase tracking-wider py-2.5 -my-2.5 px-1 -mx-1"
+                      className="text-[12px] font-black text-blue-600 hover:text-blue-500 dark:text-blue-400 uppercase tracking-wider py-2.5 -my-2.5 px-1 -mx-1"
                     >
                       Забыли пароль?
                     </button>
@@ -434,7 +434,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     defaultChecked
                     className="w-4 h-4 accent-blue-600 cursor-pointer"
                   />
-                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Запомнить меня</span>
+                  <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-300">Запомнить меня</span>
                 </label>
 
                 <button
@@ -450,7 +450,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
             {mode === 'signup' && (
               <form className="space-y-3.5" onSubmit={handleRegister}>
                 <div>
-                  <label htmlFor="signup-fullname" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">ФИО (Полное имя)</label>
+                  <label htmlFor="signup-fullname" className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">ФИО (Полное имя)</label>
                   <div className="relative rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <UserIcon className="h-4.5 w-4.5" />
@@ -468,7 +468,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                 </div>
 
                 <div>
-                  <label htmlFor="signup-phone" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Номер мобильного телефона</label>
+                  <label htmlFor="signup-phone" className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Номер мобильного телефона</label>
                   <div className="relative rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <Phone className="h-4.5 w-4.5" />
@@ -486,7 +486,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                 </div>
 
                 <div>
-                  <label htmlFor="signup-email" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Электронная почта</label>
+                  <label htmlFor="signup-email" className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Электронная почта</label>
                   <div className="relative rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <Mail className="h-4.5 w-4.5" />
@@ -504,7 +504,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                 </div>
 
                 <div>
-                  <label htmlFor="signup-password" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Придумайте пароль</label>
+                  <label htmlFor="signup-password" className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Придумайте пароль</label>
                   <div className="relative rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <Lock className="h-4.5 w-4.5" />
@@ -537,11 +537,11 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 cursor-pointer"
                     style={{ accentColor: '#2563eb' }}
                   />
-                  <span className="text-[11px] leading-snug text-slate-500 dark:text-slate-400">
+                  <span className="text-[12px] leading-snug text-slate-500 dark:text-slate-400">
                     Я согласен с публичной офертой и политикой обработки персональных данных
                   </span>
                 </label>
-                <div className="px-2 -mt-1.5 text-[10px] text-slate-400 dark:text-slate-500">
+                <div className="px-2 -mt-1.5 text-[11px] text-slate-400 dark:text-slate-500">
                   <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:text-blue-500">Читать оферту</a>
                   {' '}·{' '}
                   <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:text-blue-500">политику данных</a>
@@ -559,7 +559,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
             {mode === 'forgot' && (
               <form className="space-y-4" onSubmit={handleForgotPasswordSubmit}>
                 <div>
-                  <label htmlFor="forgot-email" className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Электронная почта</label>
+                  <label htmlFor="forgot-email" className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Электронная почта</label>
                   <div className="relative rounded-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <Mail className="h-4.5 w-4.5" />
@@ -602,7 +602,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200/50 dark:border-slate-800/80" />
                 </div>
-                <div className="relative flex justify-center text-[10px] uppercase">
+                <div className="relative flex justify-center text-[11px] uppercase">
                   <span className="bg-white/70 dark:bg-white/10 backdrop-blur-sm px-4 text-slate-500 dark:text-slate-300 font-bold tracking-wider rounded-full py-0.5 border border-slate-200/40 dark:border-white/15">Войти через</span>
                 </div>
               </div>
@@ -693,7 +693,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
         </div>
       </div>
 
-      <div className="mt-8 text-center text-[10px] text-white/70 dark:text-slate-550 font-medium relative z-10">
+      <div className="mt-8 text-center text-[11px] text-white/70 dark:text-slate-550 font-medium relative z-10">
         &copy; 2026 Копи-Центр "Фото-Север" &middot; Северное шоссе, 18 &middot; Лицензия SSL &middot; Все права защищены
       </div>
     </div>

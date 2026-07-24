@@ -748,7 +748,7 @@ export function getClientTierForUser(userId: string, orders: Order[]): ClientTie
       tierCode: 'vip',
       icon: 'crown',
       color: 'text-amber-500',
-      badgeClass: 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide border border-amber-300 shadow-sm flex items-center gap-1 shadow-amber-500/10',
+      badgeClass: 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black px-2.5 py-0.5 rounded-full text-[11px] uppercase tracking-wide border border-amber-300 shadow-sm flex items-center gap-1 shadow-amber-500/10',
       priority: true,
       minAmount: 50000,
     };
@@ -758,7 +758,7 @@ export function getClientTierForUser(userId: string, orders: Order[]): ClientTie
       tierCode: 'loyal',
       icon: 'trophy',
       color: 'text-amber-400',
-      badgeClass: 'bg-gradient-to-r from-slate-200 to-amber-100 text-slate-800 font-bold px-2.5 py-0.5 rounded-full text-[10px] border border-slate-300 flex items-center gap-1 shadow-sm',
+      badgeClass: 'bg-gradient-to-r from-slate-200 to-amber-100 text-slate-800 font-bold px-2.5 py-0.5 rounded-full text-[11px] border border-slate-300 flex items-center gap-1 shadow-sm',
       priority: false,
       minAmount: 5000,
     };
@@ -768,7 +768,7 @@ export function getClientTierForUser(userId: string, orders: Order[]): ClientTie
       tierCode: 'newbie',
       icon: 'star',
       color: 'text-indigo-400',
-      badgeClass: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 font-bold px-2.5 py-0.5 rounded-full text-[10px] border border-indigo-150 dark:border-indigo-900/50 flex items-center gap-1 shadow-sm',
+      badgeClass: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 font-bold px-2.5 py-0.5 rounded-full text-[11px] border border-indigo-150 dark:border-indigo-900/50 flex items-center gap-1 shadow-sm',
       priority: false,
       minAmount: 0,
     };

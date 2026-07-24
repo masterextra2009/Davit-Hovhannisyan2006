@@ -145,7 +145,7 @@ export function ServicesShowcaseDemo({ services }: { services: Service[] }) {
             </div>
             <div className="px-3.5 pt-3 pb-3.5 flex flex-col flex-1">
               <p className="font-extrabold text-[13px] text-slate-800 dark:text-white mb-0.5 leading-tight">{svc.title}</p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+              <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">
                 {svc.description?.slice(0, 50)}{(svc.description?.length || 0) > 50 ? '...' : ''}
               </p>
               <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mt-2 mb-2">{formatServicePrice(svc.price)}</p>

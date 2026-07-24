@@ -320,8 +320,8 @@ export default function App() {
 
             {/* Subtle top branding */}
             <div className="flex justify-between items-center max-w-5xl mx-auto w-full opacity-50">
-              <span className="text-[10px] font-mono tracking-widest uppercase text-slate-400 font-bold">СЕВЕРНАЯ КРУПНОФОРМАТНАЯ ПЕЧАТЬ</span>
-              <span className="text-[9px] font-mono tracking-wider text-slate-500">PRINT CENTRAL</span>
+              <span className="text-[11px] font-mono tracking-widest uppercase text-slate-400 font-bold">СЕВЕРНАЯ КРУПНОФОРМАТНАЯ ПЕЧАТЬ</span>
+              <span className="text-[10px] font-mono tracking-wider text-slate-500">PRINT CENTRAL</span>
             </div>
 
             {/* Glowing active shutter mechanism */}
@@ -378,7 +378,7 @@ export default function App() {
                   Фото<span className="shimmer-text-luxury">-Север</span>
                 </h1>
                 
-                <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-indigo-300 font-bold">
+                <p className="text-[11px] font-mono uppercase tracking-[0.3em] text-indigo-300 font-bold">
                   студия премиальной печати &middot; hq
                 </p>
               </motion.div>
@@ -399,7 +399,7 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.65 }}
               transition={{ delay: 0.75, duration: 0.9 }}
-              className="flex justify-between items-center max-w-5xl mx-auto w-full text-[9px] text-slate-500 font-mono tracking-wider uppercase font-bold"
+              className="flex justify-between items-center max-w-5xl mx-auto w-full text-[10px] text-slate-500 font-mono tracking-wider uppercase font-bold"
             >
               <div className="text-left leading-relaxed">
                 <span className="block text-indigo-400">PRINT ENGINE ACTIVE // LATENCY 1.2ms</span>

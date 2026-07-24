@@ -99,7 +99,7 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
                 <Printer className="w-5 h-5 text-white" />
               </div>
               <h1 className="text-sm font-bold uppercase tracking-widest">Фото-Север</h1>
-              <p className="text-[10px] text-slate-500 mt-0.5">Северное шоссе, 18</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">Северное шоссе, 18</p>
             </div>
 
             <div className="border-t border-dashed border-slate-300 my-4" />
@@ -113,7 +113,7 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
               <div className="text-center py-8">
                 <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
                 <p className="text-sm font-bold">Оплата прошла успешно</p>
-                <p className="text-[11px] text-slate-500 mt-1">Заказ {orderId}</p>
+                <p className="text-[12px] text-slate-500 mt-1">Заказ {orderId}</p>
               </div>
             ) : (
               <>
@@ -123,22 +123,22 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
                     <CheckCircle2 className="w-7 h-7 text-emerald-500" />
                   </div>
                   <p className="text-sm font-bold text-emerald-600 uppercase tracking-wide">Оплачено</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">{dateLabel}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">{dateLabel}</p>
                 </div>
 
                 <div className="border-t border-dashed border-slate-300 my-4" />
 
                 {/* Номер заказа */}
-                <div className="flex justify-between text-[11px] mb-1">
+                <div className="flex justify-between text-[12px] mb-1">
                   <span className="text-slate-500">Заказ</span>
                   <span className="font-bold">{order.id}</span>
                 </div>
-                <div className="flex justify-between text-[11px] mb-1">
+                <div className="flex justify-between text-[12px] mb-1">
                   <span className="text-slate-500">Клиент</span>
                   <span className="font-bold text-right max-w-[60%] truncate">{order.userName}</span>
                 </div>
                 {order.transactionId && (
-                  <div className="flex justify-between text-[11px] mb-1">
+                  <div className="flex justify-between text-[12px] mb-1">
                     <span className="text-slate-500">Транзакция</span>
                     <span className="font-bold text-right max-w-[60%] truncate">{order.transactionId}</span>
                   </div>
@@ -149,7 +149,7 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
                 {/* Позиции */}
                 <div className="space-y-2 mb-2">
                   {order.files.map((f, i) => (
-                    <div key={f.id || i} className="flex justify-between gap-3 text-[11px]">
+                    <div key={f.id || i} className="flex justify-between gap-3 text-[12px]">
                       <span className="text-slate-600 truncate">{i + 1}. {f.name}</span>
                       <span className="font-bold shrink-0">{filePrice(f)} ₽</span>
                     </div>
@@ -159,7 +159,7 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
                 <div className="border-t border-dashed border-slate-300 my-4" />
 
                 {order.promoCode && (
-                  <div className="flex justify-between text-[11px] mb-1 text-emerald-600">
+                  <div className="flex justify-between text-[12px] mb-1 text-emerald-600">
                     <span>Промокод {order.promoCode}</span>
                     <span className="font-bold">-{order.promoDiscount}%</span>
                   </div>
@@ -179,7 +179,7 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
                       <div key={i} className="bg-slate-900 h-full" style={{ width: `${w * 0.85}px` }} />
                     ))}
                   </div>
-                  <span className="text-[8px] tracking-widest text-slate-400">* {order.id} *</span>
+                  <span className="text-[9px] tracking-widest text-slate-400">* {order.id} *</span>
                 </div>
               </>
             )}

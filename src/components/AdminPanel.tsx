@@ -1405,7 +1405,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             {adminToast.type === 'order' ? '📦' : '💬'}
           </div>
           <div>
-            <p className="text-[11px] font-black text-white/50 uppercase tracking-wider mb-0.5">Фото-Север</p>
+            <p className="text-[12px] font-black text-white/50 uppercase tracking-wider mb-0.5">Фото-Север</p>
             <p className="text-sm font-bold text-white">{adminToast.text}</p>
           </div>
           <div className="w-1 self-stretch rounded-full ml-1" style={{
@@ -1435,11 +1435,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <img src={logoImg} alt="Фото-Север" className="w-11 h-11 shrink-0 object-contain drop-shadow-lg" />
             <div>
               <h2 className="text-sm font-black text-white leading-none">ПАНЕЛЬ ПК</h2>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-white/55 mt-0.5 block">Сервер Печати</span>
+              <span className="text-[11px] uppercase font-bold tracking-widest text-white/55 mt-0.5 block">Сервер Печати</span>
             </div>
           </div>
 
-          <div className="px-1 mb-6 text-[11px] text-white/50 font-bold uppercase tracking-wider">
+          <div className="px-1 mb-6 text-[12px] text-white/50 font-bold uppercase tracking-wider">
             Режим Администратора
           </div>
         </div>
@@ -1459,7 +1459,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <Clock className="w-4.5 h-4.5 text-white" />
               </div>
               {pendingCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 border border-white shadow-md animate-pulse">
+                <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 border border-white shadow-md animate-pulse">
                   {pendingCount}
                 </span>
               )}
@@ -1480,7 +1480,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <MessageSquare className="w-4.5 h-4.5 text-white" />
               </div>
               {unreadChatCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 animate-bounce border border-white shadow-md">
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 animate-bounce border border-white shadow-md">
                   {unreadChatCount}
                 </span>
               )}
@@ -1501,7 +1501,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <Lightbulb className="w-4.5 h-4.5 text-white" />
               </div>
               {(database.feedback || []).length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 border border-white shadow-md">
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 border border-white shadow-md">
                   {(database.feedback || []).length}
                 </span>
               )}
@@ -1605,7 +1605,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             />
             <div className="overflow-hidden">
               <p className="text-xs font-bold text-white truncate">{adminUser.fullName}</p>
-              <p className="text-[10px] text-white/55 font-extrabold truncate uppercase tracking-widest">Администратор</p>
+              <p className="text-[11px] text-white/55 font-extrabold truncate uppercase tracking-widest">Администратор</p>
             </div>
           </div>
           <button
@@ -1772,37 +1772,37 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             <div>
                               <div className="flex items-center gap-2">
                                 <span className="font-extrabold text-slate-900 dark:text-white text-xs">{order.id}</span>
-                                <span className="text-[10px] text-slate-400">{formatDateTime(order.orderDate)}</span>
+                                <span className="text-[11px] text-slate-400">{formatDateTime(order.orderDate)}</span>
                               </div>
-                              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                              <div className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">
                                 Клиент: <strong>{order.userName}</strong> &bull; {order.userEmail}
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-2 items-center">
                               {order.rejected && (
-                                <span className="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">
+                                <span className="text-[11px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">
                                   ⚠ Брак
                                 </span>
                               )}
-                              <span className={`text-[10px] uppercase font-bold px-2 px-2.5 py-0.5 rounded-md ${getStatusColor(order.status)}`}>
+                              <span className={`text-[11px] uppercase font-bold px-2 px-2.5 py-0.5 rounded-md ${getStatusColor(order.status)}`}>
                                 {getStatusLabel(order.status)}
                               </span>
                               {order.paymentStatus === 'unpaid' && order.paymentMethod === 'При получении (Наличные/Карта)' ? (
-                                <span className="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
+                                <span className="text-[11px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
                                   💵 Оплата при получении
                                 </span>
                               ) : (
-                                <span className={`text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md ${getPaymentStatusColor(order.paymentStatus)}`}>
+                                <span className={`text-[11px] uppercase font-bold px-2.5 py-0.5 rounded-md ${getPaymentStatusColor(order.paymentStatus)}`}>
                                   {getPaymentStatusLabel(order.paymentStatus)}
                                 </span>
                               )}
                               {orderToConfirmDelete === order.id ? (
                                 <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 p-1 rounded-lg border border-rose-100 dark:border-rose-900/40">
-                                  <span className="text-[9px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить заказ?</span>
-                                  <button onClick={() => handleDeleteEntireOrder(order.id)} disabled={deletingOrderId === order.id} className="bg-rose-500 hover:bg-rose-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition disabled:opacity-50">
+                                  <span className="text-[10px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить заказ?</span>
+                                  <button onClick={() => handleDeleteEntireOrder(order.id)} disabled={deletingOrderId === order.id} className="bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition disabled:opacity-50">
                                     {deletingOrderId === order.id ? '...' : 'Да'}
                                   </button>
-                                  <button onClick={() => setOrderToConfirmDelete(null)} disabled={deletingOrderId === order.id} className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition disabled:opacity-50">
+                                  <button onClick={() => setOrderToConfirmDelete(null)} disabled={deletingOrderId === order.id} className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition disabled:opacity-50">
                                     Нет
                                   </button>
                                 </div>
@@ -1816,7 +1816,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
                           {/* Row 2: Stage buttons — always visible at top */}
                           <div className="flex flex-wrap gap-1.5 items-center">
-                            <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest self-center mr-1">Стадия:</span>
+                            <span className="text-[11px] font-black uppercase text-slate-500 tracking-widest self-center mr-1">Стадия:</span>
                             {[
                               { id: 'pending',  label: 'Проверка' },
                               { id: 'approved', label: 'Одобрен' },
@@ -1853,11 +1853,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           {/* Row 3: Брак (reject) — независимо от стадии, т.к. брак может случиться на любом шаге */}
                           {order.rejected ? (
                             <div className="flex items-start gap-2 p-2.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40 rounded-xl">
-                              <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase shrink-0 mt-0.5">Причина брака:</span>
-                              <p className="text-[11px] text-rose-700 dark:text-rose-300 flex-1">{order.rejectionReason}</p>
+                              <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 uppercase shrink-0 mt-0.5">Причина брака:</span>
+                              <p className="text-[12px] text-rose-700 dark:text-rose-300 flex-1">{order.rejectionReason}</p>
                               <button
                                 onClick={() => handleUnrejectOrder(order.id)}
-                                className="text-[9px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline shrink-0 cursor-pointer"
+                                className="text-[10px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline shrink-0 cursor-pointer"
                               >
                                 Отменить
                               </button>
@@ -1869,20 +1869,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 value={rejectionReasonDraft}
                                 onChange={e => setRejectionReasonDraft(e.target.value)}
                                 placeholder="Почему заказ не может быть выполнен? Клиент увидит этот текст."
-                                className="w-full p-2 text-[11px] bg-white dark:bg-slate-950 border border-rose-200 dark:border-rose-900/50 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 resize-none"
+                                className="w-full p-2 text-[12px] bg-white dark:bg-slate-950 border border-rose-200 dark:border-rose-900/50 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 resize-none"
                                 rows={2}
                               />
                               <div className="flex gap-2 justify-end">
                                 <button
                                   onClick={() => { setRejectingOrderId(null); setRejectionReasonDraft(''); }}
-                                  className="px-2.5 py-1 text-[10px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                                  className="px-2.5 py-1 text-[11px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
                                 >
                                   Отмена
                                 </button>
                                 <button
                                   onClick={() => handleRejectOrder(order.id, rejectionReasonDraft)}
                                   disabled={!rejectionReasonDraft.trim()}
-                                  className="px-3 py-1 text-[10px] font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg cursor-pointer transition"
+                                  className="px-3 py-1 text-[11px] font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg cursor-pointer transition"
                                 >
                                   Отклонить заказ
                                 </button>
@@ -1891,7 +1891,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           ) : (
                             <button
                               onClick={() => { setRejectingOrderId(order.id); setRejectionReasonDraft(''); }}
-                              className="self-start text-[10px] font-bold text-rose-500/70 hover:text-rose-600 flex items-center gap-1 cursor-pointer"
+                              className="self-start text-[11px] font-bold text-rose-500/70 hover:text-rose-600 flex items-center gap-1 cursor-pointer"
                             >
                               ⚠ Брак / отклонить заказ
                             </button>
@@ -1903,12 +1903,12 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           
                           <div>
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2.5">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Файлы для выгрузки на ПК типографии:</span>
+                              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Файлы для выгрузки на ПК типографии:</span>
                               {(order.files && order.files.length > 2) && (
                                 <button
                                   onClick={() => handleDownloadAllAsZip(order)}
                                   disabled={zippingOrderId === order.id}
-                                  className={`px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm border ${
+                                  className={`px-3 py-1.5 rounded-xl text-[12px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm border ${
                                     zippingOrderId === order.id
                                       ? 'bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-200'
                                       : 'bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-450 dark:hover:bg-emerald-900 border-transparent'
@@ -1939,7 +1939,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                     <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
                                     <div className="overflow-hidden">
                                       <span className="font-bold block truncate text-slate-700 dark:text-slate-300">{file.name}</span>
-                                      <span className="text-[9px] text-slate-400 block mt-0.5">{formatFileSize(file.size)} &bull; ID: {file.id} {file.pageCount !== undefined ? `&bull; Папок/Стр: ${file.pageCount}–стр` : ''} {file.paperType === 'photo' ? `&bull; ${PHOTO_SIZE_LABELS[file.photoSize || '10x15'] || file.photoSize} &bull; ${(file.photoBorder || 'borderless') === 'bordered' ? 'С рамкой (белые поля)' : 'Без рамки (край-в-край)'}` : ''}</span>
+                                      <span className="text-[10px] text-slate-400 block mt-0.5">{formatFileSize(file.size)} &bull; ID: {file.id} {file.pageCount !== undefined ? `&bull; Папок/Стр: ${file.pageCount}–стр` : ''} {file.paperType === 'photo' ? `&bull; ${PHOTO_SIZE_LABELS[file.photoSize || '10x15'] || file.photoSize} &bull; ${(file.photoBorder || 'borderless') === 'bordered' ? 'С рамкой (белые поля)' : 'Без рамки (край-в-край)'}` : ''}</span>
                                     </div>
                                   </div>
 
@@ -1948,7 +1948,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                     <button
                                       onClick={() => triggerSimulatedDownload(file)}
                                       disabled={downloadingFileId === file.id}
-                                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1 shrink-0 ${
+                                      className={`px-3 py-1.5 rounded-lg text-[12px] font-bold transition flex items-center gap-1 shrink-0 ${
                                         downloadingFileId === file.id
                                           ? 'bg-slate-205 dark:bg-slate-800 text-slate-500'
                                           : 'bg-indigo-600 hover:bg-slate-900 hover:text-white dark:bg-slate-900 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-600/30'
@@ -1970,16 +1970,16 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                     {/* Admin Delete file from order button */}
                                     {adminFileToConfirmDelete?.orderId === order.id && adminFileToConfirmDelete?.fileId === file.id ? (
                                       <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 p-1 rounded-lg border border-rose-100 dark:border-rose-900/40">
-                                        <span className="text-[9px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить?</span>
+                                        <span className="text-[10px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить?</span>
                                         <button
                                           onClick={() => handleAdminDeleteFileFromOrder(order.id, file.id)}
-                                          className="bg-rose-500 hover:bg-rose-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition"
+                                          className="bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition"
                                         >
                                           Да
                                         </button>
                                         <button
                                           onClick={() => setAdminFileToConfirmDelete(null)}
-                                          className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition"
+                                          className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition"
                                         >
                                           Нет
                                         </button>
@@ -2031,7 +2031,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           </div>
 
                           {order.notes && (
-                            <div className="p-3 bg-amber-500/10 dark:bg-amber-950/20 border-2 border-amber-400/50 dark:border-amber-500/40 rounded-xl text-[11px] leading-relaxed animate-pulse-slow">
+                            <div className="p-3 bg-amber-500/10 dark:bg-amber-950/20 border-2 border-amber-400/50 dark:border-amber-500/40 rounded-xl text-[12px] leading-relaxed animate-pulse-slow">
                               <span className="font-black text-amber-700 dark:text-amber-400">⚠ Спец-требования клиента:</span> {order.notes}
                             </div>
                           )}
@@ -2042,10 +2042,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           
                           {/* Manual cash receipt switch */}
                           <div className="flex items-center gap-2.5">
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Оплата наличными:</span>
+                            <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Оплата наличными:</span>
                             <button
                               onClick={() => handleTogglePaymentStatus(order.id)}
-                              className={`py-1.2 px-2.5 rounded-lg text-[10px] font-extrabold border transition ${
+                              className={`py-1.2 px-2.5 rounded-lg text-[11px] font-extrabold border transition ${
                                 order.paymentStatus === 'paid'
                                   ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20'
                                   : 'bg-rose-50 border-rose-250 dark:bg-rose-955/20'
@@ -2170,7 +2170,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                           }
                                         }}
                                       />
-                                      <span className="text-[10px] opacity-70 block italic">Защищено водяным знаком &bull; ПРИМЕР</span>
+                                      <span className="text-[11px] opacity-70 block italic">Защищено водяным знаком &bull; ПРИМЕР</span>
                                     </div>
                                   ) : msg.message}
                                 </div>
@@ -2283,7 +2283,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <div className="space-y-6">
               <div className="glass-panel rounded-3xl p-6">
                 <h3 className="text-sm font-black text-white uppercase tracking-wider mb-1"><AnimatedTitle>Пожелания и замечания</AnimatedTitle></h3>
-                <p className="text-[10px] text-white/50 mb-6">Ответ уходит клиенту обычным сообщением в чате.</p>
+                <p className="text-[11px] text-white/50 mb-6">Ответ уходит клиенту обычным сообщением в чате.</p>
 
                 {(database.feedback || []).length === 0 ? (
                   <p className="text-xs text-white/50 text-center py-10">Пока ничего не прислали.</p>
@@ -2294,11 +2294,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             {fb.isBugReport && (
-                              <span className="text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded-md">🐞 Ошибка</span>
+                              <span className="text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded-md">🐞 Ошибка</span>
                             )}
                             <span className="font-extrabold text-white text-xs">{fb.userName}</span>
-                            <span className="text-[10px] text-white/40">{fb.userEmail}</span>
-                            <span className="text-[10px] text-white/40">&bull; {formatDateTime(fb.timestamp)}</span>
+                            <span className="text-[11px] text-white/40">{fb.userEmail}</span>
+                            <span className="text-[11px] text-white/40">&bull; {formatDateTime(fb.timestamp)}</span>
                           </div>
                           <p className="text-sm text-white/85 mt-2 whitespace-pre-wrap break-words">{fb.message}</p>
                           {fb.screenshotUrl && (
@@ -2357,7 +2357,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
                   <div>
                     <h3 className="text-sm font-black text-white uppercase tracking-wider"><AnimatedTitle>База зарегистрированных пользователей</AnimatedTitle></h3>
-                    <p className="text-[10px] text-white/50 mt-1">Нажмите на строку любого пользователя для просмотра реестра всех его загруженных файлов.</p>
+                    <p className="text-[11px] text-white/50 mt-1">Нажмите на строку любого пользователя для просмотра реестра всех его загруженных файлов.</p>
                   </div>
                   <div className="search-glow-wrap w-full sm:w-72">
                     <div className="search-glow-halo"><div className="search-glow-halo-ring"></div></div>
@@ -2388,7 +2388,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-white/10 text-white/50 uppercase text-[10px] tracking-widest">
+                    <tr className="border-b border-white/10 text-white/50 uppercase text-[11px] tracking-widest">
                       <th className="py-3 px-4 font-bold">Фото</th>
                       <th className="py-3 px-4 font-bold">ФИО клиента</th>
                       <th className="py-3 px-4 font-bold">Электронная почта</th>
@@ -2442,19 +2442,19 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 <span className="font-extrabold text-slate-900 dark:text-slate-200 flex items-center gap-2">
                                   {cli.fullName}
                                   {isAdmin && (
-                                    <span className="bg-red-50 dark:bg-red-950/40 text-red-650 dark:text-red-400 text-[8px] font-black uppercase px-1.5 py-0.5 rounded border border-red-200/50 dark:border-red-900/30">
+                                    <span className="bg-red-50 dark:bg-red-950/40 text-red-650 dark:text-red-400 text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-red-200/50 dark:border-red-900/30">
                                       Админ
                                     </span>
                                   )}
                                 </span>
                                 {cli.promoCode && (
-                                  <span className="inline-flex self-start items-center gap-1 bg-emerald-50 dark:bg-emerald-950/25 text-emerald-600 dark:text-emerald-400 text-[9px] font-black px-1.5 py-0.5 rounded-lg border border-emerald-150 dark:border-emerald-900/35 mt-1 animate-pulse">
+                                  <span className="inline-flex self-start items-center gap-1 bg-emerald-50 dark:bg-emerald-950/25 text-emerald-600 dark:text-emerald-400 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-emerald-150 dark:border-emerald-900/35 mt-1 animate-pulse">
                                     🎁 Подарен: {cli.promoCode} (-{cli.promoDiscount}%)
                                   </span>
                                 )}
                               </div>
                             )}
-                            <span className="text-[9px] text-slate-400 block mt-0.5">UID: {cli.id} {cli.isSocial && '(OAuth Соцсеть)'}</span>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">UID: {cli.id} {cli.isSocial && '(OAuth Соцсеть)'}</span>
                           </td>
 
                           <td className="py-3 px-4 text-slate-505 dark:text-slate-400">{cli.email}</td>
@@ -2473,10 +2473,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             )}
                           </td>
 
-                          <td className="py-3 px-4 text-slate-400 text-[11px]">{new Date(cli.createdAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}</td>
+                          <td className="py-3 px-4 text-slate-400 text-[12px]">{new Date(cli.createdAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}</td>
 
                           <td className="py-3 px-4 text-center font-bold">
-                            <span className={`px-2.5 py-1 rounded-full text-[11px] ${
+                            <span className={`px-2.5 py-1 rounded-full text-[12px] ${
                               filesCount > 0 
                                 ? 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400' 
                                 : 'bg-slate-55 dark:bg-slate-900 text-slate-400'
@@ -2576,7 +2576,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider font-sans">
                             <AnimatedTitle>Файлы пользователя: {selectedUserForFiles.fullName}</AnimatedTitle>
                           </h3>
-                          <p className="text-[10px] text-slate-400 mt-0.5">
+                          <p className="text-[11px] text-slate-400 mt-0.5">
                             Email: {selectedUserForFiles.email} &bull; Телефон: {selectedUserForFiles.phone || '—'}
                           </p>
                         </div>
@@ -2604,11 +2604,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         const statsRow = (
                           <div className="grid grid-cols-2 gap-3">
                             <div className="p-4 bg-slate-50 dark:bg-slate-950/40 border border-slate-150 dark:border-slate-850 rounded-2xl">
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Всего заказов</p>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Всего заказов</p>
                               <p className="text-xl font-black text-slate-800 dark:text-white">{userOrders.length}</p>
                             </div>
                             <div className="p-4 bg-slate-50 dark:bg-slate-950/40 border border-slate-150 dark:border-slate-850 rounded-2xl">
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Оплачено всего</p>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Оплачено всего</p>
                               <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{totalPaid} ₽</p>
                             </div>
                           </div>
@@ -2682,7 +2682,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
                       <div className="space-y-3">
                         <div>
-                          <label htmlFor="gift-promo-code" className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
+                          <label htmlFor="gift-promo-code" className="block text-[11px] font-bold text-slate-450 uppercase tracking-wider mb-1">
                             Текст промокода (прописными буквами)
                           </label>
                           <input
@@ -2696,7 +2696,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
+                          <label className="block text-[11px] font-bold text-slate-450 uppercase tracking-wider mb-1">
                             Процентная скидка (%)
                           </label>
                           <div className="grid grid-cols-5 gap-2">
@@ -2721,7 +2721,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             ))}
                           </div>
                           <div className="mt-2.5 flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-slate-400">Или своя скидка (%):</span>
+                            <span className="text-[11px] font-bold text-slate-400">Или своя скидка (%):</span>
                             <input
                               type="number"
                               min="1"
@@ -2740,7 +2740,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         {/* Beautiful live preview of client card coupon! */}
                         <div className="border border-emerald-500/15 bg-emerald-50/5 dark:bg-emerald-950/5 rounded-2xl p-4 space-y-2.5 relative overflow-hidden">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -mr-6 -mt-6"></div>
-                          <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-widest block">Предпросмотр открытки клиента:</span>
+                          <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-widest block">Предпросмотр открытки клиента:</span>
                           <div className="flex gap-3 items-center">
                             <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 border border-slate-205 dark:border-slate-700 flex items-center justify-center">
                               <img
@@ -2751,9 +2751,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               />
                             </div>
                             <div>
-                              <p className="text-[11px] font-extrabold text-slate-900 dark:text-white">Подарочный купон от администратора!</p>
-                              <p className="text-[10px] text-slate-400">Промокод: <span className="font-extrabold text-emerald-650 dark:text-emerald-450">{givingPromoCode || `GIFT${givingPromoDiscount}`}</span></p>
-                              <p className="text-[10px] text-slate-400">Скидка: <span className="font-bold text-slate-700 dark:text-slate-350">{givingPromoDiscount}%</span> на все услуги</p>
+                              <p className="text-[12px] font-extrabold text-slate-900 dark:text-white">Подарочный купон от администратора!</p>
+                              <p className="text-[11px] text-slate-400">Промокод: <span className="font-extrabold text-emerald-650 dark:text-emerald-450">{givingPromoCode || `GIFT${givingPromoDiscount}`}</span></p>
+                              <p className="text-[11px] text-slate-400">Скидка: <span className="font-bold text-slate-700 dark:text-slate-350">{givingPromoDiscount}%</span> на все услуги</p>
                             </div>
                           </div>
                         </div>
@@ -2861,7 +2861,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           </p>
 
                           <div>
-                            <label htmlFor="email-subject" className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
+                            <label htmlFor="email-subject" className="block text-[11px] font-bold text-slate-450 uppercase tracking-wider mb-1">
                               Тема письма
                             </label>
                             <input
@@ -2875,7 +2875,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           </div>
 
                           <div>
-                            <label htmlFor="email-body" className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-1">
+                            <label htmlFor="email-body" className="block text-[11px] font-bold text-slate-450 uppercase tracking-wider mb-1">
                               Текст письма
                             </label>
                             <textarea
@@ -2929,7 +2929,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="glass-panel p-5 rounded-3xl">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Общий оборот</span>
+                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Общий оборот</span>
                       <p className="text-2xl font-black text-indigo-650 dark:text-white">₽{totalRevenue}</p>
                     </div>
                     <div className="p-2.5 bg-indigo-50 dark:bg-slate-850 text-indigo-600 dark:text-indigo-400 rounded-2xl">
@@ -2937,7 +2937,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     </div>
                   </div>
                   <MiniSparkline data={revenueHistory} colorClass="bg-indigo-500" />
-                  <div className="text-[10px] text-emerald-600 font-bold mt-1.5">
+                  <div className="text-[11px] text-emerald-600 font-bold mt-1.5">
                     &uarr; 100% зачисление на банковский ПК
                   </div>
                 </div>
@@ -2945,15 +2945,15 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="glass-panel p-5 rounded-3xl">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Всего Заказов</span>
+                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Всего Заказов</span>
                       <p className="text-2xl font-black text-slate-800 dark:text-white">{database.orders.length} шт.</p>
                     </div>
                     <div className="relative flex items-center justify-center">
                       <MiniRing percent={completedPercent} colorClass="stroke-emerald-500" />
-                      <span className="absolute text-[9px] font-black text-emerald-600 dark:text-emerald-400">{completedPercent}%</span>
+                      <span className="absolute text-[10px] font-black text-emerald-600 dark:text-emerald-400">{completedPercent}%</span>
                     </div>
                   </div>
-                  <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold mt-2">
+                  <div className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold mt-2">
                     Из них: {printedCount} выполненных
                   </div>
                 </div>
@@ -2961,7 +2961,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="glass-panel p-5 rounded-3xl">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">База Клиентов</span>
+                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">База Клиентов</span>
                       <p className="text-2xl font-black text-slate-800 dark:text-white">{clientsOnly.length} чел.</p>
                     </div>
                     <div className="p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-500 rounded-2xl">
@@ -2969,7 +2969,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     </div>
                   </div>
                   <MiniSparkline data={newClientsHistory} colorClass="bg-slate-500" />
-                  <div className="text-[10px] text-slate-400 mt-1.5">
+                  <div className="text-[11px] text-slate-400 mt-1.5">
                     Учетных записей защищено SSL
                   </div>
                 </div>
@@ -2977,7 +2977,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="glass-panel p-5 rounded-3xl">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">В Печатной Работе</span>
+                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">В Печатной Работе</span>
                       <p className="text-2xl font-black text-indigo-755 dark:text-indigo-400">{inPrintCount} задач</p>
                     </div>
                     <div className="relative flex items-center justify-center">
@@ -2985,7 +2985,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <Printer className="w-4 h-4 absolute text-indigo-600 dark:text-indigo-400 animate-pulse" />
                     </div>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-2">
+                  <div className="text-[11px] text-slate-400 mt-2">
                     Заказов ожидает: {pendingCount} проверку
                   </div>
                 </div>
@@ -2993,7 +2993,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="glass-panel p-5 rounded-3xl">
                   <div className="flex justify-between items-start mb-3">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Заходы на Сайт</span>
+                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Заходы на Сайт</span>
                       <p className="text-2xl font-black text-slate-800 dark:text-white">
                         {(() => {
                           const today = getLocalDateKey();
@@ -3001,8 +3001,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           return todayData?.count || 0;
                         })()}
                       </p>
-                      <div className="text-[10px] text-slate-400">Сегодня • Всего: {database.siteVisits || 0}</div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-[11px] text-slate-400">Сегодня • Всего: {database.siteVisits || 0}</div>
+                      <div className="text-[11px] text-slate-400">
                         {(() => {
                           const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
                           const now = new Date();
@@ -3030,7 +3030,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             className={`w-full rounded-sm transition-all ${isToday ? 'bg-indigo-500' : 'bg-slate-600/50'}`}
                             style={{height: `${height}px`}}
                           />
-                          <span className="text-[8px] text-slate-500">{h.date.slice(8)}</span>
+                          <span className="text-[9px] text-slate-500">{h.date.slice(8)}</span>
                         </div>
                       );
                     })}
@@ -3040,11 +3040,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="glass-panel p-5 rounded-3xl">
                   <div className="flex justify-between items-start mb-3">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Сводка по чату</span>
+                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Сводка по чату</span>
                       <p className="text-2xl font-black text-slate-800 dark:text-white">{todayClientMessages.length}</p>
-                      <div className="text-[10px] text-slate-400">Сообщений сегодня • от {todayUniqueChatClients} клиентов</div>
+                      <div className="text-[11px] text-slate-400">Сообщений сегодня • от {todayUniqueChatClients} клиентов</div>
                       {unreadChatCount > 0 && (
-                        <div className="text-[10px] text-rose-500 font-bold">{unreadChatCount} непрочитанных</div>
+                        <div className="text-[11px] text-rose-500 font-bold">{unreadChatCount} непрочитанных</div>
                       )}
                     </div>
                     <div className="p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-500 rounded-2xl">
@@ -3057,9 +3057,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="glass-panel p-5 rounded-3xl col-span-full">
                   <div className="flex justify-between items-start mb-3">
                     <div className="space-y-1 flex-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">ИИ и Проверка фото</span>
+                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">ИИ и Проверка фото</span>
                       <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-                        <p className="text-2xl font-black text-slate-800 dark:text-white">{usageStats ? usageStats.ai_chat : '—'} <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">запросов в ИИ-чат</span></p>
+                        <p className="text-2xl font-black text-slate-800 dark:text-white">{usageStats ? usageStats.ai_chat : '—'} <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">запросов в ИИ-чат</span></p>
                         <div className="text-xs text-slate-400">Озвучка (голос): <span className="font-bold text-slate-600 dark:text-slate-300">{usageStats ? usageStats.voice : '—'}</span></div>
                         <div className="text-xs text-slate-400">Проверка фото на документы: <span className="font-bold text-slate-600 dark:text-slate-300">{usageStats ? usageStats.photo_check : '—'}</span></div>
                       </div>
@@ -3068,7 +3068,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <BarChart3 className="w-5 h-5" />
                     </div>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1.5">
+                  <div className="text-[11px] text-slate-400 mt-1.5">
                     Считается с момента подключения счётчика — прошлые запросы не входят.
                   </div>
                 </div>
@@ -3082,7 +3082,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="lg:col-span-6 glass-panel p-6 md:p-8 rounded-3xl space-y-6">
                   <div>
                     <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider"><AnimatedTitle>Популярные форматы файлов на печать</AnimatedTitle></h3>
-                    <p className="text-[10px] text-slate-400 mt-1">Рейтинг типов расширений загружаемых архивов, документов и фото.</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Рейтинг типов расширений загружаемых архивов, документов и фото.</p>
                   </div>
 
                   {totalFormatCounts === 0 ? (
@@ -3119,7 +3119,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="lg:col-span-6 glass-panel p-6 md:p-8 rounded-3xl flex flex-col justify-between">
                   <div>
                     <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider"><AnimatedTitle>Динамика заказов по дням недели</AnimatedTitle></h3>
-                    <p className="text-[10px] text-slate-400 mt-1">Обороты транзакций и число успешных печатных партий.</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Обороты транзакций и число успешных печатных партий.</p>
                   </div>
 
                   {/* SVG line graph trend representation */}
@@ -3162,7 +3162,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   </div>
 
                   <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-850/80">
-                    <span className="text-[10px] text-slate-500 font-bold block">Ревизия кассы за неделю:</span>
+                    <span className="text-[11px] text-slate-500 font-bold block">Ревизия кассы за неделю:</span>
                     <strong className="text-xs text-indigo-650 dark:text-emerald-400">₽{totalRevenue} RUB зачислено</strong>
                   </div>
                 </div>
@@ -3183,12 +3183,12 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       >
                         <div>
                           <span className="font-bold text-slate-800 dark:text-white block">Оплата по заказу {payLog.id}</span>
-                          <span className="text-[9px] text-slate-400 block mt-0.5">Оператор списания: {payLog.paymentMethod} &bull; Авто-код: {payLog.transactionId}</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">Оператор списания: {payLog.paymentMethod} &bull; Авто-код: {payLog.transactionId}</span>
                         </div>
 
                         <div className="text-right">
                           <span className="text-xs font-black text-emerald-600 block">+ ₽{payLog.totalCost}</span>
-                          <span className="text-[9px] text-slate-400 block">{new Date(payLog.orderDate).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}</span>
+                          <span className="text-[10px] text-slate-400 block">{new Date(payLog.orderDate).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}</span>
                         </div>
                       </div>
                     ))}
@@ -3199,11 +3199,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="glass-panel rounded-3xl p-6 md:p-8">
                   <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider mb-1"><AnimatedTitle>Регистрации по дням</AnimatedTitle></h3>
-                  <p className="text-[10px] text-slate-400 mb-4">Новые клиенты за последние 14 дней.</p>
+                  <p className="text-[11px] text-slate-400 mb-4">Новые клиенты за последние 14 дней.</p>
                   <div className="max-h-72 overflow-y-auto overscroll-contain">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="text-left text-[10px] text-slate-400 uppercase tracking-wider">
+                        <tr className="text-left text-[11px] text-slate-400 uppercase tracking-wider">
                           <th className="pb-2 font-black">Дата</th>
                           <th className="pb-2 font-black text-right">Регистраций</th>
                         </tr>
@@ -3222,11 +3222,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
                 <div className="glass-panel rounded-3xl p-6 md:p-8">
                   <h3 className="text-xs font-black uppercase text-slate-450 tracking-wider mb-1"><AnimatedTitle>Регистрации по месяцам</AnimatedTitle></h3>
-                  <p className="text-[10px] text-slate-400 mb-4">Новые клиенты за последние 12 месяцев.</p>
+                  <p className="text-[11px] text-slate-400 mb-4">Новые клиенты за последние 12 месяцев.</p>
                   <div className="max-h-72 overflow-y-auto overscroll-contain">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="text-left text-[10px] text-slate-400 uppercase tracking-wider">
+                        <tr className="text-left text-[11px] text-slate-400 uppercase tracking-wider">
                           <th className="pb-2 font-black">Месяц</th>
                           <th className="pb-2 font-black text-right">Регистраций</th>
                         </tr>
@@ -3258,7 +3258,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
                       <Camera className="text-indigo-650 w-5 h-5" /> <AnimatedTitle>Профиль и персональная аватарка</AnimatedTitle>
                     </h3>
-                    <p className="text-[11px] text-slate-400 mt-1">Отредактируйте свои личные данные и настройте графический аватар, отображаемый в чате с клиентами.</p>
+                    <p className="text-[12px] text-slate-400 mt-1">Отредактируйте свои личные данные и настройте графический аватар, отображаемый в чате с клиентами.</p>
                   </div>
 
                   <div className="flex flex-col items-center gap-5 p-5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-100 dark:border-slate-850">
@@ -3283,7 +3283,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         className="w-24 h-24 rounded-2xl ring-4 ring-indigo-500/15"
                       />
                       <div
-                        className="absolute inset-0 bg-slate-900/60 text-white rounded-2xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity text-[10px] font-bold"
+                        className="absolute inset-0 bg-slate-900/60 text-white rounded-2xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity text-[11px] font-bold"
                       >
                         <Camera className="w-5 h-5 text-white" />
                         <span>Выказать...</span>
@@ -3301,7 +3301,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
                     {/* Fast presets selection */}
                     <div className="text-center w-full">
-                      <span className="text-[10px] text-slate-400 font-bold block mb-2 uppercase tracking-wider">Или выберите стильный пресет:</span>
+                      <span className="text-[11px] text-slate-400 font-bold block mb-2 uppercase tracking-wider">Или выберите стильный пресет:</span>
                       <div className="flex justify-center gap-2">
                         {[
                           'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80', // Man Glasses
@@ -3328,7 +3328,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   {/* Input Fields */}
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="admin-full-name" className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">ФИО Администратора</label>
+                      <label htmlFor="admin-full-name" className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">ФИО Администратора</label>
                       <input
                         id="admin-full-name"
                         type="text"
@@ -3340,7 +3340,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     </div>
 
                     <div>
-                      <label htmlFor="admin-phone" className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Контактный телефон</label>
+                      <label htmlFor="admin-phone" className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Контактный телефон</label>
                       <input
                         id="admin-phone"
                         type="text"
@@ -3361,7 +3361,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
                     <Download className="text-indigo-650 w-5 h-5" /> <AnimatedTitle>Резервная копия базы данных</AnimatedTitle>
                   </h3>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                  <p className="text-[12px] text-slate-400 mt-1 leading-relaxed">
                     Скачивает JSON-файл со всеми заказами, клиентами, перепиской и уведомлениями на этот момент.
                     На бесплатном тарифе Firebase нет автоматических бэкапов — сохраняйте файл в надёжное место
                     (облако/почта самому себе) периодически, чтобы не потерять данные при сбое.
@@ -3399,7 +3399,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 glass-panel rounded-3xl">
                 <div>
                   <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Сохранить общие настройки системы</h4>
-                  <p className="text-[10px] text-slate-400 mt-1">Все изменения вступят в силу мгновенно и синхронизируются с удаленным сервером и вашим СБП-шлюзом.</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Все изменения вступят в силу мгновенно и синхронизируются с удаленным сервером и вашим СБП-шлюзом.</p>
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-end">
@@ -3460,7 +3460,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   </div>
                   <div>
                     <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white"><AnimatedTitle>Подтверждение удаления</AnimatedTitle></h3>
-                    <p className="text-[10px] text-slate-400 font-bold">Это действие абсолютно необратимо</p>
+                    <p className="text-[11px] text-slate-400 font-bold">Это действие абсолютно необратимо</p>
                   </div>
                 </div>
 
@@ -3519,7 +3519,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       {serviceAdminFilter === 'souvenirs' ? <Gift className="text-orange-500 w-5 h-5" /> : <Printer className="text-indigo-650 w-5 h-5" />}
                       <AnimatedTitle>{serviceAdminFilter === 'souvenirs' ? 'Сувениры' : 'Витрина услуг'}</AnimatedTitle>
                     </h3>
-                    <p className="text-[11px] text-slate-400 mt-1">
+                    <p className="text-[12px] text-slate-400 mt-1">
                       {serviceAdminFilter === 'souvenirs'
                         ? 'Карточки товаров-сувениров (кружки, магниты и т.п.) — определяются по названию, как и на сайте у клиента.'
                         : 'Клиенты видят эти карточки в личном кабинете. Добавляй, редактируй, скрывай услуги без кода.'}
@@ -3527,7 +3527,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     {serviceAdminFilter === 'souvenirs' && (
                       <button
                         onClick={() => setServiceAdminFilter('all')}
-                        className="mt-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 cursor-pointer"
+                        className="mt-1 text-[12px] font-bold text-indigo-400 hover:text-indigo-300 cursor-pointer"
                       >
                         ← Показать все услуги
                       </button>
@@ -3551,7 +3551,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 </div>
 
                 {serviceAdminFilter === 'souvenirs' && (
-                  <p className="text-[10px] text-amber-600 dark:text-amber-400 -mt-2">
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 -mt-2">
                     Совет: чтобы новая карточка попала в "Сувениры", включи в название слово вроде "сувенир", "кружка", "магнит", "футболка" или "керамика".
                   </p>
                 )}
@@ -3616,7 +3616,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 ) : (
                                   <span className="text-3xl">{svc.emoji}</span>
                                 )}
-                                <span className="text-[9px] text-white/30 font-bold text-center leading-tight">загрузить фото</span>
+                                <span className="text-[10px] text-white/30 font-bold text-center leading-tight">загрузить фото</span>
                               </div>
                             )}
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
@@ -3678,7 +3678,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               >
                                 −
                               </button>
-                              <span className="pointer-events-none px-1 py-0.5 rounded-md bg-black/45 backdrop-blur-sm text-white text-[9px] font-bold">
+                              <span className="pointer-events-none px-1 py-0.5 rounded-md bg-black/45 backdrop-blur-sm text-white text-[10px] font-bold">
                                 {Math.round((svc.imageScale || 1) * 100)}%
                               </span>
                               <button
@@ -3748,7 +3748,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             defaultValue={svc.description}
                             onBlur={(e) => handleUpdateService(svc.id, 'description', e.target.value)}
                             aria-label="Описание услуги"
-                            className="w-full bg-transparent text-[11px] text-white/60 focus:outline-none focus:text-white/80 focus:ring-2 focus:ring-white/30 rounded"
+                            className="w-full bg-transparent text-[12px] text-white/60 focus:outline-none focus:text-white/80 focus:ring-2 focus:ring-white/30 rounded"
                             placeholder="Краткое описание"
                           />
                           <input
@@ -3814,7 +3814,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               ) : (
                                 <>
                                   <span className="text-2xl">{newServiceForm.emoji}</span>
-                                  <span className="text-[10px] font-bold">Загрузить фото (необязательно)</span>
+                                  <span className="text-[11px] font-bold">Загрузить фото (необязательно)</span>
                                 </>
                               )}
                             </div>
@@ -3839,7 +3839,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             >
                               −
                             </button>
-                            <span className="text-[10px] font-bold text-slate-400 w-10 text-center">{Math.round((newServiceForm.imageScale || 1) * 100)}%</span>
+                            <span className="text-[11px] font-bold text-slate-400 w-10 text-center">{Math.round((newServiceForm.imageScale || 1) * 100)}%</span>
                             <button
                               type="button"
                               onClick={() => setNewServiceForm(f => ({ ...f, imageScale: Math.min(3, (f.imageScale || 1) + 0.1) }))}
@@ -3852,7 +3852,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               <button
                                 type="button"
                                 onClick={() => setNewServiceForm(f => ({ ...f, imageScale: 1 }))}
-                                className="text-[10px] font-bold text-indigo-500 hover:text-indigo-600 cursor-pointer ml-1"
+                                className="text-[11px] font-bold text-indigo-500 hover:text-indigo-600 cursor-pointer ml-1"
                               >
                                 Сбросить
                               </button>
@@ -4115,13 +4115,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-white font-black text-sm">{order.id}</span>
-                              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-black">Выдан</span>
+                              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 text-[11px] font-black">Выдан</span>
                             </div>
                             <p className="text-white/60 text-xs mt-0.5">{order.userName} · {order.userEmail}</p>
                             <p className="text-white/40 text-xs mt-1">
                               Выдан: {completedAt.toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })} в {completedAt.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'})}
                             </p>
-                            <p className="text-amber-400/80 text-[10px] mt-0.5 font-bold">
+                            <p className="text-amber-400/80 text-[11px] mt-0.5 font-bold">
                               🗑 Автоудаление через {daysLeft} {daysLeft === 1 ? 'день' : daysLeft < 5 ? 'дня' : 'дней'}
                             </p>
                             {order.rating && (
@@ -4130,7 +4130,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                   {'★'.repeat(order.rating)}{'☆'.repeat(5 - order.rating)}
                                 </span>
                                 {order.ratingComment && (
-                                  <span className="text-white/50 text-[11px] italic">«{order.ratingComment}»</span>
+                                  <span className="text-white/50 text-[12px] italic">«{order.ratingComment}»</span>
                                 )}
                               </div>
                             )}
@@ -4144,7 +4144,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                   onUpdateDatabase({ orders: database.orders.filter(o => o.id !== order.id) });
                                 }
                               }}
-                              className="mt-2 px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[10px] font-bold transition cursor-pointer"
+                              className="mt-2 px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-bold transition cursor-pointer"
                             >
                               Удалить
                             </button>

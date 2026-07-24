@@ -51,7 +51,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
             <img src="/logo-192-v2.png" alt="Фото-Север" className="w-9 h-9 rounded-xl object-cover" />
             <div className="leading-tight">
               <div className="text-sm font-black">Фото-Север</div>
-              <div className="text-[10px] text-slate-500 dark:text-white/40">Северное шоссе, 18</div>
+              <div className="text-[11px] text-slate-500 dark:text-white/40">Северное шоссе, 18</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -73,7 +73,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
       {/* ===== HERO ===== */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-14 grid md:grid-cols-2 gap-10 items-center">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Принимаем заказы онлайн
           </div>
@@ -109,21 +109,21 @@ export function LandingPage({ onEnter }: LandingPageProps) {
               <Phone className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
               <div>
                 <div className="text-xs font-bold">+7 (968) 050-88-00</div>
-                <div className="text-[10px] text-slate-400">Звоните</div>
+                <div className="text-[11px] text-slate-400">Звоните</div>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <MapPin className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
               <div>
                 <div className="text-xs font-bold">Северное шоссе, 18</div>
-                <div className="text-[10px] text-slate-400">Раменское</div>
+                <div className="text-[11px] text-slate-400">Раменское</div>
               </div>
             </div>
             <div className="flex items-start gap-2 col-span-2 sm:col-span-1">
               <Clock className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
               <div>
                 <div className="text-xs font-bold">Пн–Пт 9:00–19:00</div>
-                <div className="text-[10px] text-slate-400">Сб–Вс 10:00–19:00</div>
+                <div className="text-[11px] text-slate-400">Сб–Вс 10:00–19:00</div>
               </div>
             </div>
           </div>
@@ -200,7 +200,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
             {PRICES.map((p, i) => (
               <div key={i} className="rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 p-4 text-center">
                 <div className="text-lg font-black text-orange-500">{p.price}</div>
-                <div className="text-[10px] text-slate-400 mb-1.5">{p.unit}</div>
+                <div className="text-[11px] text-slate-400 mb-1.5">{p.unit}</div>
                 <div className="text-xs font-bold">{p.label}</div>
               </div>
             ))}
@@ -254,7 +254,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
           </div>
 
           <div className="space-y-1.5">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Контакты</div>
+            <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2">Контакты</div>
             <a href="tel:+79680508800" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors"><Phone className="w-3.5 h-3.5" /> +7 (968) 050-88-00</a>
             <a href="https://t.me/photosever18" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors"><Send className="w-3.5 h-3.5" /> @photosever18</a>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-[#25D366] transition-colors">
@@ -265,7 +265,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
           </div>
 
           <div className="space-y-1.5">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+            <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5" /> Реквизиты
             </div>
             <div>ИП, ИНН 501110120673</div>
@@ -276,7 +276,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
             </div>
           </div>
         </div>
-        <div className="text-center text-[10px] text-slate-400 dark:text-white/30 pb-6">
+        <div className="text-center text-[11px] text-slate-400 dark:text-white/30 pb-6">
           &copy; 2026 Копи-Центр «Фото-Север» &middot; Северное шоссе, 18 &middot; Лицензия SSL
         </div>
       </footer>

@@ -472,7 +472,7 @@ function GlassIcon({ icon: Icon, glow, size = 56, colored = false, noOuterShadow
 const CLOCK_SIZES = ['sm', 'md', 'lg'] as const;
 type ClockSize = typeof CLOCK_SIZES[number];
 const clockSizeClasses: Record<ClockSize, { time: string; date: string }> = {
-  sm: { time: 'text-4xl', date: 'text-[11px] mt-1.5' },
+  sm: { time: 'text-4xl', date: 'text-[12px] mt-1.5' },
   md: { time: 'text-6xl', date: 'text-xs mt-2' },
   lg: { time: 'text-8xl', date: 'text-sm mt-2.5' },
 };
@@ -494,7 +494,7 @@ function HomeBigClock({ size, resizable, onCycleSize }: { size: ClockSize; resiz
       <div className={`${cls.time} font-thin text-slate-800 dark:text-white tracking-tight leading-none`}>{hh}:{mm}</div>
       <div className={`${cls.date} font-bold text-slate-500 dark:text-slate-400 capitalize`}>{dateStr}</div>
       {resizable && (
-        <div className="mt-2 text-[10px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wide">
+        <div className="mt-2 text-[11px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wide">
           Нажмите, чтобы изменить размер
         </div>
       )}
@@ -3293,7 +3293,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       isActive: activeTab === 'chat',
       onClick: () => setActiveTab('chat'),
       badge: unreadChatsCount > 0 ? (
-        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 animate-bounce border border-white shadow-md">
+        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center z-10 animate-bounce border border-white shadow-md">
           {unreadChatsCount}
         </span>
       ) : null,
@@ -3308,7 +3308,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       // На мобильной "Главной" эта плитка одна отвечает и за кабинет, и за чат,
       // и за контакты — бейдж суммирует непрочитанные уведомления и чат.
       badge: (unreadNotificationsCount + unreadChatsCount) > 0 ? (
-        <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center z-20 border border-white shadow-md">
+        <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center z-20 border border-white shadow-md">
           {unreadNotificationsCount + unreadChatsCount}
         </span>
       ) : null,
@@ -3556,7 +3556,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           <img src={logoImg} alt="Фото-Север" className="w-10 h-10 shrink-0 object-contain drop-shadow-lg" />
           <div>
             <h2 className="text-md font-bold tracking-tight text-white leading-tight">Фото-Север</h2>
-            <span className="text-[10px] uppercase font-bold tracking-widest text-white/60">Северное шоссе, 18</span>
+            <span className="text-[11px] uppercase font-bold tracking-widest text-white/60">Северное шоссе, 18</span>
           </div>
         </div>
 
@@ -3596,7 +3596,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             />
             <div className="overflow-hidden">
               <p className="text-xs font-bold text-white truncate">{user.fullName}</p>
-              <p className="text-[10px] text-[#cbd5e1] truncate">{user.email}</p>
+              <p className="text-[11px] text-[#cbd5e1] truncate">{user.email}</p>
             </div>
           </div>
           <button
@@ -3606,7 +3606,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <LogOut className="w-3.5 h-3.5" />
             Выйти из кабинета
           </button>
-          <div className="flex justify-center gap-2.5 mt-3 text-[9px] font-bold text-slate-400 uppercase tracking-widest border-t border-slate-800/50 pt-2.5">
+          <div className="flex justify-center gap-2.5 mt-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-t border-slate-800/50 pt-2.5">
             <button onClick={() => setActiveLegalDoc('privacy')} className="hover:text-indigo-400 cursor-pointer transition-colors">Политика</button>
             <span>&bull;</span>
             <button onClick={() => setActiveLegalDoc('terms')} className="hover:text-indigo-400 cursor-pointer transition-colors">Оферта</button>
@@ -4009,7 +4009,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </button>
             )}
             {pushConsent === 'granted' && (
-              <span className="flex items-center gap-1.5 text-[11px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-xl border border-emerald-500/20 font-bold">
+              <span className="flex items-center gap-1.5 text-[12px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-xl border border-emerald-500/20 font-bold">
                 <Check className="w-3.5 h-3.5" /> Push включены
               </span>
             )}
@@ -4055,7 +4055,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     const diffDays = Math.ceil((new Date(user.promoExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
                     if (diffDays <= 0) return null;
                     return (
-                      <p className="text-[11px] text-amber-200 mt-1.5 font-black select-none">
+                      <p className="text-[12px] text-amber-200 mt-1.5 font-black select-none">
                         ⏳ Сгорит через {diffDays} {diffDays === 1 ? 'день' : diffDays < 5 ? 'дня' : 'дней'}
                       </p>
                     );
@@ -4168,11 +4168,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <div>
                       <p className="font-extrabold text-sm">Копи-Центр сейчас закрыт!</p>
                       <p className="mt-1 leading-relaxed opacity-90">Мы принимаем файлы и оформляем новые заказы только в рабочие часы:</p>
-                      <ul className="mt-1.5 space-y-1 font-extrabold text-[11px]">
+                      <ul className="mt-1.5 space-y-1 font-extrabold text-[12px]">
                         <li>📅 Понедельник — Пятница: 09:00 — 19:00</li>
                         <li>📅 Суббота — Воскресенье: 10:00 — 19:00</li>
                       </ul>
-                      <p className="mt-2.5 text-[9px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-450">Приём файлов и заказов временно заблокирован.</p>
+                      <p className="mt-2.5 text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-450">Приём файлов и заказов временно заблокирован.</p>
                     </div>
                   </div>
                 )}
@@ -4297,7 +4297,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         <button
                           type="button"
                           onClick={() => { setCollageSelectedIds([]); setShowCollageBuilder(true); }}
-                          className="px-3 py-1.5 rounded-xl bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-300 text-[11px] font-black flex items-center gap-1.5 cursor-pointer transition-colors"
+                          className="px-3 py-1.5 rounded-xl bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-300 text-[12px] font-black flex items-center gap-1.5 cursor-pointer transition-colors"
                         >
                           <Layers className="w-3.5 h-3.5" /> Собрать в коллаж А4
                         </button>
@@ -4363,12 +4363,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 zip-архива (bundleFixedPrice) редактировать нечего — внутри
                                 несколько разных файлов с настройками по умолчанию. */}
                             {isBundle ? (
-                              <div className="border-t border-white/8 px-3.5 py-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-bold text-white/50">
+                              <div className="border-t border-white/8 px-3.5 py-2.5 flex items-center gap-1.5 flex-wrap text-[11px] font-bold text-white/50">
                                 <span className="px-2 py-1 rounded-lg bg-white/5">📦 Архив · {file.bundleFileCount} файлов</span>
                                 <span className="px-2 py-1 rounded-lg bg-white/5">по умолчанию: фото — цвет 10×15, документы — Ч/Б</span>
                               </div>
                             ) : (
-                            <div className="border-t border-white/8 px-3.5 py-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-bold text-white/50">
+                            <div className="border-t border-white/8 px-3.5 py-2.5 flex items-center gap-1.5 flex-wrap text-[11px] font-bold text-white/50">
                               {!isCollage && <span className="px-2 py-1 rounded-lg bg-white/5">{(file.printColor || 'bw') === 'bw' ? '⚪ Ч/Б' : '🔵 Цвет'}</span>}
                               <span className="px-2 py-1 rounded-lg bg-white/5">
                                 {isCollage ? `🖼️ Коллаж А4 (${file.collagePaper === 'photo' ? 'фото' : 'обычная'}) · ${file.collageCount || '?'} фото` : isPhoto ? `🖼 Фото ${selSize.label}` : `📄 Обычная · ${(file.format || 'a4').toUpperCase()}`}
@@ -4413,7 +4413,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         <Layers className="w-4 h-4 text-indigo-500" />
                         <span>Интерактивный 3D-макет партии</span>
                       </h4>
-                      <span className="text-[10px] font-bold text-slate-405 dark:text-slate-550 italic">
+                      <span className="text-[11px] font-bold text-slate-405 dark:text-slate-550 italic">
                         Обновляется в реальном времени
                       </span>
                     </div>
@@ -4428,7 +4428,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                       {/* Explicit Interactive Focus Overlay */}
                       <div className="absolute inset-0 bg-slate-950/0 group-hover:bg-slate-950/15 dark:group-hover:bg-slate-950/30 flex items-center justify-center transition-all duration-300 z-30">
-                        <div className="bg-white/95 dark:bg-slate-900/95 text-[11px] font-black text-indigo-600 dark:text-indigo-400 px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transform translate-y-1 group-hover:translate-y-0 transition-all duration-300 border border-slate-200/55 dark:border-slate-800/80">
+                        <div className="bg-white/95 dark:bg-slate-900/95 text-[12px] font-black text-indigo-600 dark:text-indigo-400 px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transform translate-y-1 group-hover:translate-y-0 transition-all duration-300 border border-slate-200/55 dark:border-slate-800/80">
                           <Maximize2 className="w-3.5 h-3.5 animate-pulse" />
                           <span>Открыть макет во весь экран (ВТЧ в фокусе) 🔍</span>
                         </div>
@@ -4479,7 +4479,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               {/* File sleeve simulation */}
                               {binding === 'file' && isLast && (
                                 <div className="absolute inset-0 bg-sky-200/20 dark:bg-sky-400/10 border-2 border-sky-400/40 rounded-xl z-20 pointer-events-none shadow-inner" style={{ backdropFilter: 'blur(1px)' }}>
-                                  <div className="absolute top-2 right-2 w-3.5 h-3.5 rounded-full border border-sky-500/20 flex items-center justify-center bg-white/70 shadow-xs text-sky-650 font-bold text-[8px] animate-pulse">
+                                  <div className="absolute top-2 right-2 w-3.5 h-3.5 rounded-full border border-sky-500/20 flex items-center justify-center bg-white/70 shadow-xs text-sky-650 font-bold text-[9px] animate-pulse">
                                     5₽
                                   </div>
                                 </div>
@@ -4504,14 +4504,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               {/* Hard cover simulation */}
                               {binding === 'hard_cover' && isLast && (
                                 <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 rounded-xl flex flex-col justify-between p-4 shadow-xl text-slate-100 border border-slate-750">
-                                  <div className="border border-slate-705 p-1 bg-slate-800/40 rounded-lg text-center text-[9px] font-bold uppercase tracking-widest mt-1.5">
+                                  <div className="border border-slate-705 p-1 bg-slate-800/40 rounded-lg text-center text-[10px] font-bold uppercase tracking-widest mt-1.5">
                                     Твердый переплет
                                   </div>
                                   <div className="space-y-1 my-auto">
                                     <div className="h-1 bg-slate-500/30 rounded-full w-3/4 mx-auto" />
                                     <div className="h-1 bg-slate-505/30 rounded-full w-1/2 mx-auto" />
                                   </div>
-                                  <div className="text-[8px] text-center text-slate-400 font-mono tracking-wider font-extrabold pb-1">
+                                  <div className="text-[9px] text-center text-slate-400 font-mono tracking-wider font-extrabold pb-1">
                                     * ПРЕМИУМ КОРЕШОК *
                                   </div>
                                 </div>
@@ -4531,11 +4531,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                           alt={uploadedFiles[0].name}
                                           referrerPolicy="no-referrer"
                                         />
-                                        <div className="absolute top-1 right-1 bg-indigo-650/85 text-white text-[6px] font-black tracking-widest px-1 py-0.5 rounded-sm">
+                                        <div className="absolute top-1 right-1 bg-indigo-650/85 text-white text-[7px] font-black tracking-widest px-1 py-0.5 rounded-sm">
                                           ПЕЧАТЬ ИЗОБРАЖЕНИЯ
                                         </div>
                                       </div>
-                                      <div className="flex justify-between items-center text-[6px] font-bold text-slate-500 font-mono px-0.5">
+                                      <div className="flex justify-between items-center text-[7px] font-bold text-slate-500 font-mono px-0.5">
                                         <span className="truncate max-w-[110px]">{uploadedFiles[0].name}</span>
                                         <span>{formatFileSize(uploadedFiles[0].size)}</span>
                                       </div>
@@ -4543,7 +4543,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                   ) : uploadedFiles[0] ? (
                                     // Real Uploaded Document Preview Layout
                                     <div className="w-full h-full flex flex-col justify-between">
-                                      <div className="flex justify-between items-center text-[7px] font-mono text-indigo-650 dark:text-indigo-400 font-bold uppercase tracking-wider">
+                                      <div className="flex justify-between items-center text-[8px] font-mono text-indigo-650 dark:text-indigo-400 font-bold uppercase tracking-wider">
                                         <span>{paperType === 'standard_a3' || paperType === 'bw_a3' ? 'A3 FORMAT' : 'A4 FORMAT'}</span>
                                         <span>PDF/DOCX</span>
                                       </div>
@@ -4566,7 +4566,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                   ) : (
                                     // Fallback standard render
                                     <>
-                                      <div className="flex justify-between items-center text-[7px] font-mono text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+                                      <div className="flex justify-between items-center text-[8px] font-mono text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
                                         <span>{paperType === 'standard_a3' || paperType === 'bw_a3' ? 'A3 FORMAT' : 'A4 FORMAT'}</span>
                                         <span>{uploadedFiles.length} doc(s)</span>
                                       </div>
@@ -4577,7 +4577,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                             <div className="w-full h-1.5 bg-slate-300 dark:bg-slate-600 rounded-xs mb-1" />
                                             <div className="w-5/6 h-1 bg-slate-300 dark:bg-slate-700 rounded-xs mb-1" />
                                             <div className="w-full h-1 bg-slate-350 dark:bg-slate-700 rounded-sub mb-2" />
-                                            <div className="w-8 h-8 rounded-full border-4 border-slate-300 flex items-center justify-center text-[7px] font-black text-slate-405">
+                                            <div className="w-8 h-8 rounded-full border-4 border-slate-300 flex items-center justify-center text-[8px] font-black text-slate-405">
                                               Ч/Б
                                             </div>
                                           </div>
@@ -4598,12 +4598,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                                       <div className="flex justify-between items-end border-t border-slate-200/50 dark:border-slate-800/50 pt-1.5">
                                         <div className="text-left leading-none">
-                                          <span className="text-[7px] text-slate-400 dark:text-slate-500 block uppercase font-bold tracking-wider">Тираж:</span>
-                                          <span className="text-[10px] font-extrabold text-slate-800 dark:text-white leading-none">{copies} шт</span>
+                                          <span className="text-[8px] text-slate-400 dark:text-slate-500 block uppercase font-bold tracking-wider">Тираж:</span>
+                                          <span className="text-[11px] font-extrabold text-slate-800 dark:text-white leading-none">{copies} шт</span>
                                         </div>
                                         <div className="text-right leading-none">
-                                          <span className="text-[7px] text-slate-400 dark:text-slate-500 block uppercase font-bold tracking-wider font-mono">МАТЕРИАЛ</span>
-                                          <span className="text-[8px] font-extrabold font-mono text-indigo-650 dark:text-indigo-400 leading-none">
+                                          <span className="text-[8px] text-slate-400 dark:text-slate-500 block uppercase font-bold tracking-wider font-mono">МАТЕРИАЛ</span>
+                                          <span className="text-[9px] font-extrabold font-mono text-indigo-650 dark:text-indigo-400 leading-none">
                                             {paperType === 'standard' ? 'ОФИСНЫЙ' : paperType === 'kraft' ? 'КРАФТ' : 'ФОТО'}
                                           </span>
                                         </div>
@@ -4658,7 +4658,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                   {/* Промокод */}
                   <div>
-                    <label htmlFor="promo-code" className="block text-[10px] font-black text-white/50 uppercase tracking-widest mb-2">
+                    <label htmlFor="promo-code" className="block text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">
                       Промокод
                     </label>
                     <div className="flex gap-2">
@@ -4682,13 +4682,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         </button>
                       )}
                     </div>
-                    {promoError && <p className="text-[10px] text-rose-400 font-bold mt-1.5 animate-pulse">{promoError}</p>}
-                    {appliedPromo && <p className="text-[10px] text-emerald-400 font-bold mt-1.5">✓ Скидка применена!</p>}
+                    {promoError && <p className="text-[11px] text-rose-400 font-bold mt-1.5 animate-pulse">{promoError}</p>}
+                    {appliedPromo && <p className="text-[11px] text-emerald-400 font-bold mt-1.5">✓ Скидка применена!</p>}
                   </div>
 
                   {/* Заметки */}
                   <div>
-                    <label htmlFor="order-notes" className="block text-[10px] font-black text-white/50 uppercase tracking-widest mb-2">
+                    <label htmlFor="order-notes" className="block text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">
                       Заметки печатнику
                     </label>
                     <textarea
@@ -4704,7 +4704,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   {/* Чек */}
                   {uploadedFiles.length > 0 && (
                     <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
-                      <p className="text-[9px] font-black text-white/40 uppercase tracking-widest text-center">* РАСЧЁТ СТОИМОСТИ *</p>
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest text-center">* РАСЧЁТ СТОИМОСТИ *</p>
 
                       <div className="space-y-2 text-xs">
                         {/* Список файлов с ценами */}
@@ -4766,13 +4766,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             return (
                               <>
                                 {savings > 0 && (
-                                  <div className="flex justify-between text-rose-400 font-bold text-[11px]">
+                                  <div className="flex justify-between text-rose-400 font-bold text-[12px]">
                                     <span>Промокод ({activePromo}):</span>
                                     <span>−{savings} ₽</span>
                                   </div>
                                 )}
                                 <div className="flex justify-between items-center mt-1">
-                                  <span className="text-[10px] font-black text-white/50 uppercase tracking-wider">Итого:</span>
+                                  <span className="text-[11px] font-black text-white/50 uppercase tracking-wider">Итого:</span>
                                   <span className="text-2xl font-black text-white">₽{total}</span>
                                 </div>
                               </>
@@ -4788,7 +4788,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             <div key={i} className="bg-white h-full" style={{width:`${w*0.75}px`}}/>
                           ))}
                         </div>
-                        <span className="text-[8px] font-mono tracking-widest text-white/25">* НОМЕР ПРИСВОИТСЯ ПОСЛЕ ОФОРМЛЕНИЯ *</span>
+                        <span className="text-[9px] font-mono tracking-widest text-white/25">* НОМЕР ПРИСВОИТСЯ ПОСЛЕ ОФОРМЛЕНИЯ *</span>
                       </div>
                     </div>
                   )}
@@ -4800,7 +4800,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       <div className="flex items-center gap-2">
                         <span className="text-lg">🛍</span>
                         <div>
-                          <p className="text-[10px] text-indigo-300 font-black uppercase tracking-widest">Услуга</p>
+                          <p className="text-[11px] text-indigo-300 font-black uppercase tracking-widest">Услуга</p>
                           <p className="text-white font-bold text-xs">{selectedService.title}</p>
                         </div>
                       </div>
@@ -4840,7 +4840,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     💵 Оплата при получении
                   </button>
                   {uploadedFiles.length === 0 && !selectedService && (
-                    <p className="text-center text-[11px] text-white/30 mt-2">
+                    <p className="text-center text-[12px] text-white/30 mt-2">
                       ↑ Сначала загрузите файл на шаге 1
                     </p>
                   )}
@@ -4887,7 +4887,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </div>
 
               {orderFilter === 'completed' && (
-                <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/15 border border-amber-200/60 dark:border-amber-900/40 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/15 border border-amber-200/60 dark:border-amber-900/40 text-[12px] font-semibold text-amber-700 dark:text-amber-400">
                   <span>🗑</span>
                   <span>Выданные заказы хранятся в архиве 48 часов, затем автоматически удаляются из базы вместе с файлами.</span>
                 </div>
@@ -4938,7 +4938,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               <span className="text-sm font-black text-slate-800 dark:text-white uppercase">
                                 {ord.id}
                               </span>
-                              <span className="text-[10px] text-slate-400 font-medium">
+                              <span className="text-[11px] text-slate-400 font-medium">
                                 {formatDateTime(ord.orderDate)}
                               </span>
                             </div>
@@ -4950,19 +4950,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           {/* Order Status Badges indicators */}
                           <div className="flex flex-wrap items-center gap-2">
                             {ord.rejected && (
-                              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">
+                              <span className="text-[12px] font-bold px-3 py-1 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">
                                 ⚠ Брак
                               </span>
                             )}
-                            <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${getStatusColor(ord.status)}`}>
+                            <span className={`text-[12px] font-bold px-3 py-1 rounded-full ${getStatusColor(ord.status)}`}>
                               {getStatusLabel(ord.status)}
                             </span>
                             {ord.paymentStatus === 'unpaid' && ord.paymentMethod === 'При получении (Наличные/Карта)' ? (
-                              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
+                              <span className="text-[12px] font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
                                 💵 Оплата при получении
                               </span>
                             ) : (
-                              <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${getPaymentStatusColor(ord.paymentStatus)}`}>
+                              <span className={`text-[12px] font-bold px-3 py-1 rounded-full ${getPaymentStatusColor(ord.paymentStatus)}`}>
                                 {getPaymentStatusLabel(ord.paymentStatus)}
                               </span>
                             )}
@@ -4973,7 +4973,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           <div className="px-5 py-3 bg-rose-50 dark:bg-rose-950/15 border-b border-rose-100 dark:border-rose-900/40 flex items-start gap-2.5">
                             <span className="text-base shrink-0">⚠️</span>
                             <div>
-                              <p className="text-[11px] font-black text-rose-700 dark:text-rose-400 uppercase tracking-wide">Заказ не может быть выполнен</p>
+                              <p className="text-[12px] font-black text-rose-700 dark:text-rose-400 uppercase tracking-wide">Заказ не может быть выполнен</p>
                               <p className="text-xs text-rose-600 dark:text-rose-300 mt-0.5">{ord.rejectionReason}</p>
                             </div>
                           </div>
@@ -4998,7 +4998,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 return (
                                   <React.Fragment key={stage.id}>
                                     <div className="flex flex-col items-center gap-1.5 shrink-0 w-14">
-                                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black border-2 transition-all ${
+                                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-black border-2 transition-all ${
                                         isPast
                                           ? 'bg-emerald-500 border-emerald-500 text-white'
                                           : isCurrent
@@ -5009,7 +5009,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                       }`}>
                                         {isPast ? <Check className="w-3.5 h-3.5" /> : idx + 1}
                                       </div>
-                                      <span className={`text-[9px] font-bold uppercase tracking-tight text-center leading-tight ${
+                                      <span className={`text-[10px] font-bold uppercase tracking-tight text-center leading-tight ${
                                         isCurrent
                                           ? 'text-indigo-600 dark:text-indigo-400'
                                           : isPast
@@ -5034,7 +5034,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         {/* Mid Section - Files & Notes */}
                         <div className="p-5 space-y-4">
                           <div className="space-y-2">
-                            <div className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Загруженный комплект:</div>
+                            <div className="text-[12px] uppercase font-bold text-slate-400 tracking-wider">Загруженный комплект:</div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 content-start auto-rows-max gap-3">
                               {ord.files.map(f => (
                                 <div key={f.id} className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl flex items-center justify-between gap-2.5 text-xs relative group">
@@ -5042,7 +5042,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                     <FileType className="w-4.5 h-4.5 text-indigo-505" />
                                     <div className="overflow-hidden">
                                       <span className="font-bold block truncate text-slate-700 dark:text-slate-350">{f.name}</span>
-                                      <span className="text-[9px] text-slate-400 block">{formatFileSize(f.size)}</span>
+                                      <span className="text-[10px] text-slate-400 block">{formatFileSize(f.size)}</span>
                                     </div>
                                   </div>
 
@@ -5050,16 +5050,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                     <div className="shrink-0 flex items-center">
                                       {fileToConfirmDelete?.orderId === ord.id && fileToConfirmDelete?.fileId === f.id ? (
                                         <div className="flex items-center gap-1">
-                                          <span className="text-[9px] font-black text-rose-500 uppercase mr-1 animate-pulse">Удалить?</span>
+                                          <span className="text-[10px] font-black text-rose-500 uppercase mr-1 animate-pulse">Удалить?</span>
                                           <button
                                             onClick={() => handleDeleteFileFromOrder(ord.id, f.id)}
-                                            className="bg-rose-500 hover:bg-rose-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition"
+                                            className="bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition"
                                           >
                                             Да
                                           </button>
                                           <button
                                             onClick={() => setFileToConfirmDelete(null)}
-                                            className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition"
+                                            className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition"
                                           >
                                             Нет
                                           </button>
@@ -5087,14 +5087,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                   <div className="flex items-center gap-2">
                                     <span className="text-lg">🛍</span>
                                     <div>
-                                      <p className="text-[10px] text-indigo-300 font-black uppercase tracking-widest">Услуга</p>
+                                      <p className="text-[11px] text-indigo-300 font-black uppercase tracking-widest">Услуга</p>
                                       <p className="text-white font-bold text-xs">{ord.notes.replace('Услуга: ', '').split(' — ')[0]}</p>
                                     </div>
                                   </div>
                                   <span className="text-emerald-400 font-black text-sm">{ord.notes.split(' — ')[1]}</span>
                                 </div>
                               ) : (
-                                <div className="text-[11px]">
+                                <div className="text-[12px]">
                                   <span className="font-bold text-slate-500 dark:text-slate-400">Требования к распечатке:</span> {ord.notes}
                                 </div>
                               )}
@@ -5187,18 +5187,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             {canDeleteOwnOrder(ord) && (
                               orderToConfirmDelete === ord.id ? (
                                 <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 p-1 rounded-lg border border-rose-100 dark:border-rose-900/40">
-                                  <span className="text-[9px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить заказ?</span>
+                                  <span className="text-[10px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить заказ?</span>
                                   <button
                                     onClick={() => handleDeleteOwnOrder(ord.id)}
                                     disabled={deletingOrderId === ord.id}
-                                    className="bg-rose-500 hover:bg-rose-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition disabled:opacity-50"
+                                    className="bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition disabled:opacity-50"
                                   >
                                     {deletingOrderId === ord.id ? '...' : 'Да'}
                                   </button>
                                   <button
                                     onClick={() => setOrderToConfirmDelete(null)}
                                     disabled={deletingOrderId === ord.id}
-                                    className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition disabled:opacity-50"
+                                    className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition disabled:opacity-50"
                                   >
                                     Нет
                                   </button>
@@ -5258,9 +5258,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       const adminUser = database.users.find(u => u.role === 'admin');
                       const isAdminOnline = adminUser?.isOnline === true;
                       return isAdminOnline ? (
-                        <span className="text-[10px] text-emerald-600 font-bold dark:text-emerald-400 uppercase tracking-widest block mt-0.5 animate-pulse">● В сети — отвечает быстро</span>
+                        <span className="text-[11px] text-emerald-600 font-bold dark:text-emerald-400 uppercase tracking-widest block mt-0.5 animate-pulse">● В сети — отвечает быстро</span>
                       ) : (
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mt-0.5">● Не в сети — ответит позже</span>
+                        <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest block mt-0.5">● Не в сети — ответит позже</span>
                       );
                     })()}
                   </div>
@@ -5276,7 +5276,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <span>Связаться</span>
                   </a>
                   
-                  <div className="hidden lg:block text-slate-400 text-[10px] font-bold uppercase tracking-wider pl-2">
+                  <div className="hidden lg:block text-slate-400 text-[11px] font-bold uppercase tracking-wider pl-2">
                     Шифрование SSL
                   </div>
                 </div>
@@ -5291,7 +5291,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       <MessageSquare className="w-7 h-7" />
                     </div>
                     <p className="text-xs font-bold text-slate-800 dark:text-white">Чат пуст. Начните диалог первым!</p>
-                    <p className="text-[10px] text-slate-400 mt-1 max-w-xs">
+                    <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
                       Вы можете уточнить статус заказа, согласовать перенос времени или заказать брошюровку у оператора в реальном времени.
                     </p>
                   </div>
@@ -5315,7 +5315,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           />
                         )}
                         <div className="space-y-1">
-                          <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1 px-1">
+                          <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 px-1">
                             <span>{msg.senderName} &bull; {new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
                             {!isAdmin && (
                               <span className="inline-flex items-center ml-0.5" title={msg.readByAdmin ? "Прочитано" : "Доставлено"}>
@@ -5362,7 +5362,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                   className="rounded-xl max-w-[200px] sm:max-w-xs cursor-pointer hover:opacity-90 shadow-sm border border-slate-200 dark:border-slate-800"
                                   alt="Пример готового продукта"
                                 />
-                                <span className="text-[9px] opacity-70 block italic">Защищено водяным знаком &bull; ПРИМЕР</span>
+                                <span className="text-[10px] opacity-70 block italic">Защищено водяным знаком &bull; ПРИМЕР</span>
                               </div>
                             ) : (
                               msg.message
@@ -5381,7 +5381,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               {/* Chat inputs panel */}
               <div className="border-t border-white/10 glass-panel">
                 {micError && (
-                  <div className="px-4 pt-2.5 text-[11px] font-bold text-rose-500 dark:text-rose-400">
+                  <div className="px-4 pt-2.5 text-[12px] font-bold text-rose-500 dark:text-rose-400">
                     {micError}
                   </div>
                 )}
@@ -5493,7 +5493,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         </div>
 
                         <div className="space-y-1 text-left">
-                          <label htmlFor="edit-avatar-url" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Или укажите свою ссылку на изображение:</label>
+                          <label htmlFor="edit-avatar-url" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Или укажите свою ссылку на изображение:</label>
                           <input
                             id="edit-avatar-url"
                             type="text"
@@ -5507,7 +5507,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                       <div className="space-y-3">
                         <div className="space-y-1">
-                          <label htmlFor="edit-full-name" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Ваше Имя и Фамилия:</label>
+                          <label htmlFor="edit-full-name" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Ваше Имя и Фамилия:</label>
                           <input
                             id="edit-full-name"
                             type="text"
@@ -5520,7 +5520,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         </div>
 
                         <div className="space-y-1">
-                          <label htmlFor="edit-phone" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Контактный телефон:</label>
+                          <label htmlFor="edit-phone" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Контактный телефон:</label>
                           <input
                             id="edit-phone"
                             type="text"
@@ -5568,7 +5568,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             />
                             <div className="absolute inset-0 max-w-[80px] h-20 rounded-2xl bg-slate-950/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity duration-200 mx-auto mb-3">
                               <Upload className="w-4 h-4 text-indigo-250 mb-0.5" />
-                              <span className="text-[8px] font-black uppercase tracking-wider text-slate-100">Фото</span>
+                              <span className="text-[9px] font-black uppercase tracking-wider text-slate-100">Фото</span>
                             </div>
                             {avatarUploading && (
                               <div className="absolute inset-0 max-w-[80px] h-20 rounded-2xl bg-[#0f172a]/85 flex items-center justify-center text-white mx-auto mb-3">
@@ -5596,7 +5596,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           </div>
                         </div>
                         <h3 className="text-base font-black text-slate-800 dark:text-white mt-1">{user.fullName}</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{user.role === 'admin' ? 'Администратор' : 'Клиент Копи-Центра'}</p>
+                        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{user.role === 'admin' ? 'Администратор' : 'Клиент Копи-Центра'}</p>
                         
                         {/* Interactive dynamic loyalty badge */}
                         <div className="mt-2.5 flex justify-center">
@@ -5629,7 +5629,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           
                           return (
                             <>
-                              <div className="flex justify-between items-baseline text-[10px] font-bold">
+                              <div className="flex justify-between items-baseline text-[11px] font-bold">
                                 <span className="text-slate-400 uppercase tracking-widest">Прогресс лояльности:</span>
                                 <span className="text-slate-500 font-black">{paidTotal} ₽ / {nextGoal} ₽</span>
                               </div>
@@ -5642,7 +5642,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                   style={{ width: `${Math.min(100, Math.max(8, progress))}%` }}
                                 />
                               </div>
-                              <div className="flex justify-between text-[9px] font-bold text-slate-400">
+                              <div className="flex justify-between text-[10px] font-bold text-slate-400">
                                 <span>{tier.name}</span>
                                 {paidTotal < 50000 ? (
                                   <span className="text-indigo-600 dark:text-indigo-400">До статуса {goalLabel}: {(nextGoal - paidTotal).toLocaleString('ru-RU')} ₽</span>
@@ -5667,7 +5667,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         </div>
 
                         <div className="flex justify-between items-center text-xs">
-                          <span className="text-[10px] text-slate-400">Дата регистрации:</span>
+                          <span className="text-[11px] text-slate-400">Дата регистрации:</span>
                           <span className="font-bold text-slate-805 dark:text-slate-300">{formatDateTime(user.createdAt)}</span>
                         </div>
 
@@ -5718,9 +5718,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     
                     {/* Social connection options */}
                     <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl space-y-3 border border-slate-100 dark:border-slate-850">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Связанные соцсети</span>
+                      <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider block">Связанные соцсети</span>
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border ${
+                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border ${
                           user.isSocial 
                             ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400' 
                             : 'bg-slate-100 border-slate-200 text-slate-550 dark:bg-slate-900 dark:text-slate-400'
@@ -5732,13 +5732,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                     {/* Self Account deletion */}
                     <div className="p-4 border border-rose-100 dark:border-rose-950/40 rounded-2xl bg-rose-50/50 dark:bg-rose-950/10 space-y-3">
-                      <span className="text-[10px] uppercase font-bold text-rose-500 tracking-wider block">Удаление профиля согласно GDPR</span>
-                      <p className="text-[10px] text-rose-700/80 dark:text-rose-400/80">
+                      <span className="text-[11px] uppercase font-bold text-rose-500 tracking-wider block">Удаление профиля согласно GDPR</span>
+                      <p className="text-[11px] text-rose-700/80 dark:text-rose-400/80">
                         Вы можете навсегда удалить все ваши учетные данные, загруженные файлы и историю из базы данных Копи-Центра.
                       </p>
                       <button
                         onClick={handleDeleteSelf}
-                        className="py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg transition"
+                        className="py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] rounded-lg transition"
                       >
                         Применить удаление данных
                       </button>
@@ -5753,7 +5753,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider"><AnimatedTitle>Поделиться Сервисом</AnimatedTitle></h3>
                   </div>
                   
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-normal">
                     Порекомендуйте наш удобный онлайн Копи-Центр друзьям. Поделитесь ссылкой в один клик через WhatsApp, Telegram, VKontakte или Email.
                   </p>
 
@@ -5769,7 +5769,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       <svg className="w-5 h-5 text-emerald-605 group-hover:scale-110 transition duration-200" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.717-1.456L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.42 9.864-9.843.002-2.628-1.022-5.1-2.885-6.964C16.588 1.94 14.116.916 11.5.914 6.066.914 1.644 5.334 1.64 10.758c-.001 1.71.455 3.38 1.321 4.843L1.87 21.08l5.88-1.543zm12.353-8.156c-.334-.167-1.971-.972-2.275-1.082-.303-.11-.525-.164-.746.168-.221.332-.856 1.082-1.05 1.302-.193.222-.387.247-.72.08-1.53-.762-2.658-1.32-3.714-3.13-.28-.48.28-.445.8-.1.353-.284.582-.44.825-.94.24-.5.12-.94-.03-1.272-.15-.332-1.272-3.07-1.742-4.2-.459-1.1-.92-1.05-1.272-1.055-.3-.004-.643-.004-.985-.004-.34 0-.895.127-1.36.64-.462.513-1.766 1.727-1.766 4.21s1.807 4.88 2.057 5.214C8.42 16.52 11.92 21.5 17.5 23.513c3.27 1.18 4.254 1.139 5.332.96 1.05-.17 2.275-.928 2.595-1.785.32-.857.32-1.593.224-1.785-.096-.192-.352-.303-.687-.47z" />
                       </svg>
-                      <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-1.5">WhatsApp</span>
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5">WhatsApp</span>
                     </a>
 
                     {/* Telegram share */}
@@ -5783,7 +5783,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       <svg className="w-5 h-5 text-sky-500 group-hover:scale-110 transition duration-200" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.65-.35-1 .22-1.6 1.5-1.55 2.75-2.91 3.75-3.95.44-.45.89-.96.44-.96-.45 0-1.18.3-2.18.97-1 .68-1.86 1.25-3.5 2.33-.53.35-.95.53-1.34.52-.42 0-1.22-.23-1.82-.42-.74-.24-1.33-.36-1.28-.77.03-.21.32-.43.88-.67 3.44-1.5 5.74-2.49 6.89-2.98 3.29-1.37 3.98-1.61 4.43-1.62.1 0 .32.02.46.14.12.1.15.24.17.34.02.13.02.43 0 .52z" />
                       </svg>
-                      <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-1.5">Telegram</span>
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5">Telegram</span>
                     </a>
 
                     {/* VK share - corrected custom vector icon & color path */}
@@ -5797,7 +5797,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       <svg className="w-5 h-5 text-[#0077FF] dark:text-[#3f94ff] group-hover:scale-110 transition duration-200" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M15.024 19.141c-5.748 0-10.354-4.57-10.457-11.141H7.5c.071 4.795 2.203 6.829 3.882 7.247V8h2.824v4.132c1.729-.184 3.473-2.073 4.086-4.132h2.824a10.22 10.22 0 01-3.765 5.518c1.376.623 3.153 2.296 4.141 5.623h-3.035c-.776-2.39-2.706-4.247-4.259-4.39V19.14h-.012z"/>
                       </svg>
-                      <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-1.5">ВКонтакте</span>
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5">ВКонтакте</span>
                     </a>
 
                     {/* Email share */}
@@ -5807,7 +5807,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       title="Отправить по Email"
                     >
                       <Mail className="w-5 h-5 text-indigo-650 group-hover:scale-110 transition duration-200" />
-                      <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-1.5">Email</span>
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5">Email</span>
                     </a>
                   </div>
 
@@ -5874,9 +5874,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-center">
                             <h4 className="text-xs font-bold text-slate-800 dark:text-white truncate">{notif.title}</h4>
-                            <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap ml-1">{new Date(notif.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap ml-1">{new Date(notif.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{notif.body}</p>
+                          <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">{notif.body}</p>
                         </div>
                       </div>
                     ))}
@@ -6049,7 +6049,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <Camera className="relative z-[3] w-4 h-4" />
                   <span className="relative z-[3]">📷 Скан</span>
                 </button>
-                <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+                <p className="text-[12px] text-slate-400 text-center leading-relaxed">
                   Наведите камеру на документ и сфотографируйте — подтянем контраст, добавим резкость и обрежем по центру под выбранный формат. Если получилось криво, всегда можно переснять.
                 </p>
               </div>
@@ -6199,7 +6199,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       {/* Название, описание и цена — статично, без hover */}
                       <div className="px-3.5 pt-3 pb-3.5 flex flex-col flex-1">
                         <p className="font-extrabold text-[13px] text-slate-800 dark:text-white mb-0.5 leading-tight">{svc.title}</p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                        <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">
                           {svc.description?.slice(0,50)}{(svc.description?.length||0) > 50 ? '...' : ''}
                         </p>
                         <p className="font-black text-xl text-indigo-600 dark:text-indigo-400 mt-2 mb-2">{formatServicePrice(svc.price)}</p>
@@ -6300,7 +6300,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           <div className="p-4 pt-5 flex items-start justify-between shrink-0 bg-gradient-to-b from-black/70 to-transparent absolute top-0 left-0 right-0 z-10">
             <div className="overflow-hidden mr-2">
               <h3 className="text-xs font-black text-white truncate"><AnimatedTitle>{previewFile.name}</AnimatedTitle></h3>
-              <span className="text-[10px] text-white/50 font-medium block mt-0.5">
+              <span className="text-[11px] text-white/50 font-medium block mt-0.5">
                 {formatFileSize(previewFile.size)}
                 {previewPdfPages.length > 1 && ` · Страница ${previewPageIndex + 1} из ${previewPdfPages.length}`}
               </span>
@@ -6342,14 +6342,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <div className="text-center p-8 max-w-md text-white/70">
                   <div className="text-4xl mb-3">📄</div>
                   <p className="text-xs font-bold">Не удалось открыть предпросмотр PDF.</p>
-                  <p className="text-[11px] mt-1.5 leading-relaxed">Но файл всё равно можно отправить на печать.</p>
+                  <p className="text-[12px] mt-1.5 leading-relaxed">Но файл всё равно можно отправить на печать.</p>
                 </div>
               )
             ) : (
               <div className="text-center p-8 max-w-md text-white/70">
                 <div className="text-4xl mb-3">📄</div>
                 <p className="text-xs font-bold">Прямой предпросмотр для этого формата недоступен.</p>
-                <p className="text-[11px] mt-1.5 leading-relaxed">Но вы можете отправить его на печать! Мы поддерживаем чертежи, текстовые документы и архивы.</p>
+                <p className="text-[12px] mt-1.5 leading-relaxed">Но вы можете отправить его на печать! Мы поддерживаем чертежи, текстовые документы и архивы.</p>
               </div>
             )}
           </div>
@@ -6446,7 +6446,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               >
                 <div className="p-5 pb-0 text-center">
                   <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>Полароид</AnimatedTitle></h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{file.name}</p>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{file.name}</p>
                 </div>
 
                 <div className="flex items-center justify-center py-2">
@@ -6462,14 +6462,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         onChange={(e) => setApplyToAllPending(e.target.checked)}
                         className="w-4 h-4 accent-indigo-600 cursor-pointer shrink-0"
                       />
-                      <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                      <span className="text-[12px] font-bold text-indigo-700 dark:text-indigo-300">
                         Применить эти настройки ко всем {pendingUploads.filter(f => f.formatGroup === 'image').length} фото сразу
                       </span>
                     </label>
                   )}
 
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Копий</p>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Копий</p>
                     <div className="flex items-center gap-3">
                       <button type="button" onClick={() => patch({ fileCopies: Math.max(1, copies - 1) })}
                         className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">−</button>
@@ -6540,7 +6540,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               >
                 <div className="p-5 pb-0 text-center">
                   <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>А3</AnimatedTitle></h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{file.name}</p>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{file.name}</p>
                 </div>
 
                 <div className="p-5 space-y-4 overflow-y-auto">
@@ -6571,7 +6571,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             autoPlay loop muted playsInline
                             className="w-full aspect-square rounded-xl object-cover pointer-events-none"
                           />
-                          <div className={`text-[11px] font-black ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{opt.label}</div>
+                          <div className={`text-[12px] font-black ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{opt.label}</div>
                         </button>
                       );
                     })}
@@ -6580,7 +6580,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   {file.a3Kind === 'chertyozh' && (
                     <>
                       <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Цветность</p>
+                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Цветность</p>
                         <div className="grid grid-cols-2 gap-2.5">
                           {([
                             { key: 'bw', label: 'Ч/Б' },
@@ -6605,7 +6605,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         </div>
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Плотность бумаги</p>
+                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Плотность бумаги</p>
                         <div className="grid grid-cols-2 gap-2.5">
                           {([
                             { key: '80', label: '80 г/м²', sub: 'тонкая офисная' },
@@ -6625,7 +6625,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 }`}
                               >
                                 <span className={`text-xs font-black ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{opt.label}</span>
-                                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">{opt.sub} · {price}₽</span>
+                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{opt.sub} · {price}₽</span>
                               </button>
                             );
                           })}
@@ -6636,7 +6636,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                   {file.a3Kind === 'photo' && (
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Покрытие</p>
+                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Покрытие</p>
                       <div className="grid grid-cols-2 gap-2.5">
                         {([
                           { key: 'glossy', label: 'Глянец' },
@@ -6670,14 +6670,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         onChange={(e) => setApplyToAllPending(e.target.checked)}
                         className="w-4 h-4 accent-indigo-600 cursor-pointer shrink-0"
                       />
-                      <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                      <span className="text-[12px] font-bold text-indigo-700 dark:text-indigo-300">
                         Применить эти настройки ко всем {pendingUploads.filter(f => f.format === 'a3').length} файлам А3 сразу
                       </span>
                     </label>
                   )}
 
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Копий</p>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Копий</p>
                     <div className="flex items-center gap-3">
                       <button type="button" onClick={() => patch({ fileCopies: Math.max(1, copies - 1) })}
                         className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">−</button>
@@ -6755,7 +6755,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <img src={printerInkIcon} alt="" className="w-16 h-16 shrink-0" />
                 <div className="overflow-hidden flex-1">
                   <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>Настройте параметры печати</AnimatedTitle></h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{file.name}</p>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate">{file.name}</p>
                 </div>
                 {/* "Загружен" не показываем — анимация в зоне дропа перед
                     открытием этого окна уже показала клиенту, что файл
@@ -6763,7 +6763,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     оставляем — на случай, если реальная отправка на сервер
                     (отдельно от визуальной анимации) ещё не успела закончиться. */}
                 {!file.url && (
-                  <span className="shrink-0 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-indigo-500">
+                  <span className="shrink-0 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-indigo-500">
                     <span className="w-3 h-3 rounded-full border-2 border-indigo-300 border-t-indigo-600 animate-spin" />
                     Загрузка...
                   </span>
@@ -6776,7 +6776,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     Для полароида не показываем — печать там всегда цветная, выбор нечего настраивать. */}
                 {!isA3 && !isPolaroidSize && (
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Цветность</p>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Цветность</p>
                     <div className="grid grid-cols-2 gap-2.5">
                       <button
                         type="button"
@@ -6816,7 +6816,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     </div>
 
                     {colorlessBlocksConfirm && (
-                      <div className="mt-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 p-3 text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                      <div className="mt-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 p-3 text-[12px] text-amber-800 dark:text-amber-300 flex items-start gap-2">
                         <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                         <span>В этом файле нет цвета — это обычный текстовый файл, цветная печать не будет ничем отличаться от Ч/Б. Выберите Ч/Б, чтобы продолжить.</span>
                       </div>
@@ -6835,17 +6835,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-lg shrink-0">🎨</span>
                           <div className="min-w-0">
-                            <p className="text-[10px] font-black uppercase tracking-wide text-amber-700 dark:text-amber-300 truncate">{colorFillLabel(fillPct)}</p>
+                            <p className="text-[11px] font-black uppercase tracking-wide text-amber-700 dark:text-amber-300 truncate">{colorFillLabel(fillPct)}</p>
                             <div className="flex items-center gap-1.5 mt-1">
                               <div className="w-16 h-1.5 rounded-full bg-amber-200/60 dark:bg-amber-900/50 overflow-hidden shrink-0">
                                 <div className="h-full rounded-full bg-amber-500" style={{ width: `${fillPct}%` }} />
                               </div>
-                              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 shrink-0">{fillPct}%</span>
+                              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 shrink-0">{fillPct}%</span>
                             </div>
                           </div>
                         </div>
                         <span className="text-xl font-black text-amber-800 dark:text-amber-300 shrink-0">
-                          {colorPrice} <span className="text-[10px] font-bold">₽/стр.</span>
+                          {colorPrice} <span className="text-[11px] font-bold">₽/стр.</span>
                         </span>
                       </div>
                     ) : (
@@ -6860,7 +6860,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     размер один и тот же, настраивать нечего) */}
                 {isPhoto && !isPolaroidSize && (
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Размер фотографии</p>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Размер фотографии</p>
                     <div className="grid grid-cols-3 gap-2">
                       {photoSizes.map(s => {
                         const sizeSelected = (file.photoSize || '10x15') === s.key;
@@ -6877,8 +6877,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
                               </div>
                             )}
-                            <div className={`text-[11px] font-black ${sizeSelected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{s.label}</div>
-                            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{s.price} ₽</div>
+                            <div className={`text-[12px] font-black ${sizeSelected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{s.label}</div>
+                            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{s.price} ₽</div>
                           </button>
                         );
                       })}
@@ -6909,7 +6909,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       return (
                         <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/25 border border-amber-200/60 dark:border-amber-900/40 flex items-start gap-2">
                           <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                          <p className="text-[10px] text-amber-800 dark:text-amber-300 leading-snug">
+                          <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-snug">
                             Это фото маловато для печати {selSize.label} — при печати может быть размыто. Если есть оригинал большего размера, лучше загрузить его; можно печатать и как есть.
                           </p>
                         </div>
@@ -6921,8 +6921,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 {/* Рамка — с белыми полями или край-в-край, только для фотобумаги (не для полароида) */}
                 {isPhoto && !isPolaroidSize && (
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Печать</p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug mb-2">
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Печать</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug mb-2">
                       Если пропорции фото не совпадают с размером бумаги: «без рамки» обрежет края фото, «с рамкой» покажет фото целиком с белыми полями.
                     </p>
                     <div className="grid grid-cols-2 gap-2.5">
@@ -6958,8 +6958,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 <div className="w-full h-full bg-gradient-to-br from-sky-300 to-indigo-400" />
                               )}
                             </div>
-                            <div className={`text-[11px] font-black ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{opt.label}</div>
-                            <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400">{opt.sub}</div>
+                            <div className={`text-[12px] font-black ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{opt.label}</div>
+                            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{opt.sub}</div>
                           </button>
                         );
                       })}
@@ -6977,7 +6977,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       onChange={(e) => setApplyToAllPending(e.target.checked)}
                       className="w-4 h-4 accent-indigo-600 cursor-pointer shrink-0"
                     />
-                    <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                    <span className="text-[12px] font-bold text-indigo-700 dark:text-indigo-300">
                       Применить эти настройки ко всем {pendingUploads.filter(f => f.formatGroup === 'image').length} фото сразу
                     </span>
                   </label>
@@ -6991,7 +6991,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <>
                 {/* Копии */}
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Копий</p>
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Копий</p>
                   <div className="flex items-center gap-3">
                     <button type="button" onClick={() => patch({ fileCopies: Math.max(1, copies - 1) })}
                       className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">−</button>
@@ -7072,9 +7072,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <div>
                   <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
                     <AnimatedTitle><span>Интерактивный 3D-осмотр тиража партии</span></AnimatedTitle>
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-0.5 rounded-full border border-emerald-250/30">В ФОКУСЕ 100%</span>
+                    <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-0.5 rounded-full border border-emerald-250/30">В ФОКУСЕ 100%</span>
                   </h3>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold block mt-0.5 leading-none">
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500 font-bold block mt-0.5 leading-none">
                     Реалистичная симуляция физического носителя и его комплектации
                   </span>
                 </div>
@@ -7146,7 +7146,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         {/* Sleeve File simulation */}
                         {binding === 'file' && isTopPage && (
                           <div className="absolute inset-0 bg-sky-200/15 dark:bg-sky-400/5 border-2 border-sky-400/30 rounded-xl z-20 pointer-events-none shadow-inner" style={{ backdropFilter: 'blur(0.5px)' }}>
-                            <div className="absolute top-2 right-2 w-4 h-4 rounded-full border border-sky-500/15 flex items-center justify-center bg-white/90 shadow-md text-sky-600 font-extrabold text-[9px]">
+                            <div className="absolute top-2 right-2 w-4 h-4 rounded-full border border-sky-500/15 flex items-center justify-center bg-white/90 shadow-md text-sky-600 font-extrabold text-[10px]">
                               5₽
                             </div>
                           </div>
@@ -7183,7 +7183,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 * Текстурная кожаная обложка *
                               </div>
                             </div>
-                            <div className="flex justify-between items-end border-t border-slate-800 pt-2 text-[7px] text-slate-400 font-mono">
+                            <div className="flex justify-between items-end border-t border-slate-800 pt-2 text-[8px] text-slate-400 font-mono">
                               <span>РАЗМЕР А4</span>
                               <span>МАТЕРИАЛ КНИЖНЫЙ</span>
                             </div>
@@ -7203,7 +7203,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                     alt={uploadedFiles[0].name}
                                     referrerPolicy="no-referrer"
                                   />
-                                  <div className="absolute top-1.5 right-1.5 bg-indigo-600 px-2 py-0.5 text-white text-[7px] font-black tracking-widest rounded-md">
+                                  <div className="absolute top-1.5 right-1.5 bg-indigo-600 px-2 py-0.5 text-white text-[8px] font-black tracking-widest rounded-md">
                                     ОРИГИНАЛ МАКЕТА
                                   </div>
                                 </div>
@@ -7225,7 +7225,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 <div className="my-auto py-2.5 space-y-2.5">
                                   {/* Simulated clean stamp or header */}
                                   <div className="border border-dashed border-indigo-400/40 bg-indigo-50/10 p-2.5 rounded-xl space-y-1">
-                                    <div className="text-[10px] font-black tracking-wide text-indigo-700 dark:text-indigo-400">
+                                    <div className="text-[11px] font-black tracking-wide text-indigo-700 dark:text-indigo-400">
                                       {uploadedFiles[0].name.toUpperCase()}
                                     </div>
                                     <div className="text-[7.5px] text-slate-500 dark:text-slate-400 font-bold font-mono">
@@ -7236,7 +7236,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                   {/* Simulated detailed paragraph blocks */}
                                   <div className="space-y-1.5">
                                     <div className="flex items-center gap-1.5">
-                                      <div className="w-3 h-3 rounded-full bg-indigo-505 flex items-center justify-center text-[7px] text-white font-black">1</div>
+                                      <div className="w-3 h-3 rounded-full bg-indigo-505 flex items-center justify-center text-[8px] text-white font-black">1</div>
                                       <p className="text-[8.5px] font-extrabold text-slate-750 dark:text-slate-300">Реальные параметры партии:</p>
                                     </div>
                                     <div className="pl-4 space-y-1">
@@ -7247,7 +7247,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                   </div>
 
                                   {/* Real parameters stamped inside mockup page */}
-                                  <div className="bg-slate-100/50 dark:bg-slate-900/55 p-2 rounded-lg text-[7px] font-mono space-y-0.5 text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-800/40">
+                                  <div className="bg-slate-100/50 dark:bg-slate-900/55 p-2 rounded-lg text-[8px] font-mono space-y-0.5 text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-800/40">
                                     <div>Плотность: {paperDensity === 'thick' ? 'Плотная 160 г/м²' : 'Стандартная 80 г/м²'}</div>
                                     <div>Тираж: {copies} шт • Страниц: {uploadedFiles.reduce((acc, f) => acc + (f.pageCount || 1), 0)}</div>
                                     <div>Скрепление: {binding === 'none' ? 'Нет' : binding === 'staple' ? 'Степлер (угол)' : binding === 'file' ? 'Файлик' : binding === 'spring_metal' ? 'Металлическая пружина' : binding === 'spring_plastic' ? 'Пластиковая пружина' : 'Твёрдый переплет'}</div>
@@ -7255,7 +7255,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 </div>
 
                                 {/* Stamps or bottom seals */}
-                                <div className="flex justify-between items-end border-t border-slate-200/60 dark:border-slate-800/60 pt-2 text-[7px] font-bold text-slate-400">
+                                <div className="flex justify-between items-end border-t border-slate-200/60 dark:border-slate-800/60 pt-2 text-[8px] font-bold text-slate-400">
                                   <div className="space-y-0.5">
                                     <span className="block italic">Подготовлено в печать:</span>
                                     <span className="block font-mono text-indigo-650 dark:text-indigo-400">{user.fullName || 'Гость-Клиент'}</span>
@@ -7284,18 +7284,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                                 <div className="my-auto py-2.5 space-y-2.5">
                                   <div className="border border-dashed border-indigo-400/40 bg-indigo-50/10 p-2 rounded-lg space-y-1">
-                                    <div className="text-[9px] font-black tracking-wide text-slate-800 dark:text-slate-200">
+                                    <div className="text-[10px] font-black tracking-wide text-slate-800 dark:text-slate-200">
                                       DOCUMENT_REPORT.PDF
                                     </div>
-                                    <div className="text-[7px] text-slate-450 dark:text-slate-500 font-medium">
+                                    <div className="text-[8px] text-slate-450 dark:text-slate-500 font-medium">
                                       Типография: Северное шоссе, 18 • 1.04 MB • 1 стр.
                                     </div>
                                   </div>
 
                                   <div className="space-y-1.5">
                                     <div className="flex items-center gap-1.5">
-                                      <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 flex items-center justify-center text-[6px] text-white font-black">1</div>
-                                      <p className="text-[8px] font-semibold text-slate-750 dark:text-slate-300">Спецификация партии на печать:</p>
+                                      <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 flex items-center justify-center text-[7px] text-white font-black">1</div>
+                                      <p className="text-[9px] font-semibold text-slate-750 dark:text-slate-300">Спецификация партии на печать:</p>
                                     </div>
                                     <div className="pl-4 space-y-1">
                                       <div className="h-1 bg-slate-300 dark:bg-slate-700 rounded-full w-full" />
@@ -7303,14 +7303,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                     </div>
                                   </div>
 
-                                  <div className="bg-slate-100/50 dark:bg-slate-900/55 p-2 rounded-lg text-[7px] font-mono space-y-0.5 text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-800/40">
+                                  <div className="bg-slate-100/50 dark:bg-slate-900/55 p-2 rounded-lg text-[8px] font-mono space-y-0.5 text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-800/40">
                                     <div>Плотность: {paperDensity === 'thick' ? 'Плотная 160 г/м²' : 'Стандартная 80 г/м²'}</div>
                                     <div>Тираж: {copies} шт • Страниц: 1</div>
                                     <div>Скрепление: {binding === 'none' ? 'Нет' : binding === 'staple' ? 'Степлер (угол)' : binding === 'file' ? 'Файлик' : binding === 'spring_metal' ? 'Металлическая пружина' : binding === 'spring_plastic' ? 'Пластиковая пружина' : 'Твёрдый переплет'}</div>
                                   </div>
                                 </div>
 
-                                <div className="flex justify-between items-end border-t border-slate-200/60 dark:border-slate-800/60 pt-2 text-[7px] font-bold text-slate-400">
+                                <div className="flex justify-between items-end border-t border-slate-200/60 dark:border-slate-800/60 pt-2 text-[8px] font-bold text-slate-400">
                                   <div className="space-y-0.5">
                                     <span className="block italic">Подготовлено в печать:</span>
                                     <span className="block font-mono text-indigo-600 dark:text-indigo-400">{user.fullName || 'Гость-Клиент'}</span>
@@ -7336,7 +7336,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 </div>
 
                 {/* Perspective stats overlay on the bottom left of canvas */}
-                <div className="absolute bottom-4 left-4 bg-slate-900/90 text-white font-mono text-[9px] p-2.5 rounded-xl space-y-0.5 border border-slate-800 z-30 shadow-lg select-none backdrop-blur-xs">
+                <div className="absolute bottom-4 left-4 bg-slate-900/90 text-white font-mono text-[10px] p-2.5 rounded-xl space-y-0.5 border border-slate-800 z-30 shadow-lg select-none backdrop-blur-xs">
                   <div>X-ROTATION: {mockRotateX}°</div>
                   <div>Y-ROTATION: {mockRotateY}°</div>
                   <div>ZOOM-LEVEL: {mockScale.toFixed(2)}x</div>
@@ -7368,7 +7368,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       aria-label="Вращение манекена по горизонтали"
                       className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                     />
-                    <div className="flex justify-between text-[9px] text-slate-400 font-bold">
+                    <div className="flex justify-between text-[10px] text-slate-400 font-bold">
                       <span>СЛЕВА (-75°)</span>
                       <span>ФРОНТ (0°)</span>
                       <span>СПРАВА (75°)</span>
@@ -7390,7 +7390,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       aria-label="Наклон манекена по вертикали"
                       className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                     />
-                    <div className="flex justify-between text-[9px] text-slate-400 font-bold">
+                    <div className="flex justify-between text-[10px] text-slate-400 font-bold">
                       <span>ВИД СБОКУ (0°)</span>
                       <span>ИДЕАЛЬНЫЙ НАКЛОН (25°)</span>
                       <span>ВИД СВЕРХУ (75°)</span>
@@ -7413,7 +7413,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       aria-label="Масштабирование манекена"
                       className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                     />
-                    <div className="flex justify-between text-[9px] text-slate-400 font-bold">
+                    <div className="flex justify-between text-[10px] text-slate-400 font-bold">
                       <span>ОТДАЛИТЬ (0.8x)</span>
                       <span>ПРИБЛИЗИТЬ (2.0x)</span>
                     </div>
@@ -7426,7 +7426,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
                     <span>Совет по 3D-макету:</span>
                   </p>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                  <p className="text-[12px] text-slate-600 dark:text-slate-400">
                     Макет отображается в реальном времени под прямым освещением («в фокусе»). Вы можете детально изучить зазоры под пружинную брошюровку, глазурованный блеск глянцевой текстуры и угол наклона листов перед проведением платежа.
                   </p>
                 </div>
@@ -7476,7 +7476,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <div className="p-5 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/30">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">ЗАКАЗ В ОБРАБОТКЕ: <strong>{payingOrder.id}</strong></span>
+                <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">ЗАКАЗ В ОБРАБОТКЕ: <strong>{payingOrder.id}</strong></span>
               </div>
               <button
                 onClick={() => setPayingOrder(null)}
@@ -7560,7 +7560,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </div>
               <div>
                 <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-white"><AnimatedTitle>Удаление аккаунта</AnimatedTitle></h3>
-                <p className="text-[10px] text-slate-400 font-bold">Это действие невозможно отменить</p>
+                <p className="text-[11px] text-slate-400 font-bold">Это действие невозможно отменить</p>
               </div>
             </div>
 
@@ -7707,7 +7707,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </div>
                   <div>
                     <p className="text-white font-bold text-sm">{step.title}</p>
-                    <p className="text-white/40 text-[11px]">{step.desc}</p>
+                    <p className="text-white/40 text-[12px]">{step.desc}</p>
                   </div>
                 </div>
               ))}
@@ -7797,18 +7797,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
               {/* Glowing Coupon Display */}
               <div className="bg-emerald-50/20 dark:bg-emerald-950/15 border border-dashed border-emerald-500/30 rounded-2xl p-5 space-y-3 relative overflow-hidden">
-                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 tracking-widest block uppercase">Ваш личный промокод:</span>
+                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 tracking-widest block uppercase">Ваш личный промокод:</span>
                 
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white font-mono tracking-widest bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 py-2.5 px-4 rounded-xl shadow-xs inline-block">
                   {user.promoCode}
                 </h2>
 
-                <div className="text-[11px] font-black text-emerald-650 bg-emerald-50 dark:bg-emerald-900/30 py-1.5 px-3 rounded-xl border border-emerald-500/10 inline-flex items-center gap-1.5">
+                <div className="text-[12px] font-black text-emerald-650 bg-emerald-50 dark:bg-emerald-900/30 py-1.5 px-3 rounded-xl border border-emerald-500/10 inline-flex items-center gap-1.5">
                   Скидка на все услуги печати: <span className="text-sm font-extrabold text-amber-500">-{user.promoDiscount}%</span>
                 </div>
               </div>
 
-              <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+              <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
                 Скопируйте промокод и примените его при оформлении следующего заказа, чтобы применить скидку в {user.promoDiscount}%!
               </p>
 
@@ -7855,7 +7855,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </div>
               <div className="overflow-hidden flex-1">
                 <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>Конструктор коллажа А4</AnimatedTitle></h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <p className="text-[12px] text-slate-500 dark:text-slate-400">
                   Выберите фото — сетка на листе подберётся автоматически
                 </p>
               </div>
@@ -7873,7 +7873,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <div className="p-5 space-y-5 overflow-y-auto">
               {/* Бумага для листа-коллажа */}
               <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Бумага</p>
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Бумага</p>
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
@@ -7889,8 +7889,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
                       </div>
                     )}
-                    <div className="text-[11px] font-black text-slate-800 dark:text-white">Обычная</div>
-                    <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{COLLAGE_PRICE_PLAIN} ₽/лист</div>
+                    <div className="text-[12px] font-black text-slate-800 dark:text-white">Обычная</div>
+                    <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{COLLAGE_PRICE_PLAIN} ₽/лист</div>
                   </button>
                   <button
                     type="button"
@@ -7906,15 +7906,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
                       </div>
                     )}
-                    <div className="text-[11px] font-black text-slate-800 dark:text-white">Фото 🖼</div>
-                    <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{COLLAGE_PRICE_PHOTO} ₽/лист</div>
+                    <div className="text-[12px] font-black text-slate-800 dark:text-white">Фото 🖼</div>
+                    <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{COLLAGE_PRICE_PHOTO} ₽/лист</div>
                   </button>
                 </div>
               </div>
 
               {/* Выбор фото */}
               <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">
                   Фото для коллажа ({collageSelectedIds.length} выбрано)
                 </p>
                 <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
@@ -7946,7 +7946,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               {/* Превью листов */}
               {collageSheets.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">
                     Предпросмотр {collageSheets.length > 1 ? `(${collageSheets.length} листа А4)` : '(лист А4)'}
                   </p>
                   <div className="flex gap-3 overflow-x-auto pb-1">
@@ -8025,7 +8025,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider"><AnimatedTitle>Telegram-уведомления</AnimatedTitle></h3>
             </div>
 
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+            <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-normal">
               Подключите бота один раз — и больше не придётся заходить на сайт, чтобы узнать новости о заказе:
             </p>
 
@@ -8048,7 +8048,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/10">
                 <div>
                   <span className="text-xs font-black text-white block">Включить уведомления</span>
-                  <span className="text-[9px] text-white/40 mt-0.5 block">Уведомления о заказах</span>
+                  <span className="text-[10px] text-white/40 mt-0.5 block">Уведомления о заказах</span>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -8072,12 +8072,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
                     <div>
                       <p className="text-xs font-black text-emerald-400">Telegram подключён</p>
-                      <p className="text-[10px] text-white/50 mt-0.5">Вы будете получать уведомления в Telegram</p>
+                      <p className="text-[11px] text-white/50 mt-0.5">Вы будете получать уведомления в Telegram</p>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-[10px] text-white/50 leading-relaxed">
+                    <p className="text-[11px] text-white/50 leading-relaxed">
                       Нажмите кнопку — откроется бот в Telegram. Там просто нажмите <b className="text-white/80">«Отправить»</b> и всё готово.
                     </p>
                     <button
@@ -8130,12 +8130,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider"><AnimatedTitle>Проверка фото на документы</AnimatedTitle></h3>
             </div>
 
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+            <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-normal">
               Выберите документ, сделайте селфи или загрузите фото — покажем, соответствует ли оно требованиям, прежде чем печатать.
             </p>
 
             <div>
-              <label className="block text-[10px] font-black text-white/50 uppercase tracking-widest mb-2">Тип документа</label>
+              <label className="block text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">Тип документа</label>
               <select
                 value={docCheckType}
                 onChange={(e) => { setDocCheckType(e.target.value); setDocCheckResult(null); setDocCheckError(null); }}
@@ -8165,7 +8165,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   className="flex flex-col items-center gap-1.5 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition cursor-pointer"
                 >
                   <Camera className="w-5 h-5 text-emerald-400" />
-                  <span className="text-[10px] font-black text-white/70 uppercase tracking-wider">Сделать селфи</span>
+                  <span className="text-[11px] font-black text-white/70 uppercase tracking-wider">Сделать селфи</span>
                 </button>
                 <button
                   type="button"
@@ -8173,7 +8173,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   className="flex flex-col items-center gap-1.5 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition cursor-pointer"
                 >
                   <Upload className="w-5 h-5 text-emerald-400" />
-                  <span className="text-[10px] font-black text-white/70 uppercase tracking-wider">Загрузить фото</span>
+                  <span className="text-[11px] font-black text-white/70 uppercase tracking-wider">Загрузить фото</span>
                 </button>
               </div>
             )}
@@ -8200,7 +8200,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             )}
 
             {docCheckError && (
-              <p className="text-[11px] text-rose-400 font-bold bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2.5">{docCheckError}</p>
+              <p className="text-[12px] text-rose-400 font-bold bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2.5">{docCheckError}</p>
             )}
 
             {docCheckResult && (
@@ -8214,7 +8214,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     )}
                     <div>
                       <p className={`text-xs font-black ${check.ok ? 'text-emerald-400' : 'text-rose-400'}`}>{check.label}</p>
-                      {check.issue && <p className="text-[11px] text-white/60 mt-0.5">{check.issue}</p>}
+                      {check.issue && <p className="text-[12px] text-white/60 mt-0.5">{check.issue}</p>}
                     </div>
                   </div>
                 ))}
@@ -8261,7 +8261,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     onClick={playBlockedSpeech}
                     title="Браузер заблокировал автопроигрывание — нажми, чтобы услышать ответ"
                     aria-label="Озвучить ответ"
-                    className="px-2.5 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center gap-1 text-[10px] font-bold text-white transition cursor-pointer animate-pulse"
+                    className="px-2.5 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center gap-1 text-[11px] font-bold text-white transition cursor-pointer animate-pulse"
                   >
                     <Volume2 className="w-3.5 h-3.5" />
                     Озвучить
@@ -8439,7 +8439,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     </button>
                   )}
                   {speechDiag && (
-                    <p className="text-rose-500 text-[10px] font-bold text-center">Озвучка не удалась: {speechDiag}</p>
+                    <p className="text-rose-500 text-[11px] font-bold text-center">Озвучка не удалась: {speechDiag}</p>
                   )}
                 </div>
               )}
@@ -8447,7 +8447,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
             <div className="flex items-center gap-3">
               {(voiceOverlayPhase === 'answered' || voiceOverlayPhase === 'error') && (
-                <p className="text-slate-400 text-[11px] font-bold">Зажми кружок, чтобы спросить ещё</p>
+                <p className="text-slate-400 text-[12px] font-bold">Зажми кружок, чтобы спросить ещё</p>
               )}
               <button
                 onClick={handleCloseVoiceOverlay}
@@ -8602,7 +8602,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </div>
             ) : (
               <form onSubmit={handleSendBugReport} className="space-y-3">
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-normal">
                   Опишите, что пошло не так, и приложите скриншот — так мы быстрее разберёмся.
                 </p>
                 <textarea
@@ -8630,7 +8630,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       className="max-h-32 rounded-xl border border-slate-200 dark:border-white/10 object-contain"
                     />
                     {bugReportUploading && (
-                      <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center text-white text-[10px] font-bold">
+                      <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center text-white text-[11px] font-bold">
                         Загрузка...
                       </div>
                     )}
@@ -8726,13 +8726,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-black rounded-full"></div>
               
               <div className="space-y-2">
-                <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Активация</div>
+                <div className="text-[11px] font-black text-emerald-600 uppercase tracking-widest">Активация</div>
                 <div className="text-2xl font-black text-slate-850 dark:text-slate-205 font-mono">
                   {tornPromoCode.slice(0, Math.ceil(tornPromoCode.length / 2))}
                 </div>
               </div>
 
-              <div className="text-[10px] font-bold text-slate-450 font-mono">
+              <div className="text-[11px] font-bold text-slate-450 font-mono">
                 КОПИ-ЦЕНТР
               </div>
 
@@ -8755,13 +8755,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-black rounded-full"></div>
               
               <div className="space-y-2 text-right">
-                <div className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Скидка</div>
+                <div className="text-[11px] font-black text-rose-500 uppercase tracking-widest">Скидка</div>
                 <div className="text-2xl font-black text-slate-850 dark:text-slate-205 font-mono">
                   {tornPromoCode.slice(Math.ceil(tornPromoCode.length / 2))}
                 </div>
               </div>
 
-              <div className="text-[10px] font-black text-emerald-650 font-mono text-right">
+              <div className="text-[11px] font-black text-emerald-650 font-mono text-right">
                 -ОДОБРЕНО-
               </div>
 
