@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
-import { Lock, Mail, User as UserIcon, Phone, ArrowRight, ShieldAlert, CheckCircle, Printer } from 'lucide-react';
+import { Lock, Mail, User as UserIcon, Phone, ArrowRight, ShieldAlert, CheckCircle, Printer, Gift } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { signInUserWithFirebase, registerUserWithFirebase, signInWithGoogleFirebase, signInWithTelegram, TelegramAuthData } from '../firebaseUtils';
 import { motion } from 'motion/react';
@@ -47,6 +47,16 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  // Реферальная программа — код друга: подхватываем из ссылки (?ref=КОД),
+  // которой обычно и делятся, но также даём ввести вручную (мессенджеры
+  // иногда обрезают query-параметры в превью ссылки).
+  const [referralCodeInput, setReferralCodeInput] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('ref') || '';
+    } catch {
+      return '';
+    }
+  });
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isForgotPasswordSent, setIsForgotPasswordSent] = useState(false);
@@ -138,7 +148,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     setSuccessMsg('Регистрация в Firebase...');
     const role = email.trim().toLowerCase() === 'photo-sever@yandex.ru' ? 'admin' : 'client';
 
-    registerUserWithFirebase(email.trim(), password, fullName, phone, role)
+    registerUserWithFirebase(email.trim(), password, fullName, phone, role, referralCodeInput)
       .then((firebaseUser) => {
         setSuccessMsg('Регистрация прошла успешно! Выполняется вход...');
         setTimeout(() => {
@@ -519,6 +529,24 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                       className="block w-full pl-11 pr-4 py-2.5 border border-transparent rounded-full glass-cozy-input text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 sm:text-xs"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label htmlFor="signup-referral" className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Промокод друга (необязательно)</label>
+                  <div className="relative rounded-full">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                      <Gift className="h-4.5 w-4.5" />
+                    </div>
+                    <input
+                      id="signup-referral"
+                      type="text"
+                      value={referralCodeInput}
+                      onChange={e => setReferralCodeInput(e.target.value.toUpperCase())}
+                      placeholder="Например: A1B2C3"
+                      className="block w-full pl-11 pr-4 py-2.5 border border-transparent rounded-full glass-cozy-input text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 sm:text-xs uppercase"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 pl-2">Если друг пригласил вас — оба получите скидку 10%</p>
                 </div>
 
                 {/* Вся строка — одна большая зона тапа для галочки. Ссылки на

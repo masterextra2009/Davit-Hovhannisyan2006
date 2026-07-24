@@ -52,6 +52,39 @@ function getWelcomePromoFields(): Partial<User> {
   };
 }
 
+// Реферальная программа: у каждого клиента есть свой код (первые 6 символов
+// его Firebase UID — уникальность уже гарантирована самим UID, отдельная
+// проверка не нужна), которым он делится с друзьями. Награда пригласившему
+// выдаётся не здесь, а автоматически в AdminPanel.tsx после первого
+// оплаченного заказа приглашённого (см. useEffect там) — так работает и для
+// заказов "оплата при получении", отмеченных вручную, и для оплаты через
+// ЮKassa, не завязываясь на конкретный путь оплаты.
+export function generateReferralCode(uid: string): string {
+  return uid.slice(0, 6).toUpperCase();
+}
+
+async function resolveReferralFields(referralCodeInput?: string): Promise<Partial<User>> {
+  if (!referralCodeInput || !referralCodeInput.trim()) return {};
+  const code = referralCodeInput.trim().toUpperCase();
+  try {
+    const q = query(collection(db, 'users'), where('referralCode', '==', code));
+    const snap = await getDocs(q);
+    if (snap.empty) return {};
+    const referrer = snap.docs[0].data() as User;
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 30);
+    return {
+      referredBy: referrer.id,
+      promoCode: 'ДРУГ10',
+      promoDiscount: 10,
+      promoGiftedSeen: false,
+      promoExpiresAt: expires.toISOString(),
+    };
+  } catch {
+    return {};
+  }
+}
+
 // На нестабильной (особенно мобильной) сети запрос может зависнуть без ошибки
 // и без ответа — обрываем его по таймауту, чтобы UI не застревал навсегда.
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -113,7 +146,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 /**
  * Register a user via Firebase Auth and create their Firestore document profile
  */
-export async function registerUserWithFirebase(email: string, password: string,fullName: string, phone: string, role: 'client' | 'admin' = 'client'): Promise<User> {
+export async function registerUserWithFirebase(email: string, password: string,fullName: string, phone: string, role: 'client' | 'admin' = 'client', referralCodeInput?: string): Promise<User> {
   const trimmedEmail = email.trim();
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
@@ -127,6 +160,8 @@ export async function registerUserWithFirebase(email: string, password: string,f
                             fbUser.uid === 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23' ||
                             normalizedEmail === 'photo-sever@yandex.ru';
 
+    const referralFields = isExplicitAdmin ? {} : await resolveReferralFields(referralCodeInput);
+
     const newUser: User = {
       id: fbUser.uid,
       email: trimmedEmail,
@@ -135,7 +170,8 @@ export async function registerUserWithFirebase(email: string, password: string,f
       role: isExplicitAdmin ? 'admin' : role,
       createdAt: new Date().toISOString(),
       avatarUrl: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
-      ...(isExplicitAdmin ? {} : getWelcomePromoFields()),
+      referralCode: generateReferralCode(fbUser.uid),
+      ...(isExplicitAdmin ? {} : (Object.keys(referralFields).length ? referralFields : getWelcomePromoFields())),
     };
 
     // Write profile document in Firestore
@@ -199,9 +235,10 @@ export async function signInUserWithFirebase(email: string, password: string): P
         role: isInitialAdmin ? 'admin' : 'client',
         createdAt: new Date().toISOString(),
         phone: '',
-        avatarUrl: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`
+        avatarUrl: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
+        referralCode: generateReferralCode(fbUser.uid),
       };
-      
+
       try {
         await setDoc(userDocRef, recoveredUser);
       } catch (e) {
@@ -258,6 +295,7 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
     createdAt: new Date().toISOString(),
     avatarUrl: fbUser.photoURL || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
     isSocial: true,
+    referralCode: generateReferralCode(fbUser.uid),
     ...(isExplicitAdmin ? {} : getWelcomePromoFields()),
   };
 
@@ -372,6 +410,7 @@ export async function signInWithTelegram(telegramData: TelegramAuthData): Promis
     isSocial: true,
     telegramChatId: String(telegramData.id),
     telegramUsername: data.username,
+    referralCode: generateReferralCode(fbUser.uid),
   };
 
   try {

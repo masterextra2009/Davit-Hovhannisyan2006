@@ -137,6 +137,42 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       .then(data => { if (data) setUsageStats(data); })
       .catch(() => {});
   }, []);
+
+  // Реферальная программа: как только у приглашённого (user.referredBy)
+  // появляется первый оплаченный заказ, пригласивший автоматически получает
+  // подарочный промокод — без ручного клика админа, в отличие от обычного
+  // "подарить скидку". Флаг referralRewardGranted стоит на самом приглашённом
+  // (не на заказе), чтобы не выдать награду повторно, если эффект
+  // перезапустится или у приглашённого будет ещё один оплаченный заказ.
+  // Срабатывает только пока открыта админка — приемлемо, т.к. заказы и так
+  // проверяются здесь регулярно (Cloud Functions для этого недоступны, см.
+  // reference-sever18-deploy).
+  useEffect(() => {
+    const rewardable = database.users.filter(u =>
+      u.referredBy &&
+      !u.referralRewardGranted &&
+      database.orders.some(o => o.userId === u.id && o.paymentStatus === 'paid')
+    );
+    if (rewardable.length === 0) return;
+
+    let updatedUsers = database.users;
+    for (const referred of rewardable) {
+      const referrer = updatedUsers.find(u => u.id === referred.referredBy);
+      if (!referrer) continue;
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 30);
+      updatedUsers = updatedUsers.map(u => {
+        if (u.id === referrer.id) {
+          return { ...u, promoCode: 'ДРУГ10', promoDiscount: 10, promoGiftedSeen: false, promoExpiresAt: expires.toISOString() };
+        }
+        if (u.id === referred.id) {
+          return { ...u, referralRewardGranted: true };
+        }
+        return u;
+      });
+    }
+    onUpdateDatabase({ users: updatedUsers });
+  }, [database.orders, database.users]);
   const handleUpdateAdminPanel = async () => {
     setAdminUpdateStatus('loading');
     setAdminUpdateError('');

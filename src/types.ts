@@ -25,6 +25,14 @@ export interface User {
   // Счётчик успешных бесплатных "Проверка фото на документы" — после
   // DOC_CHECK_FREE_LIMIT (см. Dashboard.tsx) дальнейшие проверки платные.
   docCheckFreeUsed?: number;
+  // Реферальная программа. referralCode — свой код для приглашения других
+  // (генерируется при регистрации, см. registerUserWithFirebase), referredBy
+  // — id того, кто пригласил (если пришёл по чужому коду), referralRewardGranted
+  // — награда пригласившему уже выдана после первого оплаченного заказа этого
+  // пользователя (флаг именно на приглашённом — не даёт выдать награду дважды).
+  referralCode?: string;
+  referredBy?: string;
+  referralRewardGranted?: boolean;
 }
 
 export type FileFormatGroup = 'archive' | 'image' | 'document' | 'other';

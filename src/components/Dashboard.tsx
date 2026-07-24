@@ -52,7 +52,7 @@ import {
   formatServicePrice
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
-import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase } from '../firebaseUtils';
+import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Synthesized high-quality feedback sound chimes using Web Audio API
@@ -1016,6 +1016,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     setEditAvatarUrl(user.avatarUrl || '');
   }, [user.fullName, user.phone, user.avatarUrl]);
 
+  // Клиенты, зарегистрированные до реферальной программы, не получили свой
+  // код при регистрации — досоздаём один раз при первом заходе в кабинет.
+  useEffect(() => {
+    if (!user.referralCode) {
+      const code = generateReferralCode(user.id);
+      const updatedUsers = database.users.map(u => (u.id === user.id ? { ...u, referralCode: code } : u));
+      onUpdateDatabase({ users: updatedUsers });
+    }
+  }, [user.id, user.referralCode]);
+
   // Keep client online status synced in Firestore
   useEffect(() => {
     if (!user || !user.id) return;
@@ -1627,6 +1637,26 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // насовсем, как и у feedbackSent выше.
   const [feedbackDismissed, setFeedbackDismissed] = useState(() => localStorage.getItem(`feedback_dismissed_${user.id}`) === '1');
   const [feedbackCelebrate, setFeedbackCelebrate] = useState(false);
+
+  // Реферальная программа — карточка "Пригласить друга" с копированием ссылки.
+  const [referralCopied, setReferralCopied] = useState(false);
+  const referralLink = user.referralCode ? `https://sever-18.ru/?ref=${user.referralCode}` : '';
+  const handleShareReferral = async () => {
+    if (!referralLink) return;
+    const shareText = `Печатаю фото и документы в Фото-Север — по моей ссылке скидка 10% на первый заказ: ${referralLink}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: shareText, url: referralLink });
+        return;
+      } catch {
+        // пользователь закрыл системный шаринг — просто откатываемся на копирование
+      }
+    }
+    navigator.clipboard.writeText(shareText).then(() => {
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2000);
+    }).catch(() => {});
+  };
 
   // "Заметили ошибку?" — отдельное окно от формы пожеланий выше: тут можно
   // приложить скриншот. Файл грузится в Storage сразу при выборе (как аватар
@@ -4156,6 +4186,36 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 Открыть подарок 🎁
               </button>
             </motion.div>
+          )}
+
+          {user.referralCode && (
+            <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 text-white rounded-3xl p-5 border border-indigo-400/30 shadow-lg shadow-indigo-500/20 relative overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
+              <div className="flex items-start gap-3 relative z-10">
+                <div className="p-3 bg-white/10 rounded-2xl border border-white/20 shrink-0">
+                  <Gift className="w-6 h-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-black uppercase tracking-wider">Пригласите друга — оба получите скидку 🎁</h4>
+                  <p className="text-xs text-white/85 mt-1 font-medium">
+                    Друг получит 10% на первый заказ, а вы — 10% на следующий, как только он оплатит свой первый заказ.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                    <div className="flex-1 bg-white/10 border border-white/25 rounded-xl px-4 py-2.5 text-sm font-bold truncate">
+                      {referralLink}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleShareReferral}
+                      className="flex items-center justify-center gap-1.5 bg-white hover:bg-slate-50 text-indigo-700 font-black text-xs px-5 py-2.5 rounded-xl shadow-md transition shrink-0 cursor-pointer"
+                    >
+                      {referralCopied ? <><CheckCircle className="w-3.5 h-3.5" /> Скопировано</> : <><Send className="w-3.5 h-3.5" /> Поделиться</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {!feedbackDismissed && (
