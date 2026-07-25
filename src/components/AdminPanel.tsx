@@ -1714,7 +1714,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <LiveClock />
             <ThemeToggle />
             <div className="text-xs glass-card px-3.5 py-2 rounded-xl text-white font-bold">
-              Очередь принтера: <strong className="text-emerald-300">{database.orders.filter(o => o.status !== 'printed').length} активных</strong>
+              Активных заказов: <strong className="text-emerald-300">{pendingCount}</strong>
             </div>
           </div>
         </header>
