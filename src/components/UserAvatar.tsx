@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { UserRound } from 'lucide-react';
 
 interface UserAvatarProps {
   user?: {
@@ -9,8 +10,25 @@ interface UserAvatarProps {
   fallbackText?: string;
 }
 
-export const UserAvatar: React.FC<UserAvatarProps> = ({ 
-  user, 
+// Мужские имена, оканчивающиеся на "а"/"я" (по умолчанию эти окончания
+// считаются женскими для русских имён) — короткий список самых частых
+// исключений. Это декоративная эвристика для выбора цвета аватарки, а не
+// что-то, влияющее на данные, так что не страшно, если она иногда ошибается
+// на редких/нерусских именах.
+const MALE_NAME_EXCEPTIONS = new Set([
+  'никита', 'илья', 'кузьма', 'фома', 'лука', 'данила', 'дима', 'миша',
+  'гоша', 'гриша', 'вова', 'стёпа', 'степа', 'слава', 'юра',
+]);
+
+function guessGenderFromName(fullName: string): 'male' | 'female' {
+  const firstName = fullName.trim().split(/\s+/)[0]?.toLowerCase() || '';
+  if (MALE_NAME_EXCEPTIONS.has(firstName)) return 'male';
+  if (/[ая]$/.test(firstName)) return 'female';
+  return 'male';
+}
+
+export const UserAvatar: React.FC<UserAvatarProps> = ({
+  user,
   className = "w-9 h-9",
   fallbackText = ""
 }) => {
@@ -18,28 +36,16 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   const fullName = user?.fullName || fallbackText || "Пользователь";
   const avatarUrl = user?.avatarUrl;
 
-  const initials = fullName
-    .trim()
-    .split(/\s+/)
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase() || "?";
-
   // Generate a distinct color index based on the full name string
   let sum = 0;
   for (let i = 0; i < fullName.length; i++) {
     sum += fullName.charCodeAt(i);
   }
-  const colorIndex = sum % 6;
-  const gradientColors = [
-    "from-indigo-500 to-purple-600 text-white",
-    "from-emerald-550 to-teal-600 text-white",
-    "from-amber-500 to-orange-600 text-white",
-    "from-rose-500 to-pink-600 text-white",
-    "from-sky-500 to-blue-600 text-white",
-    "from-violet-500 to-fuchsia-600 text-white",
-  ][colorIndex];
+  const gender = guessGenderFromName(fullName);
+  const palette = gender === 'female'
+    ? ["from-rose-500 to-pink-600", "from-fuchsia-500 to-purple-600", "from-violet-500 to-indigo-600"]
+    : ["from-sky-500 to-blue-600", "from-indigo-500 to-blue-700", "from-teal-500 to-emerald-600"];
+  const gradientColors = `${palette[sum % palette.length]} text-white`;
 
   const hasValidUrl = avatarUrl && avatarUrl.trim() !== "";
 
@@ -63,8 +69,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   }
 
   return (
-    <div className={`${className} bg-gradient-to-tr ${gradientColors} flex items-center justify-center font-bold text-xs tracking-wide shadow-sm select-none uppercase border border-white/10 shrink-0 ${shapeClass}`}>
-      {initials}
+    <div className={`${className} bg-gradient-to-tr ${gradientColors} flex items-center justify-center shadow-sm select-none border border-white/10 shrink-0 ${shapeClass}`}>
+      <UserRound className="w-[60%] h-[60%]" strokeWidth={2} />
     </div>
   );
 };

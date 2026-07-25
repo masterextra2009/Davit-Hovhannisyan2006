@@ -184,7 +184,6 @@ export async function registerUserWithFirebase(email: string, password: string,f
       phone: phone.trim(),
       role: isExplicitAdmin ? 'admin' : role,
       createdAt: new Date().toISOString(),
-      avatarUrl: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
       referralCode: generateReferralCode(fbUser.uid),
       ...(isExplicitAdmin ? {} : (Object.keys(referralFields).length ? referralFields : getWelcomePromoFields())),
     };
@@ -251,8 +250,7 @@ export async function signInUserWithFirebase(email: string, password: string): P
         role: isInitialAdmin ? 'admin' : 'client',
         createdAt: new Date().toISOString(),
         phone: '',
-        avatarUrl: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
-        referralCode: generateReferralCode(fbUser.uid),
+          referralCode: generateReferralCode(fbUser.uid),
       };
 
       try {
@@ -310,7 +308,7 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
     phone: '',
     role: isExplicitAdmin ? 'admin' : 'client',
     createdAt: new Date().toISOString(),
-    avatarUrl: fbUser.photoURL || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
+    avatarUrl: fbUser.photoURL || undefined,
     isSocial: true,
     referralCode: generateReferralCode(fbUser.uid),
     ...(isExplicitAdmin ? {} : getWelcomePromoFields()),
@@ -424,7 +422,7 @@ export async function signInWithTelegram(telegramData: TelegramAuthData): Promis
     phone: '',
     role: 'client',
     createdAt: new Date().toISOString(),
-    avatarUrl: data.photoUrl || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
+    avatarUrl: data.photoUrl || undefined,
     isSocial: true,
     telegramChatId: String(telegramData.id),
     telegramUsername: data.username,
@@ -834,7 +832,6 @@ export async function seedInitialDataIfRequired(): Promise<void> {
           role: 'admin',
           createdAt: '2026-05-01T10:00:00Z',
           phone: '+7 (900) 123-45-67',
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
         },
         {
           id: 'u2_ivan_seed',
@@ -843,7 +840,6 @@ export async function seedInitialDataIfRequired(): Promise<void> {
           role: 'client',
           createdAt: '2026-06-01T12:00:00Z',
           phone: '+7 (911) 222-33-44',
-          avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
         }
       ];
 

@@ -2458,7 +2458,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="border-b border-white/10 text-white/50 uppercase text-[11px] tracking-widest">
-                      <th className="py-3 px-4 font-bold">Фото</th>
+                      <th className="py-3 px-4 font-bold">Аватар</th>
                       <th className="py-3 px-4 font-bold">ФИО клиента</th>
                       <th className="py-3 px-4 font-bold">Электронная почта</th>
                       <th className="py-3 px-4 font-bold">Телефон</th>
@@ -2490,10 +2490,15 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           className="hover:bg-white/8 cursor-pointer transition-colors"
                         >
                           <td className="py-3 px-4">
-                            <UserAvatar
-                              user={cli}
-                              className="w-9 h-9 rounded-xl"
-                            />
+                            <div className="relative w-9 h-9 shrink-0" title={cli.isOnline ? 'В сети' : 'Не в сети'}>
+                              <UserAvatar
+                                user={cli}
+                                className="w-9 h-9 rounded-xl"
+                              />
+                              <span
+                                className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${cli.isOnline ? 'bg-emerald-400' : 'bg-slate-500'}`}
+                              />
+                            </div>
                           </td>
 
                           <td className="py-3 px-4">
