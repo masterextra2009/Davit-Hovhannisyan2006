@@ -683,25 +683,34 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     photo: (t) => t.includes('фото') && !t.includes('докум'),
     documents: (t) => t.includes('докум'),
     scanning: (t) => t.includes('скан'),
-    lamination: (t) => t.includes('ламинац') || t.includes('переплёт') || t.includes('переплет') || t.includes('binding'),
+    lamination: (t) => t.includes('ламинац'),
+    // Раньше «переплёт» и «ламинация» были одной категорией с ярлыком
+    // «Брошюровка» — из-за этого единственная услуга «Ламинация А4»
+    // показывалась под чужим названием. Разделили: «Ламинация» — сама по
+    // себе, «Брошюровка» — честно пустая, пока не появится реальная услуга
+    // переплёта.
+    binding: (t) => t.includes('переплёт') || t.includes('переплет') || t.includes('binding'),
   };
   const serviceCategoryLabels: Record<string, string> = {
     photo: 'Печать фото',
     documents: 'Документы',
     scanning: 'Сканирование',
-    lamination: 'Брошюровка',
+    lamination: 'Ламинация',
+    binding: 'Брошюровка',
   };
   const serviceCategoryIcons: Record<string, typeof Upload> = {
     photo: GlassPhotoRefIcon,
     documents: GlassDocumentsRefIcon,
     scanning: GlassScanRefIcon,
     lamination: GlassLaminationIcon,
+    binding: GlassLaminationIcon,
   };
   const serviceCategoryGlows: Record<string, string> = {
     photo: 'capsule-glow-purple',
     documents: 'capsule-glow-indigo',
     scanning: 'capsule-glow-green',
     lamination: 'capsule-glow-orange',
+    binding: 'capsule-glow-orange',
   };
   const [dismissedRatings, setDismissedRatings] = React.useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('dismissed_ratings') || '[]')); } catch { return new Set(); }
