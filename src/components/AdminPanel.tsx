@@ -900,7 +900,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   };
 
   // Filtering orders
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'printing' | 'ready' | 'printed'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'printing' | 'ready' | 'printed' | 'unpaid'>('all');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [clientSearchQuery, setClientSearchQuery] = useState('');
 
@@ -1318,6 +1318,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const pendingCount = database.orders.filter(o => o.status === 'pending').length;
   const inPrintCount = database.orders.filter(o => o.status === 'printing').length;
   const readyCount = database.orders.filter(o => o.status === 'ready').length;
+  // Заказы, которые клиент начал оформлять онлайн-оплатой, но не завершил
+  // (закрыл вкладку ЮKassa, оплата не прошла и т.п.) — раньше такие заказы
+  // просто исчезали из очереди без следа (см. фильтр ниже), из-за чего
+  // выглядело, будто заказ вообще не дошёл до сервера.
+  const isAbandonedUnpaid = (o: Order) =>
+    o.paymentStatus === 'unpaid' && o.paymentMethod !== 'При получении (Наличные/Карта)';
+  const unpaidCount = database.orders.filter(o => o.status !== 'printed' && isAbandonedUnpaid(o)).length;
 
   // Данные для графиков в карточках статистики — 7 дней, тот же язык, что
   // уже был у "Заходы на сайт".
@@ -1761,7 +1768,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     { id: 'all', label: 'Новые заказы' },
                     { id: 'approved', label: 'Одобрено' },
                     { id: 'printing', label: 'Печатается' },
-                    { id: 'ready', label: 'К выдаче' }
+                    { id: 'ready', label: 'К выдаче' },
+                    { id: 'unpaid', label: unpaidCount > 0 ? `Не оплачено (${unpaidCount})` : 'Не оплачено' }
                   ].map(btn => (
                     <button
                       key={btn.id}
@@ -1791,18 +1799,23 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       if (o.status === 'printed') return false;
                       // Заказ пишется в базу ДО перехода на оплату ЮKassa (нужно
                       // вебхуку куда писать статус) — если клиент передумал и не
-                      // заплатил, запись остаётся неоплаченной навсегда. Прячем
-                      // такие брошенные заказы из очереди, но не трогаем явную
-                      // "оплату при получении" — она специально начинает жизнь
-                      // неоплаченной и должна быть видна админу.
-                      if (o.paymentStatus === 'unpaid' && o.paymentMethod !== 'При получении (Наличные/Карта)') return false;
-                      // «Новые заказы» (id 'all', название унаследовано от старой вкладки
-                      // "Все заказы") теперь показывает только status==='pending' — раньше
-                      // сюда попадали вперемешку одобренные/печатающиеся/готовые к выдаче
-                      // заказы, что путало с реально новыми поступлениями.
-                      if (statusFilter === 'all') {
-                        if (o.status !== 'pending') return false;
-                      } else if (o.status !== statusFilter) return false;
+                      // заплатил, запись остаётся неоплаченной навсегда. Раньше такие
+                      // брошенные заказы просто исчезали без следа — теперь у них есть
+                      // отдельная вкладка «Не оплачено», а не полное сокрытие. Явную
+                      // "оплату при получении" не трогаем — она специально начинает
+                      // жизнь неоплаченной и всегда должна быть видна в общей очереди.
+                      if (statusFilter === 'unpaid') {
+                        if (!isAbandonedUnpaid(o)) return false;
+                      } else {
+                        if (isAbandonedUnpaid(o)) return false;
+                        // «Новые заказы» (id 'all', название унаследовано от старой вкладки
+                        // "Все заказы") теперь показывает только status==='pending' — раньше
+                        // сюда попадали вперемешку одобренные/печатающиеся/готовые к выдаче
+                        // заказы, что путало с реально новыми поступлениями.
+                        if (statusFilter === 'all') {
+                          if (o.status !== 'pending') return false;
+                        } else if (o.status !== statusFilter) return false;
+                      }
                       if (orderSearchQuery.trim() !== '') {
                         const q = orderSearchQuery.trim().toLowerCase();
                         const matchesId = o.id.toLowerCase().includes(q);
