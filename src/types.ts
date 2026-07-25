@@ -33,6 +33,10 @@ export interface User {
   referralCode?: string;
   referredBy?: string;
   referralRewardGranted?: boolean;
+  // Метка времени последнего нажатия клавиши в поле чата (клиентом) —
+  // используется в AdminPanel, чтобы показать «печатает…» пока метка свежая
+  // (см. CHAT_TYPING_STALE_MS в AdminPanel.tsx).
+  typingChatAt?: string;
 }
 
 export type FileFormatGroup = 'archive' | 'image' | 'document' | 'other';

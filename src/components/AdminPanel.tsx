@@ -240,6 +240,17 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const [adminChatInput, setAdminChatInput] = useState('');
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
+  // Тикер для индикатора "печатает…" — typingChatAt пишется клиентом раз в
+  // 2.5с (см. handleChatInputChange в Dashboard.tsx), явного "перестал
+  // печатать" события нет, поэтому считаем метку свежей ещё CHAT_TYPING_STALE_MS
+  // и просто перерисовываемся каждую секунду, чтобы индикатор погас сам.
+  const CHAT_TYPING_STALE_MS = 5000;
+  const [chatTypingNowTick, setChatTypingNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setChatTypingNowTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   // File download mock states
   const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -1747,8 +1758,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="filter-pill-wrap max-w-full overflow-x-auto overscroll-contain">
                   <span className="text-xs font-bold text-slate-500 self-center mr-2 hidden lg:inline px-2 shrink-0">Фильтр:</span>
                   {[
-                    { id: 'all', label: 'Все заказы' },
-                    { id: 'pending', label: 'Ожидают' },
+                    { id: 'all', label: 'Новые заказы' },
                     { id: 'approved', label: 'Одобрено' },
                     { id: 'printing', label: 'Печатается' },
                     { id: 'ready', label: 'К выдаче' }
@@ -1786,7 +1796,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       // "оплату при получении" — она специально начинает жизнь
                       // неоплаченной и должна быть видна админу.
                       if (o.paymentStatus === 'unpaid' && o.paymentMethod !== 'При получении (Наличные/Карта)') return false;
-                      if (statusFilter !== 'all' && o.status !== statusFilter) return false;
+                      // «Новые заказы» (id 'all', название унаследовано от старой вкладки
+                      // "Все заказы") теперь показывает только status==='pending' — раньше
+                      // сюда попадали вперемешку одобренные/печатающиеся/готовые к выдаче
+                      // заказы, что путало с реально новыми поступлениями.
+                      if (statusFilter === 'all') {
+                        if (o.status !== 'pending') return false;
+                      } else if (o.status !== statusFilter) return false;
                       if (orderSearchQuery.trim() !== '') {
                         const q = orderSearchQuery.trim().toLowerCase();
                         const matchesId = o.id.toLowerCase().includes(q);
@@ -2152,7 +2168,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       </button>
                       <div className="grok-thread-title">
                         <h1>{activeChatClient.fullName}</h1>
-                        <p style={{ color: activeChatClient.isOnline ? '#34d399' : undefined }}>{activeChatClient.isOnline ? 'в сети' : 'не в сети'}</p>
+                        {activeChatClient.typingChatAt && chatTypingNowTick - new Date(activeChatClient.typingChatAt).getTime() < CHAT_TYPING_STALE_MS ? (
+                          <p style={{ color: '#34d399' }}>печатает…</p>
+                        ) : (
+                          <p style={{ color: activeChatClient.isOnline ? '#34d399' : undefined }}>{activeChatClient.isOnline ? 'в сети' : 'не в сети'}</p>
+                        )}
                       </div>
                       <button
                         type="button"

@@ -1726,6 +1726,23 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatContentRef = useRef<HTMLDivElement>(null);
 
+  // Метка "печатает…" для админа (см. CHAT_TYPING_STALE_MS в AdminPanel.tsx).
+  // Троттлим запись раз в CHAT_TYPING_WRITE_INTERVAL_MS, а не на каждое
+  // нажатие клавиши, — иначе каждый символ гонял бы полную перезапись
+  // документа пользователя в Firestore (см. syncLocalUpdatesToFirebase).
+  const lastTypingWriteRef = useRef(0);
+  const CHAT_TYPING_WRITE_INTERVAL_MS = 2500;
+  const handleChatInputChange = (value: string) => {
+    setChatInput(value);
+    const now = Date.now();
+    if (now - lastTypingWriteRef.current < CHAT_TYPING_WRITE_INTERVAL_MS) return;
+    lastTypingWriteRef.current = now;
+    const updatedUsers = database.users.map(u =>
+      u.id === user.id ? { ...u, typingChatAt: new Date().toISOString() } : u
+    );
+    onUpdateDatabase({ users: updatedUsers });
+  };
+
   // Голосовой ввод в чат (тз-fable-voice-input.md) — распознавание речи целиком
   // в браузере клиента через встроенный Web Speech API, ничего никуда не
   // отправляется и не сохраняется, только итоговый текст попадает в поле
@@ -5460,7 +5477,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         )}
                         <div className="space-y-1">
                           <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 px-1">
-                            <span>{msg.senderName} &bull; {new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span>{isAdmin ? 'Оператор' : msg.senderName} &bull; {new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
                             {!isAdmin && (
                               <span className="inline-flex items-center ml-0.5" title={msg.readByAdmin ? "Прочитано" : "Доставлено"}>
                                 {msg.readByAdmin ? (
@@ -5564,7 +5581,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <input
                     type="text"
                     value={chatInput}
-                    onChange={e => setChatInput(e.target.value)}
+                    onChange={e => handleChatInputChange(e.target.value)}
                     placeholder={micState === 'listening' ? 'Слушаю…' : 'Задайте ваш вопрос оператору...'}
                     aria-label="Сообщение оператору"
                     // text-base (16px) вместо text-xs — на iOS Safari фокус на
