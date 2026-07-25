@@ -8593,7 +8593,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       {/* Полноэкранный голосовой режим ИИ-чата (как voice mode в GPT-чатах) */}
       <AnimatePresence>
       {showVoiceOverlay && (
-        <div className="fixed inset-0 bg-white backdrop-blur-lg flex flex-col items-center justify-center p-6 z-[60]">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-lg flex flex-col items-center justify-center p-6 z-[60]">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -8642,20 +8642,20 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
             <div className="text-center min-h-[3em] px-2">
               {voiceOverlayPhase === 'idle' && (
-                <p className="text-slate-500 text-sm font-bold">Зажми кружок и говори</p>
+                <p className="text-white/60 text-sm font-bold">Зажми кружок и говори</p>
               )}
               {voiceOverlayPhase === 'listening' && (
-                <p className="text-slate-900 text-sm font-bold">Слушаю…</p>
+                <p className="text-white text-sm font-bold">Слушаю…</p>
               )}
               {voiceOverlayPhase === 'thinking' && (
-                <p className="text-slate-600 text-sm font-bold">Думаю…</p>
+                <p className="text-white/70 text-sm font-bold">Думаю…</p>
               )}
               {voiceOverlayPhase === 'error' && (
-                <p className="text-rose-500 text-sm font-bold">{voiceOverlayError}</p>
+                <p className="text-rose-400 text-sm font-bold">{voiceOverlayError}</p>
               )}
               {voiceOverlayPhase === 'answered' && (
                 <div className="flex flex-col items-center gap-3">
-                  <p className="text-slate-900 text-sm leading-relaxed text-center">{voiceOverlayReply}</p>
+                  <p className="text-white text-sm leading-relaxed text-center">{voiceOverlayReply}</p>
                   {voiceOverlayShowRoute && (
                     <button
                       onClick={openAiChatRoute}
@@ -8674,7 +8674,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     </button>
                   )}
                   {speechDiag && (
-                    <p className="text-rose-500 text-[11px] font-bold text-center">Озвучка не удалась: {speechDiag}</p>
+                    <p className="text-rose-400 text-[11px] font-bold text-center">Озвучка не удалась: {speechDiag}</p>
                   )}
                 </div>
               )}
@@ -8682,11 +8682,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
             <div className="flex items-center gap-3">
               {(voiceOverlayPhase === 'answered' || voiceOverlayPhase === 'error') && (
-                <p className="text-slate-400 text-[12px] font-bold">Зажми кружок, чтобы спросить ещё</p>
+                <p className="text-white/50 text-[12px] font-bold">Зажми кружок, чтобы спросить ещё</p>
               )}
               <button
                 onClick={handleCloseVoiceOverlay}
-                className="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition cursor-pointer"
+                className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition cursor-pointer"
                 aria-label="Закрыть"
               >
                 <X className="w-5 h-5" />
