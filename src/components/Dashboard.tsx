@@ -2492,6 +2492,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     setUploadError(null);
     const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 МБ — заявлено на лендинге, но раньше нигде не проверялось
     const oversizedNames: string[] = [];
+    // .rar/.7z нельзя честно распаковать и посчитать в браузере (нет лёгкой
+    // библиотеки под них, в отличие от .zip через уже используемый JSZip) —
+    // раньше такой архив тихо ценился как 1 страница независимо от того,
+    // что внутри. Проще не принимать их вовсе, чем занижать цену.
+    const unsupportedArchiveNames: string[] = [];
     const newFiles: PrintFile[] = [];
     // Больше 2 файлов за раз (любых, не только фото) — клиент явно просил
     // "чтобы не приходилось прокручивать много карточек": вместо N отдельных
@@ -2516,6 +2521,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         continue;
       }
       const formatGroup = getFileFormatGroup(file.name);
+      if (formatGroup === 'archive' && !file.name.toLowerCase().endsWith('.zip')) {
+        unsupportedArchiveNames.push(file.name);
+        continue;
+      }
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       const fileId = 'file_' + Date.now() + '_' + i + '_' + Math.floor(Math.random() * 1000);
 
@@ -2553,6 +2562,44 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         continue; // архив собирается и грузится одним блоком ниже — не трогаем сеть/стейт на каждый файл
       }
 
+      // Клиент сам загрузил готовый .zip одним файлом (не через авто-сборку
+      // выше) — раньше такой архив ценился как 1 стр. независимо от того,
+      // что внутри. Заглядываем внутрь и честно считаем цену по содержимому,
+      // как и для авто-собранного архива (20₽/фото, 20₽×страницы для PDF).
+      if (formatGroup === 'archive') {
+        JSZip.loadAsync(file).then(async zip => {
+          const entries = Object.values(zip.files).filter(e => !e.dir);
+          let total = 0;
+          for (const entry of entries) {
+            const entryFormatGroup = getFileFormatGroup(entry.name);
+            if (entryFormatGroup === 'image') {
+              total += 20;
+            } else {
+              const isEntryPdf = entry.name.toLowerCase().endsWith('.pdf');
+              let pages = 1;
+              if (isEntryPdf) {
+                try {
+                  const blob = await entry.async('blob');
+                  pages = await countPdfPages(new File([blob], entry.name, { type: 'application/pdf' }));
+                } catch {
+                  pages = 1;
+                }
+              }
+              total += 20 * pages;
+            }
+          }
+          patchFileState(fileId, {
+            bundleFixedPrice: total || 20,
+            bundleFileCount: entries.length || 1,
+            pageCount: undefined,
+          });
+        }).catch(err => {
+          // Повреждён или запаролен — не смогли заглянуть внутрь, оставляем
+          // консервативную цену по умолчанию (1 стр.) как и раньше.
+          console.error('Failed to inspect uploaded .zip contents:', err);
+        });
+      }
+
       if (isPdf) {
         countPdfPages(file).then(pages => {
           patchFileState(fileId, { pageCount: pages });
@@ -2585,6 +2632,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     if (oversizedNames.length > 0) {
       setUploadError(
         `Файл${oversizedNames.length > 1 ? 'ы' : ''} слишком больш${oversizedNames.length > 1 ? 'ие' : 'ой'} (максимум 100 МБ): ${oversizedNames.join(', ')}`
+      );
+    }
+
+    if (unsupportedArchiveNames.length > 0) {
+      setUploadError(
+        `Формат .rar/.7z не поддерживается, пересохраните в .zip: ${unsupportedArchiveNames.join(', ')}`
       );
     }
 
@@ -2932,6 +2985,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       '10x15': 20, 'polaroid': 30, '13x18': 50, '15x21': 70, '20x30': 100, '30x40': 250
     };
     const subtotal = uploadedFiles.reduce((acc, f) => {
+      // Архив (авто-собранный из >2 файлов или загруженный клиентом .zip)
+      // ценится по честно подсчитанному содержимому, а не по стандартной
+      // постраничной формуле ниже (см. handleFiles) — как и в двух других
+      // местах, где отображается цена файла (иначе итог заказа разъедется
+      // с тем, что клиент видел на экране при загрузке).
+      if (f.bundleFixedPrice !== undefined) return acc + f.bundleFixedPrice;
       const isPhotoFile = f.paperType === 'photo';
       const isCollageFile = f.paperType === 'collage';
       const fileCopies = f.fileCopies || 1;
@@ -4376,7 +4435,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       onChange={handleFileInput}
                       className="hidden"
                       aria-label="Загрузить файлы для печати"
-                      accept=".zip,.rar,.7z,.doc,.docx,.pdf,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.heic,.heif,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      accept=".zip,.doc,.docx,.pdf,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.heic,.heif,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     />
 
                     {/* Диск в стиле присланного макета progress-bar-only.html —
