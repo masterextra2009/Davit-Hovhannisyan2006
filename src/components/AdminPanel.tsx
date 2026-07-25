@@ -900,7 +900,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   };
 
   // Filtering orders
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'printing' | 'ready' | 'printed' | 'unpaid'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'printing' | 'ready' | 'printed' | 'unpaid' | 'rejected'>('all');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [clientSearchQuery, setClientSearchQuery] = useState('');
 
@@ -1325,6 +1325,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const isAbandonedUnpaid = (o: Order) =>
     o.paymentStatus === 'unpaid' && o.paymentMethod !== 'При получении (Наличные/Карта)';
   const unpaidCount = database.orders.filter(o => o.status !== 'printed' && isAbandonedUnpaid(o)).length;
+  // Брак/отказ — независимый от status флаг (см. types.ts), заказ может
+  // сломаться на любой стадии. Раньше он просто оставался висеть в своей
+  // обычной вкладке с бейджиком «⚠ Брак», путаясь с рабочими заказами —
+  // теперь у него отдельная вкладка.
+  const rejectedCount = database.orders.filter(o => o.status !== 'printed' && o.rejected).length;
 
   // Данные для графиков в карточках статистики — 7 дней, тот же язык, что
   // уже был у "Заходы на сайт".
@@ -1769,7 +1774,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     { id: 'approved', label: 'Одобрено' },
                     { id: 'printing', label: 'Печатается' },
                     { id: 'ready', label: 'К выдаче' },
-                    { id: 'unpaid', label: unpaidCount > 0 ? `Не оплачено (${unpaidCount})` : 'Не оплачено' }
+                    { id: 'unpaid', label: unpaidCount > 0 ? `Не оплачено (${unpaidCount})` : 'Не оплачено' },
+                    { id: 'rejected', label: rejectedCount > 0 ? `Брак (${rejectedCount})` : 'Брак' }
                   ].map(btn => (
                     <button
                       key={btn.id}
@@ -1797,14 +1803,22 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       // Выданные заказы живут только в Архиве — как только заказ
                       // выдан, он сразу пропадает из основной очереди.
                       if (o.status === 'printed') return false;
-                      // Заказ пишется в базу ДО перехода на оплату ЮKassa (нужно
-                      // вебхуку куда писать статус) — если клиент передумал и не
-                      // заплатил, запись остаётся неоплаченной навсегда. Раньше такие
-                      // брошенные заказы просто исчезали без следа — теперь у них есть
-                      // отдельная вкладка «Не оплачено», а не полное сокрытие. Явную
-                      // "оплату при получении" не трогаем — она специально начинает
-                      // жизнь неоплаченной и всегда должна быть видна в общей очереди.
-                      if (statusFilter === 'unpaid') {
+                      // Брак/отказ — независим от status (может случиться на любой
+                      // стадии), поэтому раньше такой заказ так и оставался висеть в
+                      // своей обычной вкладке. Теперь у него отдельная вкладка «Брак»,
+                      // а из остальных вкладок он убирается, чтобы не мешал рабочей очереди.
+                      if (statusFilter === 'rejected') {
+                        if (!o.rejected) return false;
+                      } else if (o.rejected) {
+                        return false;
+                      } else if (statusFilter === 'unpaid') {
+                        // Заказ пишется в базу ДО перехода на оплату ЮKassa (нужно
+                        // вебхуку куда писать статус) — если клиент передумал и не
+                        // заплатил, запись остаётся неоплаченной навсегда. Раньше такие
+                        // брошенные заказы просто исчезали без следа — теперь у них есть
+                        // отдельная вкладка «Не оплачено», а не полное сокрытие. Явную
+                        // "оплату при получении" не трогаем — она специально начинает
+                        // жизнь неоплаченной и всегда должна быть видна в общей очереди.
                         if (!isAbandonedUnpaid(o)) return false;
                       } else {
                         if (isAbandonedUnpaid(o)) return false;
