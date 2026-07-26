@@ -25,9 +25,15 @@ const colorFillPrice = (pct: number) => (pct <= 20 ? 25 : pct <= 60 ? 40 : 65);
 function filePrice(f: Order['files'][number]): number {
   const isPhoto = f.paperType === 'photo';
   const isA3 = f.format === 'a3';
+  const isBinding = f.format === 'binding';
   const copies = f.fileCopies || 1;
   const pages = f.pageCount || 1;
   if (isPhoto) return (photoSizePrices[f.photoSize || '10x15'] || 20) * copies;
+  if (isBinding) {
+    if (!f.bindingKind) return 0;
+    const bindingFee = f.bindingKind === 'spring_metal' ? (pages <= 100 ? 250 : 350) : 100;
+    return bindingFee * copies;
+  }
   const pp = (f.printColor || 'bw') === 'bw'
     ? (isA3 ? 100 : 20)
     : (isA3 ? 150 : colorFillPrice(f.colorFillPercent ?? 50));

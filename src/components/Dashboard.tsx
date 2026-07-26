@@ -43,7 +43,7 @@ import {
   Send, MessageSquare, AlertCircle, Sparkles, CreditCard, Shield, Mic, Volume2, VolumeX,
   FileCheck, LogOut, Check, ArrowDown, Bell, HelpCircle, Laptop, ArrowLeft,
   Layers, RefreshCw, Smartphone, Phone, Star, Trophy, Award, Share2, Copy, Mail, Gift,
-  Maximize2, Eye, ZoomIn, ZoomOut, RotateCw, Printer, X, Camera
+  Maximize2, Eye, ZoomIn, ZoomOut, RotateCw, Printer, X, Camera, Search
 } from 'lucide-react';
 import { 
   calculateOrderCost, getFileFormatGroup, formatFileSize, 
@@ -243,6 +243,14 @@ function bindingFeePerCopy(binding: 'none' | 'staple' | 'file' | 'spring_plastic
   if (binding === 'spring_plastic') return 100;
   if (binding === 'hard_cover') return 450;
   return 0;
+}
+
+// Цена одной копии для формата "binding" (плитка "Брошюровка" на Главной) —
+// та же ставка за пружину, что и в bindingFeePerCopy выше, просто по
+// pageCount самого файла вместо суммы всех файлов заказа.
+function bindingFilePrice(file: PrintFile): number {
+  if (!file.bindingKind) return 0;
+  return bindingFeePerCopy(file.bindingKind, file.pageCount || 1);
 }
 
 // На нестабильной (особенно мобильной) сети запрос может зависнуть без ошибки
@@ -677,6 +685,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // Выбранная категория для вкладки "Услуги" (Печать фото / Документы / Сканирование /
   // Ламинация / Сувениры) — null значит показывать все активные услуги, как раньше.
   const [serviceCategoryFilter, setServiceCategoryFilter] = useState<string | null>(null);
+  // Поиск по названию услуги на вкладке "Услуги" — работает вместе с фильтром
+  // категории (оба сужают один и тот же список), не заменяет его.
+  const [serviceSearchQuery, setServiceSearchQuery] = useState('');
 
   // Раскрытая на весь экран карточка услуги: тап по карточке плавно
   // "разворачивает" её из своего места в сетке до полного экрана (эффект
@@ -1211,6 +1222,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // То же самое для плитки "Документы" — упрощает модалку (без Формата и
   // переключателя Бумаги), т.к. смысла выбирать А3/фотобумагу тут нет.
   const nextUploadIsDocsRef = useRef(false);
+  // То же самое для плитки "Брошюровка" — следующий загруженный файл сразу
+  // помечается форматом "binding" (выбор пружины — в отдельной модалке).
+  const nextUploadIsBindingRef = useRef(false);
 
   // Патчим файл там, где он сейчас лежит — в pendingUploads или уже в uploadedFiles
   const patchFileState = (fileId: string, updates: Partial<PrintFile>) => {
@@ -2528,6 +2542,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     nextUploadIsPolaroidRef.current = false;
     const simplifiedDocs = nextUploadIsDocsRef.current;
     nextUploadIsDocsRef.current = false;
+    const forceBinding = nextUploadIsBindingRef.current;
+    nextUploadIsBindingRef.current = false;
     for (let i = 0; i < filesList.length; i++) {
       const file = filesList[i];
       if (file.size > MAX_FILE_SIZE) {
@@ -2568,6 +2584,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         // был только формат для документов. Теперь у А3 есть режим "Фото"
         // (печать снимков на А3), так что ограничение больше не нужно.
         ...(forceA3 ? { format: 'a3' } : {}),
+        ...(forceBinding ? { format: 'binding' } : {}),
         ...(simplifiedDocs && !isImage ? { simplifiedDocsMode: true } : {}),
       });
 
@@ -3011,14 +3028,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       const pages = f.pageCount || 1;
       const fillPct = f.colorFillPercent ?? 50;
       const isA3 = f.format === 'a3';
+      const isBindingFile = f.format === 'binding';
       const pp = isCollageFile
         ? collagePriceFor(f.collagePaper)
         : isPhotoFile
         ? (photoSizePrices[f.photoSize || '10x15'] || 20)
         : isA3
         ? a3FilePrice(f)
+        : isBindingFile
+        ? bindingFilePrice(f)
         : ((f.printColor || 'bw') === 'bw' ? 20 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65));
-      return acc + pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies;
+      return acc + pp * (isPhotoFile || isCollageFile || isBindingFile ? 1 : pages) * fileCopies;
     }, 0);
     const totalPagesForBinding = uploadedFiles.reduce((acc, f) => acc + (f.pageCount || 1), 0);
     const orderCopiesForBinding = uploadedFiles[0]?.fileCopies || 1;
@@ -3575,6 +3595,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         ? () => { nextUploadIsPhotoRef.current = true; setActiveTab('upload'); setMobileHome(false); }
         : key === 'documents'
         ? () => { nextUploadIsDocsRef.current = true; setActiveTab('upload'); setMobileHome(false); }
+        : key === 'binding'
+        ? () => { nextUploadIsBindingRef.current = true; setActiveTab('upload'); setMobileHome(false); }
         : () => { setServiceCategoryFilter(key); setActiveTab('services'); },
     })),
     {
@@ -4554,12 +4576,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         const pages = file.pageCount || 1;
                         const fillPct = file.colorFillPercent ?? 50;
                         const isA3 = file.format === 'a3';
+                        const isBindingFile = file.format === 'binding';
                         const isBundle = file.bundleFixedPrice !== undefined;
                         const filePP = isCollage ? collagePriceFor(file.collagePaper)
                           : isPhoto ? selSize.price
                           : isA3 ? a3FilePrice(file)
+                          : isBindingFile ? bindingFilePrice(file)
                           : ((file.printColor || 'bw') === 'bw' ? 20 : colorFillPrice(fillPct));
-                        const fileCost = isBundle ? file.bundleFixedPrice! : filePP * (isPhoto || isCollage ? 1 : pages) * copies;
+                        const fileCost = isBundle ? file.bundleFixedPrice! : filePP * (isPhoto || isCollage || isBindingFile ? 1 : pages) * copies;
 
                         return (
                           <div key={file.id} className="glass-panel rounded-2xl overflow-hidden">
@@ -4624,6 +4648,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                   ? `Лист А4-коллаж (${file.collagePaper === 'photo' ? 'фото' : 'обычная'}) × ${collagePriceFor(file.collagePaper)} ₽`
                                   : isPhoto
                                   ? `${selSize.label} × ${selSize.price} ₽ × ${copies} шт.`
+                                  : isBindingFile
+                                  ? `${pages} стр., пружина ${file.bindingKind === 'spring_metal' ? 'металл' : 'пластик'} × ${filePP} ₽ × ${copies} шт.`
                                   : `${pages} стр. × ${filePP} ₽${!isA3 && (file.printColor || 'bw') !== 'bw' ? ` (${colorFillLabel(fillPct)}, ${fillPct}% цвета)` : ''} × ${copies} шт.`}
                               </span>
                               <strong className="text-white text-lg">{fileCost} ₽</strong>
@@ -5016,11 +5042,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           const pages = f.pageCount || 1;
                           const fillPct = f.colorFillPercent ?? 50;
                           const isA3 = f.format === 'a3';
+                          const isBindingFile = f.format === 'binding';
                           const pp = isCollageFile ? collagePriceFor(f.collagePaper)
                             : isPhotoFile ? selSize.price
                             : isA3 ? a3FilePrice(f)
+                            : isBindingFile ? bindingFilePrice(f)
                             : ((f.printColor || 'bw') === 'bw' ? 20 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65));
-                          const fileCost = f.bundleFixedPrice !== undefined ? f.bundleFixedPrice : pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies;
+                          const fileCost = f.bundleFixedPrice !== undefined ? f.bundleFixedPrice : pp * (isPhotoFile || isCollageFile || isBindingFile ? 1 : pages) * fileCopies;
                           return (
                             <div key={f.id} className="flex justify-between items-start gap-2 text-white/70">
                               <span className="truncate max-w-[160px] text-white/60">{idx+1}. {f.name}</span>
@@ -5046,11 +5074,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               const pages = f.pageCount || 1;
                               const fillPct = f.colorFillPercent ?? 50;
                               const isA3 = f.format === 'a3';
+                              const isBindingFile = f.format === 'binding';
                               const pp = isCollageFile ? collagePriceFor(f.collagePaper)
                                 : isPhotoFile ? selSize.price
                                 : isA3 ? a3FilePrice(f)
+                                : isBindingFile ? bindingFilePrice(f)
                                 : ((f.printColor || 'bw') === 'bw' ? 20 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65));
-                              return acc + (f.bundleFixedPrice !== undefined ? f.bundleFixedPrice : pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies);
+                              return acc + (f.bundleFixedPrice !== undefined ? f.bundleFixedPrice : pp * (isPhotoFile || isCollageFile || isBindingFile ? 1 : pages) * fileCopies);
                             }, 0);
                             const totalPagesForBinding = uploadedFiles.reduce((acc, f) => acc + (f.pageCount || 1), 0);
                             const orderCopiesForBinding = uploadedFiles[0]?.fileCopies || 1;
@@ -6301,6 +6331,30 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               )}
             </div>
 
+            {serviceCategoryFilter !== 'scanning' && (
+              <div className="max-w-md mx-auto relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={serviceSearchQuery}
+                  onChange={(e) => setServiceSearchQuery(e.target.value)}
+                  placeholder="Поиск услуги, например «печать фото»..."
+                  aria-label="Поиск услуги"
+                  className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-750 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+                {serviceSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setServiceSearchQuery('')}
+                    aria-label="Очистить поиск"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+
             {serviceCategoryFilter === 'scanning' && (
               <div className="max-w-4xl mx-auto -mt-2 space-y-3">
                 <div className="flex items-center justify-center gap-2">
@@ -6347,20 +6401,23 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             {/* Для "Сканирование" витрина цен не показывается — сканирование
                 теперь делается прямо в кабинете кнопкой "Скан" выше. */}
             {serviceCategoryFilter !== 'scanning' && (() => {
+              const q = serviceSearchQuery.trim().toLowerCase();
               const activeServices = (database.services || []).filter(s => s.isActive);
-              const shownServices = serviceCategoryFilter
-                ? activeServices.filter(s => serviceCategoryMatchers[serviceCategoryFilter]?.(s.title.toLowerCase()))
-                : activeServices;
+              const shownServices = activeServices
+                .filter(s => !serviceCategoryFilter || serviceCategoryMatchers[serviceCategoryFilter]?.(s.title.toLowerCase()))
+                .filter(s => !q || s.title.toLowerCase().includes(q) || s.description.toLowerCase().includes(q));
               if (shownServices.length === 0) {
                 return (
                   <div className="text-center py-16 text-slate-400">
                     <Printer className="w-12 h-12 mx-auto mb-3 opacity-30" />
                     <p className="font-bold">
-                      {serviceCategoryFilter
+                      {q
+                        ? `Ничего не нашлось по запросу «${serviceSearchQuery.trim()}»`
+                        : serviceCategoryFilter
                         ? `Пока нет активных услуг в категории «${serviceCategoryLabels[serviceCategoryFilter]}»`
                         : 'Витрина услуг пока пуста'}
                     </p>
-                    <p className="text-sm mt-1">Скоро здесь появятся все наши услуги</p>
+                    <p className="text-sm mt-1">{q ? 'Попробуйте другой запрос или сбросьте поиск' : 'Скоро здесь появятся все наши услуги'}</p>
                   </div>
                 );
               }
@@ -6371,6 +6428,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
               {(database.services || [])
                 .filter(s => !serviceCategoryFilter || serviceCategoryMatchers[serviceCategoryFilter]?.(s.title.toLowerCase()))
+                .filter(s => {
+                  const q = serviceSearchQuery.trim().toLowerCase();
+                  return !q || s.title.toLowerCase().includes(q) || s.description.toLowerCase().includes(q);
+                })
                 .filter(s => s.isActive)
                 .map(svc => {
                   // Генерируем 3D SVG иконку по эмодзи/названию
@@ -6675,6 +6736,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
         const isPhoto = file.paperType === 'photo';
         const isA3 = file.format === 'a3';
+        const isBinding = file.format === 'binding';
         const pages = file.pageCount || 1;
         const copies = file.fileCopies || 1;
         const fillPct = file.colorFillPercent;
@@ -6706,11 +6768,125 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         // "Полароид" на Главной, выбор размера/рамки тут просто не показываем.
         const isPolaroidSize = isPhoto && file.photoSize === 'polaroid';
 
-        const filePP = isPhoto ? selSize.price : (isA3 ? a3FilePrice(file) : ((file.printColor || 'bw') === 'bw' ? bwPrice : (colorPrice ?? 0)));
-        const fileCost = filePP * (isPhoto ? 1 : pages) * copies;
-        const canConfirm = (!isPhoto || !!file.photoSize) && !colorlessBlocksConfirm;
+        const filePP = isPhoto ? selSize.price : (isA3 ? a3FilePrice(file) : (isBinding ? bindingFilePrice(file) : ((file.printColor || 'bw') === 'bw' ? bwPrice : (colorPrice ?? 0))));
+        const fileCost = filePP * (isPhoto || isBinding ? 1 : pages) * copies;
+        const canConfirm = (!isPhoto || !!file.photoSize) && (!isBinding || !!file.bindingKind) && !colorlessBlocksConfirm;
 
         const patch = (updates: Partial<PrintFile>) => patchFileState(file.id, updates);
+
+        // Брошюровка — отдельная, самостоятельная модалка (по тому же принципу,
+        // что и Полароид/А3 ниже): клиент выбирает тип пружины (металл/пластик)
+        // видео-кнопками, цена — bindingFilePrice выше (та же ставка, что и у
+        // "Отделки" на шаге оформления заказа).
+        if (isBinding) {
+          return (
+            <motion.div
+              key="bindingConfigModal"
+              className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+              exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+            >
+              <motion.div
+                className="glass-window w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+                data-css-anim-off
+                initial={{ opacity: 0, scale: 0.82, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+                exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
+              >
+                <div className="p-5 pb-0 text-center">
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>Брошюровка</AnimatedTitle></h3>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{file.name}</p>
+                </div>
+
+                <div className="p-5 space-y-4 overflow-y-auto">
+                  <div>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Тип пружины</p>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {([
+                        { key: 'spring_metal', label: 'Металлическая', video: bindingSpringMetalAnim },
+                        { key: 'spring_plastic', label: 'Пластиковая', video: bindingSpringPlasticAnim },
+                      ] as const).map(opt => {
+                        const selected = file.bindingKind === opt.key;
+                        return (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => patch({ bindingKind: opt.key })}
+                            className={`btn-glass-sheen relative p-2.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
+                              selected
+                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25 scale-[1.03]'
+                                : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                            }`}
+                          >
+                            {selected && (
+                              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                                <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                              </div>
+                            )}
+                            <video
+                              src={opt.video}
+                              autoPlay loop muted playsInline
+                              className="w-full aspect-square rounded-xl object-cover pointer-events-none"
+                            />
+                            <div className={`text-[12px] font-black ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{opt.label}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Копий</p>
+                    <div className="flex items-center gap-3">
+                      <button type="button" onClick={() => patch({ fileCopies: Math.max(1, copies - 1) })}
+                        className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">−</button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={copies}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          patch({ fileCopies: Number.isNaN(v) || v < 1 ? 1 : v });
+                        }}
+                        className="w-12 text-sm font-black text-slate-800 dark:text-white text-center bg-slate-100 dark:bg-slate-800 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <button type="button" onClick={() => patch({ fileCopies: copies + 1 })}
+                        className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">+</button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-150 dark:border-slate-800">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {pages} стр. × {copies} шт.
+                    </span>
+                    <strong className="text-xl font-black text-slate-800 dark:text-white">{fileCost} ₽</strong>
+                  </div>
+                </div>
+
+                <div className="p-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2.5 shrink-0">
+                  <button
+                    type="button"
+                    disabled={!canConfirm}
+                    onClick={() => confirmFileConfig(file.id, applyToAllPending)}
+                    className="glass-icon colored capsule-glow-purple glass-icon-pill w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <span className="beam"><i /></span>
+                    <span className="relative z-[3]">{applyToAllPending ? `Применить ко всем и продолжить →` : 'Выбрать →'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => cancelFileConfig(file.id)}
+                    className="w-full py-2 text-xs font-bold text-rose-500 hover:text-rose-600 cursor-pointer"
+                  >
+                    Убрать файл
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        }
 
         // Полароид — отдельная, самостоятельная модалка (по просьбе клиента,
         // 2026-07-18: "создай новое окно именно для полароида, чтобы не портить

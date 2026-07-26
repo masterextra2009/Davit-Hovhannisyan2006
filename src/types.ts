@@ -60,7 +60,7 @@ export interface PrintFile {
   url?: string; // File download URL from Firebase Storage
   previewUrl?: string;
   paperType?: 'plain' | 'thick' | 'photo' | 'collage';
-  format?: 'a4' | 'a3';
+  format?: 'a4' | 'a3' | 'binding';
   printColor?: 'bw' | 'color';
   fileCopies?: number;
   photoSize?: string;
@@ -75,6 +75,11 @@ export interface PrintFile {
   // Только для "Фото" — просто пожелание клиента для печати, на цену не
   // влияет (глянец/матовая стоят одинаково).
   a3PhotoFinish?: 'glossy' | 'matte';
+  // Только для формата "binding" (плитка "Брошюровка" на Главной) — тип
+  // пружины, выбирается в отдельной модалке по образцу Полароида/А3.
+  // Цена — см. bindingFilePrice в Dashboard.tsx (та же ставка, что и у
+  // "Отделки" на шаге оформления заказа).
+  bindingKind?: 'spring_metal' | 'spring_plastic';
   colorFillPercent?: number;
   // Реальное разрешение картинки в пикселях (натуральный размер, не то, как
   // она отображается на экране) — заполняется асинхронно после загрузки,
