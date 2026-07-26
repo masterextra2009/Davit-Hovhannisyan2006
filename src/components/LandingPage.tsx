@@ -55,7 +55,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
             <img src="/logo-header.webp" alt="Фото-Север" width="36" height="36" className="w-9 h-9 rounded-xl object-cover" />
             <div className="leading-tight">
               <div className="text-sm font-black">Фото-Север</div>
-              <div className="text-[11px] text-slate-500 dark:text-white/40">Северное шоссе, 18</div>
+              <div className="text-[11px] text-slate-600 dark:text-white/60">Северное шоссе, 18</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -296,7 +296,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
             </div>
           </div>
         </div>
-        <div className="text-center text-[11px] text-slate-400 dark:text-white/30 pb-6">
+        <div className="text-center text-[11px] text-slate-500 dark:text-white/50 pb-6">
           &copy; 2026 Копи-Центр «Фото-Север» &middot; Северное шоссе, 18 &middot; Лицензия SSL
         </div>
       </footer>
