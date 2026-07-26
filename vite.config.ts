@@ -14,6 +14,15 @@ export default defineConfig(() => {
     build: {
       sourcemap: true,
     },
+    // esbuild по умолчанию оставляет /** @license */-блоки из зависимостей
+    // прямо в минифицированном коде (React и др. дублируют один и тот же
+    // заголовок в каждом внутреннем модуле) — на билде это ~150КБ мёртвого
+    // веса в основном бандле, ровно то, на что жаловался Lighthouse audit
+    // "Minify JavaScript". 'none' убирает их полностью — обычная практика
+    // для прод-бандлов (сама лицензия остаётся в исходниках зависимостей).
+    esbuild: {
+      legalComments: 'none' as const,
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
