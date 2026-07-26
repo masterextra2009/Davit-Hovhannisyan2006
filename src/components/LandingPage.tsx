@@ -74,6 +74,8 @@ export function LandingPage({ onEnter }: LandingPageProps) {
         </div>
       </header>
 
+      <main>
+
       {/* ===== HERO ===== */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-14 grid md:grid-cols-2 gap-10 items-center">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
@@ -259,6 +261,8 @@ export function LandingPage({ onEnter }: LandingPageProps) {
       </section>
 
       {/* ===== FOOTER ===== */}
+      </main>
+
       <footer className="border-t border-slate-150 dark:border-white/10 mt-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid sm:grid-cols-3 gap-8 text-xs text-slate-500 dark:text-white/50">
           <div>
