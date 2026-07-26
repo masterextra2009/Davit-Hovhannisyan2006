@@ -273,6 +273,11 @@ interface DashboardProps {
   }) => void;
   onDeleteAccount: (userId: string) => void;
   hasSyncedFromServer?: boolean;
+  // Открыть кабинет сразу на нужной вкладке (например, из PWA-ярлыка на иконке
+  // приложения — see manifest.json "shortcuts"). Приоритетнее сохранённого
+  // состояния навигации в sessionStorage, но задаётся только один раз при
+  // самом первом рендере компонента.
+  initialTab?: 'upload' | 'orders' | 'chat' | 'profile' | 'contacts' | 'services';
 }
 
 // Иконки для стеклянных плиток "Главной" — точные пути из ТЗ (tz-fable-glass-icons-final.md,
@@ -501,7 +506,7 @@ function HomeBigClock({ size, resizable, onCycleSize }: { size: ClockSize; resiz
   );
 }
 
-export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDeleteAccount, hasSyncedFromServer = true }: DashboardProps) {
+export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDeleteAccount, hasSyncedFromServer = true, initialTab }: DashboardProps) {
   // На iOS Web Share Target API не поддерживается Safari в принципе (ограничение
   // самой Apple) — "Поделиться" в другое приложение сюда файл не занесёт.
   // Показываем честную подсказку вместо того, чтобы человек ждал автоматики.
@@ -522,11 +527,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const savedNavState = (() => {
     try { return JSON.parse(sessionStorage.getItem(NAV_STATE_KEY) || 'null'); } catch { return null; }
   })();
-  const [activeTab, setActiveTab] = useState<'upload' | 'orders' | 'chat' | 'profile' | 'contacts' | 'services'>(savedNavState?.activeTab || 'upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'orders' | 'chat' | 'profile' | 'contacts' | 'services'>(initialTab || savedNavState?.activeTab || 'upload');
   // На телефоне кабинет открывается с отдельного экрана "Главная" (крупные плитки);
   // переход в раздел скрывает плитки и показывает контент activeTab. На десктопе не используется —
   // там сайдбар и контент видны одновременно всегда.
-  const [mobileHome, setMobileHome] = useState(savedNavState?.mobileHome ?? true);
+  const [mobileHome, setMobileHome] = useState(initialTab ? false : (savedNavState?.mobileHome ?? true));
   useEffect(() => {
     try { sessionStorage.setItem(NAV_STATE_KEY, JSON.stringify({ activeTab, mobileHome })); } catch {}
   }, [activeTab, mobileHome]);
