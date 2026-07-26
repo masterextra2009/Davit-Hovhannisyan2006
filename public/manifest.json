@@ -77,5 +77,33 @@
       "form_factor": "narrow",
       "label": "Проверка фото на документы перед печатью"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Новый заказ",
+      "short_name": "Заказ",
+      "description": "Загрузить файл на печать",
+      "url": "/?open=upload",
+      "icons": [
+        {
+          "src": "/logo-192-v2.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Мои заказы",
+      "short_name": "Заказы",
+      "description": "Статус текущих заказов",
+      "url": "/?open=orders",
+      "icons": [
+        {
+          "src": "/logo-192-v2.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }
