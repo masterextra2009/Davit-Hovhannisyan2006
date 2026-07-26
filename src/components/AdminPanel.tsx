@@ -1316,16 +1316,22 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     .filter(o => o.paymentStatus === 'paid')
     .reduce((sum, current) => sum + current.totalCost, 0);
 
-  const pendingCount = database.orders.filter(o => o.status === 'pending').length;
-  const inPrintCount = database.orders.filter(o => o.status === 'printing').length;
-  const readyCount = database.orders.filter(o => o.status === 'ready').length;
+  // Брак/отказ независим от status и вытесняет заказ из ЛЮБОЙ другой вкладки
+  // в свою собственную (см. фильтр списка ниже: `else if (o.rejected) return
+  // false`, применяется ко всем вкладкам кроме «Брак») — поэтому все счётчики
+  // на бейджах вкладок обязаны так же исключать rejected, иначе бейдж
+  // показывает число, которого нет в самом списке под ним (заказ и там
+  // посчитан, и оттуда изгнан в «Брак»).
+  const pendingCount = database.orders.filter(o => o.status === 'pending' && !o.rejected).length;
+  const inPrintCount = database.orders.filter(o => o.status === 'printing' && !o.rejected).length;
+  const readyCount = database.orders.filter(o => o.status === 'ready' && !o.rejected).length;
   // Заказы, которые клиент начал оформлять онлайн-оплатой, но не завершил
   // (закрыл вкладку ЮKassa, оплата не прошла и т.п.) — раньше такие заказы
   // просто исчезали из очереди без следа (см. фильтр ниже), из-за чего
   // выглядело, будто заказ вообще не дошёл до сервера.
   const isAbandonedUnpaid = (o: Order) =>
     o.paymentStatus === 'unpaid' && o.paymentMethod !== 'При получении (Наличные/Карта)';
-  const unpaidCount = database.orders.filter(o => o.status !== 'printed' && isAbandonedUnpaid(o)).length;
+  const unpaidCount = database.orders.filter(o => o.status !== 'printed' && !o.rejected && isAbandonedUnpaid(o)).length;
   // Брак/отказ — независимый от status флаг (см. types.ts), заказ может
   // сломаться на любой стадии. Раньше он просто оставался висеть в своей
   // обычной вкладке с бейджиком «⚠ Брак», путаясь с рабочими заказами —
