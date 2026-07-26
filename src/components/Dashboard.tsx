@@ -236,11 +236,16 @@ function a3FilePrice(file: PrintFile): number {
 // Наценка за отделку (за один комплект копий), см. calculateOrderCost в utils.ts —
 // та же формула, продублирована здесь т.к. чек в форме заказа считается
 // напрямую из per-file полей, а не через тот калькулятор.
+// Прайс на пружину — по факту из "Витрины услуг" (карточки "Брошюровка А4",
+// 2026-07-26): металл — до 50 стр. 350₽, до 90 стр. 450₽; пластик — до 50 стр.
+// 250₽, свыше 90 стр. 550₽. Промежуток 51-90 стр. для пластика в прайсе пока
+// не указан отдельно — держим ставку "до 50" (безопаснее занизить, чем
+// выдумать цифру), поправить, когда админ добавит недостающую ступень.
 function bindingFeePerCopy(binding: 'none' | 'staple' | 'file' | 'spring_plastic' | 'spring_metal' | 'hard_cover', totalPages: number): number {
   if (binding === 'staple') return 15;
   if (binding === 'file') return 5;
-  if (binding === 'spring_metal') return totalPages <= 100 ? 250 : 350;
-  if (binding === 'spring_plastic') return 100;
+  if (binding === 'spring_metal') return totalPages <= 50 ? 350 : 450;
+  if (binding === 'spring_plastic') return totalPages <= 90 ? 250 : 550;
   if (binding === 'hard_cover') return 450;
   return 0;
 }

@@ -31,7 +31,10 @@ function filePrice(f: Order['files'][number]): number {
   if (isPhoto) return (photoSizePrices[f.photoSize || '10x15'] || 20) * copies;
   if (isBinding) {
     if (!f.bindingKind) return 0;
-    const bindingFee = f.bindingKind === 'spring_metal' ? (pages <= 100 ? 250 : 350) : 100;
+    // Прайс из "Витрины услуг" — см. bindingFeePerCopy в Dashboard.tsx.
+    const bindingFee = f.bindingKind === 'spring_metal'
+      ? (pages <= 50 ? 350 : 450)
+      : (pages <= 90 ? 250 : 550);
     return bindingFee * copies;
   }
   const pp = (f.printColor || 'bw') === 'bw'
