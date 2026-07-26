@@ -8,7 +8,10 @@
   "background_color": "#0a0a14",
   "theme_color": "#f97316",
   "orientation": "portrait-primary",
-  "categories": ["business", "productivity"],
+  "categories": [
+    "business",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "/logo-192-v2.png",
@@ -46,9 +49,33 @@
       "files": [
         {
           "name": "files",
-          "accept": ["image/*", "application/pdf", ".doc", ".docx", ".zip", ".rar", ".heic"]
+          "accept": [
+            "image/*",
+            "application/pdf",
+            ".doc",
+            ".docx",
+            ".zip",
+            ".rar",
+            ".heic"
+          ]
         }
       ]
     }
-  }
+  },
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot-home.jpeg",
+      "sizes": "393x852",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Главный экран личного кабинета"
+    },
+    {
+      "src": "/screenshots/screenshot-photocheck.jpeg",
+      "sizes": "393x1053",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Проверка фото на документы перед печатью"
+    }
+  ]
 }
