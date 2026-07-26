@@ -179,6 +179,24 @@ async function countPdfPages(file: File): Promise<number> {
   }
 }
 
+// Подсчёт страниц .docx — сам формат не хранит "текущее число страниц" как
+// PDF (разбивка на страницы — дело рендерера, не документа), но Word при
+// каждом сохранении сам пишет последний посчитанный им итог в служебные
+// метаданные (docProps/app.xml, тег <Pages>) — тем же способом, что и
+// "Число слов"/"Число строк" в свойствах файла. .docx — обычный zip-архив
+// (тот же JSZip, что уже используется для .zip-заказов), поэтому просто
+// читаем этот XML напрямую, без тяжёлых библиотек для рендера документа.
+// Не работает для старого бинарного .doc (не zip) — там страницы не
+// заявлены нигде явно, оставляем дефолт "1 стр." как и раньше.
+async function countDocxPages(file: File): Promise<number> {
+  const zip = await JSZip.loadAsync(file);
+  const appXml = await zip.file('docProps/app.xml')?.async('string');
+  if (!appXml) return 1;
+  const match = appXml.match(/<Pages>(\d+)<\/Pages>/);
+  const pages = match ? parseInt(match[1], 10) : NaN;
+  return Number.isFinite(pages) && pages > 0 ? pages : 1;
+}
+
 // Analyse color fill % from an image URL using Canvas API (0-100)
 // Works precisely for raster images; for PDFs uses the first-page preview.
 async function analyzeColorFill(imageUrl: string): Promise<number> {
@@ -2561,6 +2579,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         continue;
       }
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      const isDocx = file.name.toLowerCase().endsWith('.docx');
       const fileId = 'file_' + Date.now() + '_' + i + '_' + Math.floor(Math.random() * 1000);
 
       let previewUrl = '';
@@ -2581,7 +2600,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         type: file.type || 'application/octet-stream',
         uploadedAt: new Date().toISOString(),
         formatGroup,
-        pageCount: isPdf ? undefined : 1,
+        pageCount: isPdf || isDocx ? undefined : 1,
         previewUrl: previewUrl || undefined,
         ...(forcePhoto && isImage ? { paperType: 'photo', photoSize: '10x15', photoBorder: 'borderless', printColor: 'color' } : {}),
         ...(forcePolaroid && isImage ? { paperType: 'photo', photoSize: 'polaroid', photoBorder: 'borderless', printColor: 'color' } : {}),
@@ -2612,11 +2631,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               total += 20;
             } else {
               const isEntryPdf = entry.name.toLowerCase().endsWith('.pdf');
+              const isEntryDocx = entry.name.toLowerCase().endsWith('.docx');
               let pages = 1;
               if (isEntryPdf) {
                 try {
                   const blob = await entry.async('blob');
                   pages = await countPdfPages(new File([blob], entry.name, { type: 'application/pdf' }));
+                } catch {
+                  pages = 1;
+                }
+              } else if (isEntryDocx) {
+                try {
+                  const blob = await entry.async('blob');
+                  pages = await countDocxPages(new File([blob], entry.name));
                 } catch {
                   pages = 1;
                 }
@@ -2639,6 +2666,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       if (isPdf) {
         countPdfPages(file).then(pages => {
           patchFileState(fileId, { pageCount: pages });
+        });
+      } else if (isDocx) {
+        countDocxPages(file).then(pages => {
+          patchFileState(fileId, { pageCount: pages });
+        }).catch(err => {
+          // Битый .docx или неожиданная структура архива — не смогли прочитать
+          // метаданные, оставляем дефолт "1 стр." как и раньше.
+          console.warn('Failed to read .docx page count:', err);
+          patchFileState(fileId, { pageCount: 1 });
         });
       }
 
@@ -2690,7 +2726,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           } else {
             const raw = rawFilesForZip[i];
             const isPdf = raw.type === 'application/pdf' || meta.name.toLowerCase().endsWith('.pdf');
-            const pages = isPdf ? await countPdfPages(raw).catch(() => 1) : 1;
+            const isDocx = meta.name.toLowerCase().endsWith('.docx');
+            const pages = isPdf ? await countPdfPages(raw).catch(() => 1)
+              : isDocx ? await countDocxPages(raw).catch(() => 1)
+              : 1;
             total += 20 * pages; // документ по умолчанию — Ч/Б А4
           }
         }
@@ -6841,6 +6880,29 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         );
                       })}
                     </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Количество листов</p>
+                    <div className="flex items-center gap-3">
+                      <button type="button" onClick={() => patch({ pageCount: Math.max(1, pages - 1) })}
+                        className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">−</button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={pages}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          patch({ pageCount: Number.isNaN(v) || v < 1 ? 1 : v });
+                        }}
+                        className="w-16 text-sm font-black text-slate-800 dark:text-white text-center bg-slate-100 dark:bg-slate-800 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <button type="button" onClick={() => patch({ pageCount: pages + 1 })}
+                        className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">+</button>
+                    </div>
+                    <p className="text-[10.5px] text-slate-400 mt-1.5">
+                      Для PDF число листов подставляется автоматически — проверьте и поправьте, если нужно.
+                    </p>
                   </div>
 
                   <div>
