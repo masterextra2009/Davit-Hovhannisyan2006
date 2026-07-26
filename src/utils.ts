@@ -864,6 +864,34 @@ export function formatServicePrice(price: string): string {
   return price.replace(/(\d)\s*₽/g, '$1 ₽');
 }
 
+// Группировка похожих услуг рядом друг с другом в витрине (и у клиента, и в
+// админке) — без этого карточки идут просто в порядке добавления/ручной
+// сортировки, и, например, несколько вариантов "Брошюровка" могут оказаться
+// раскиданы по всей сетке вперемешку с сувенирами/печатью. Ключевые слова —
+// те же, что уже использует isSouvenirTitle в AdminPanel.tsx и
+// serviceCategoryMatchers в Dashboard.tsx, просто собраны в одном месте.
+const SERVICE_GROUP_ORDER = ['photo', 'documents', 'scanning', 'lamination', 'binding', 'souvenirs', 'other'] as const;
+export function serviceGroupKey(title: string): typeof SERVICE_GROUP_ORDER[number] {
+  const t = title.toLowerCase();
+  if (t.includes('сувенир') || t.includes('кружк') || t.includes('магнит') || t.includes('футболк') || t.includes('керамик')) return 'souvenirs';
+  if (t.includes('переплёт') || t.includes('переплет') || t.includes('брошюр') || t.includes('пружин') || t.includes('binding')) return 'binding';
+  if (t.includes('ламинац')) return 'lamination';
+  if (t.includes('скан')) return 'scanning';
+  if (t.includes('докум')) return 'documents';
+  if (t.includes('фото')) return 'photo';
+  return 'other';
+}
+
+// Сортирует услуги так, чтобы похожие оказались рядом (см. serviceGroupKey),
+// но не трогает порядок ВНУТРИ одной группы — там сохраняется то, что уже
+// было (обычно — ручная сортировка админа через drag&drop, см. order).
+export function sortServicesByGroup<T extends { title: string }>(services: T[]): T[] {
+  return services
+    .map((s, i) => ({ s, i, group: SERVICE_GROUP_ORDER.indexOf(serviceGroupKey(s.title)) }))
+    .sort((a, b) => a.group - b.group || a.i - b.i)
+    .map(x => x.s);
+}
+
 export function getLocalDateKey(d: Date = new Date()): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');

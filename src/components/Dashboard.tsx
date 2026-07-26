@@ -50,7 +50,7 @@ import {
   formatDateTime, getStatusLabel, getStatusColor, 
   getPaymentStatusLabel, getPaymentStatusColor, printInvoiceHTML,
   getClientTierForUser, isWorkingHours, showBrowserNotification, trackAnalyticsEvent,
-  formatServicePrice
+  formatServicePrice, sortServicesByGroup
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
 import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode } from '../firebaseUtils';
@@ -6426,14 +6426,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
             {serviceCategoryFilter !== 'scanning' && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
-              {(database.services || [])
-                .filter(s => !serviceCategoryFilter || serviceCategoryMatchers[serviceCategoryFilter]?.(s.title.toLowerCase()))
-                .filter(s => {
-                  const q = serviceSearchQuery.trim().toLowerCase();
-                  return !q || s.title.toLowerCase().includes(q) || s.description.toLowerCase().includes(q);
-                })
-                .filter(s => s.isActive)
-                .map(svc => {
+              {sortServicesByGroup(
+                (database.services || [])
+                  .filter(s => !serviceCategoryFilter || serviceCategoryMatchers[serviceCategoryFilter]?.(s.title.toLowerCase()))
+                  .filter(s => {
+                    const q = serviceSearchQuery.trim().toLowerCase();
+                    return !q || s.title.toLowerCase().includes(q) || s.description.toLowerCase().includes(q);
+                  })
+                  .filter(s => s.isActive)
+              ).map(svc => {
                   // Генерируем 3D SVG иконку по эмодзи/названию
                   const get3DIcon = (emoji: string, title: string) => {
                     const t = title.toLowerCase();

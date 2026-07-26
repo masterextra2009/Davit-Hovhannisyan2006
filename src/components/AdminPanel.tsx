@@ -20,7 +20,7 @@ import {
 import {
   formatFileSize, formatDateTime, getStatusLabel,
   getStatusColor, getPaymentStatusLabel, getPaymentStatusColor,
-  exportToCSV, printInvoiceHTML, calculateOrderCost, getLocalDateKey
+  exportToCSV, printInvoiceHTML, calculateOrderCost, getLocalDateKey, sortServicesByGroup
 } from '../utils';
 import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase } from '../firebaseUtils';
 import { db, doc, setDoc, deleteDoc, getDoc } from '../firebase';
@@ -194,6 +194,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   // нет), просто отфильтрованный по названию тем же принципом, что и на
   // стороне клиента (см. serviceCategoryMatchers.souvenirs в Dashboard.tsx).
   const [serviceAdminFilter, setServiceAdminFilter] = useState<'all' | 'souvenirs'>('all');
+  const [serviceAdminSearchQuery, setServiceAdminSearchQuery] = useState('');
   const isSouvenirTitle = (title: string) => {
     const t = title.toLowerCase();
     return t.includes('сувенир') || t.includes('кружк') || t.includes('магнит') || t.includes('футболк') || t.includes('керамик');
@@ -3638,6 +3639,28 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   </div>
                 </div>
 
+                <div className="relative max-w-sm">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={serviceAdminSearchQuery}
+                    onChange={(e) => setServiceAdminSearchQuery(e.target.value)}
+                    placeholder="Поиск товара по названию или описанию..."
+                    aria-label="Поиск товара в витрине"
+                    className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-750 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                  />
+                  {serviceAdminSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setServiceAdminSearchQuery('')}
+                      aria-label="Очистить поиск"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
                 {serviceAdminFilter === 'souvenirs' && (
                   <p className="text-[11px] text-amber-600 dark:text-amber-400 -mt-2">
                     Совет: чтобы новая карточка попала в "Сувениры", включи в название слово вроде "сувенир", "кружка", "магнит", "футболка" или "керамика".
@@ -3645,18 +3668,32 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 )}
 
                 <div>
-                  {(database.services || []).filter(s => serviceAdminFilter !== 'souvenirs' || isSouvenirTitle(s.title)).length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-10 text-slate-400 text-xs gap-3">
-                      <Printer className="w-10 h-10 opacity-20" />
-                      <p className="font-bold text-center">
-                        {serviceAdminFilter === 'souvenirs'
-                          ? 'Пока нет карточек сувениров — нажми «+ Добавить» и назови товар так, чтобы в названии было слово вроде "сувенир" или "кружка"'
-                          : 'Витрина пуста — нажми «+ Добавить» чтобы создать первую карточку'}
-                      </p>
-                    </div>
-                  )}
+                  {(() => {
+                    const q = serviceAdminSearchQuery.trim().toLowerCase();
+                    const visibleServices = (database.services || []).filter(s =>
+                      (serviceAdminFilter !== 'souvenirs' || isSouvenirTitle(s.title))
+                      && (!q || s.title.toLowerCase().includes(q) || s.description.toLowerCase().includes(q))
+                    );
+                    if (visibleServices.length > 0) return null;
+                    return (
+                      <div className="flex flex-col items-center justify-center py-10 text-slate-400 text-xs gap-3">
+                        <Printer className="w-10 h-10 opacity-20" />
+                        <p className="font-bold text-center">
+                          {q
+                            ? `Ничего не нашлось по запросу «${serviceAdminSearchQuery.trim()}»`
+                            : serviceAdminFilter === 'souvenirs'
+                            ? 'Пока нет карточек сувениров — нажми «+ Добавить» и назови товар так, чтобы в названии было слово вроде "сувенир" или "кружка"'
+                            : 'Витрина пуста — нажми «+ Добавить» чтобы создать первую карточку'}
+                        </p>
+                      </div>
+                    );
+                  })()}
                   <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                    {(database.services || []).filter(s => serviceAdminFilter !== 'souvenirs' || isSouvenirTitle(s.title)).map((svc) => (
+                    {sortServicesByGroup((database.services || []).filter(s => {
+                      const q = serviceAdminSearchQuery.trim().toLowerCase();
+                      return (serviceAdminFilter !== 'souvenirs' || isSouvenirTitle(s.title))
+                        && (!q || s.title.toLowerCase().includes(q) || s.description.toLowerCase().includes(q));
+                    })).map((svc) => (
                       <div
                         key={svc.id}
                         onMouseMove={handleServiceCardTilt}

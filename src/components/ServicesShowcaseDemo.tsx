@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Service } from '../types';
-import { formatServicePrice } from '../utils';
+import { formatServicePrice, sortServicesByGroup } from '../utils';
 
 /* Те же 3D SVG-иконки-заглушки (когда у услуги нет своего фото/иконки),
    что и в клиентском кабинете (Dashboard.tsx, вкладка "Услуги") — держим
@@ -96,7 +96,7 @@ function get3DIcon(svc: Service) {
    администратора, а не полноценная копия кабинета клиента. */
 export function ServicesShowcaseDemo({ services }: { services: Service[] }) {
   const [expanded, setExpanded] = useState<Service | null>(null);
-  const shown = services.filter(s => s.isActive);
+  const shown = sortServicesByGroup(services.filter(s => s.isActive));
 
   if (shown.length === 0) {
     return (
