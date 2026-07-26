@@ -271,9 +271,9 @@ export function LandingPage({ onEnter }: LandingPageProps) {
 
           <div className="space-y-1.5">
             <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2">Контакты</div>
-            <a href="tel:+79680508800" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors"><Phone className="w-3.5 h-3.5" /> +7 (968) 050-88-00</a>
-            <a href="https://t.me/photosever18" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors"><Send className="w-3.5 h-3.5" /> @photosever18</a>
-            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-[#25D366] transition-colors">
+            <a href="tel:+79680508800" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors py-2 -my-2"><Phone className="w-3.5 h-3.5" /> +7 (968) 050-88-00</a>
+            <a href="https://t.me/photosever18" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors py-2 -my-2"><Send className="w-3.5 h-3.5" /> @photosever18</a>
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-[#25D366] transition-colors py-2 -my-2">
               <WhatsAppIcon className="w-3.5 h-3.5" /> WhatsApp
             </a>
             <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> Северное шоссе, 18, Раменское</div>
@@ -287,8 +287,8 @@ export function LandingPage({ onEnter }: LandingPageProps) {
             <div>ИП, ИНН 501110120673</div>
             <div>ОГРНИП 324774600314137</div>
             <div className="pt-2 flex flex-col gap-1">
-              <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted">Публичная оферта</a>
-              <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted">Политика обработки персональных данных</a>
+              <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted py-2 -my-2">Публичная оферта</a>
+              <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted py-2 -my-2">Политика обработки персональных данных</a>
             </div>
           </div>
         </div>
