@@ -55,7 +55,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <a href="tel:+79680508800" className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-white/70 hover:text-orange-500 transition-colors p-2.5 -m-2.5 sm:p-0 sm:m-0">
+            <a href="tel:+79680508800" aria-label="Позвонить по телефону +7 968 050-88-00" className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-white/70 hover:text-orange-500 transition-colors p-2.5 -m-2.5 sm:p-0 sm:m-0">
               <Phone className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" />
               <span className="hidden sm:inline">+7 (968) 050-88-00</span>
             </a>
