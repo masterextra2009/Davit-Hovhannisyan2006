@@ -3151,17 +3151,22 @@ button.glass-card::after,
 }
 
 /* ============================================
-   ЧАТ АДМИНА — 1:1 перенос дизайна от Grok (тёмное нейтральное стекло)
+   ЧАТ АДМИНА — 1:1 перенос дизайна от Grok, светлая тема по умолчанию
+   (как остальной сайт: base-правила — светлая тема, .dark ниже её
+   переопределяет). Раньше здесь была захардкожена тёмная тема (--bg:
+   #1c1e22 и т.п.) без светлого варианта вообще — окно чата оставалось
+   тёмным и нечитаемым на светлой теме сайта, пока не включишь .dark.
    ============================================ */
 .grok-chat-app {
-  --bg: #1c1e22;
-  --bg-elevated: #202226;
-  --text: #e4e6eb;
-  --text-muted: #8b919a;
-  --glass: rgba(255,255,255,0.06);
-  --glass-strong: rgba(255,255,255,0.1);
-  --glass-border: rgba(255,255,255,0.12);
-  --glass-highlight: rgba(255,255,255,0.18);
+  --bg: rgba(255,255,255,0.85);
+  --bg-elevated: rgba(255,255,255,0.65);
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --glass: rgba(15,23,42,0.045);
+  --glass-strong: rgba(15,23,42,0.08);
+  --glass-border: rgba(15,23,42,0.12);
+  --glass-highlight: rgba(255,255,255,0.9);
+  --hover-tint: rgba(15,23,42,0.05);
   --blur: 24px;
   --radius: 16px;
   display: grid;
@@ -3219,8 +3224,8 @@ button.glass-card::after,
 .grok-sidebar { display: flex; flex-direction: column; border-right: 1px solid var(--glass-border); min-height: 0; }
 .grok-sidebar-header { padding: 14px 16px; font-weight: 600; font-size: 15px; border-bottom: 1px solid var(--glass-border); }
 .grok-chat-list { flex: 1; overflow-y: auto; }
-.grok-chat-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,.04); position: relative; }
-.grok-chat-item:hover { background: rgba(255,255,255,.04); }
+.grok-chat-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--glass-border); position: relative; }
+.grok-chat-item:hover { background: var(--hover-tint); }
 .grok-chat-item.active { background: rgba(255,255,255,.08); }
 
 .grok-avatar-btn {
@@ -3255,7 +3260,7 @@ button.glass-card::after,
   width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent;
   display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
 }
-.grok-back-btn:hover { background: rgba(255,255,255,.08); }
+.grok-back-btn:hover { background: var(--hover-tint); }
 .grok-thread-title { flex: 1; min-width: 0; }
 .grok-thread-title h1 { font-size: 15px; font-weight: 600; margin: 0; }
 .grok-thread-title p { font-size: 13px; margin: 0; }
@@ -3264,7 +3269,7 @@ button.glass-card::after,
   background: var(--glass); display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0;
 }
-.grok-header-icon-btn:hover { background: rgba(255,255,255,.1); }
+.grok-header-icon-btn:hover { background: var(--hover-tint); }
 
 .grok-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
 .grok-empty-hint { text-align: center; padding: 40px 0; font-size: 13px; }
@@ -3296,7 +3301,7 @@ button.glass-card::after,
   background: var(--glass) !important; cursor: pointer; font-size: 18px;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.grok-composer-icon-btn:hover { background: rgba(255,255,255,.1) !important; }
+.grok-composer-icon-btn:hover { background: var(--hover-tint) !important; }
 
 .grok-empty-state { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; padding: 40px; text-align: center; }
 
@@ -3324,7 +3329,7 @@ button.glass-card::after,
 .grok-panel-section { margin: 8px 12px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--glass-border); }
 .grok-panel-action {
   display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px;
-  border: none; border-bottom: 1px solid rgba(255,255,255,.06); background: var(--glass);
+  border: none; border-bottom: 1px solid var(--glass-border); background: var(--glass);
   font-size: 14px; text-align: left; cursor: pointer;
 }
 .grok-panel-action:last-child { border-bottom: none; }
@@ -3939,11 +3944,11 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
   border-color: rgba(255,255,255,0.22) !important;
 }
 
-/* Чат ("Оперативная чат-линия клиентов") — отдельный компонент .grok-chat-app
-   со своей палитрой (--bg: #1c1e22 и т.п.), никогда не менявшейся вместе
-   с темой сайта. Перекрашиваем эти CSS-переменные в тот же тон стекла,
-   что и остальные панели, — всё остальное внутри чата само подхватит
-   новые значения через var(...). */
+/* Чат ("Оперативная чат-линия клиентов") — отдельный компонент .grok-chat-app.
+   Светлая тема берёт свои значения из base-правила выше; здесь просто
+   перекрашиваем те же CSS-переменные в тон тёмного стекла остальных
+   панелей — всё остальное внутри чата само подхватит новые значения
+   через var(...). */
 .dark #admin-dashboard-root#admin-dashboard-root .grok-chat-app {
   /* Полупрозрачные (не сплошные) значения — иначе backdrop-filter: blur
      на самом .grok-chat-app ничего не блюрит, фон просто перекрывает всё
@@ -3956,6 +3961,7 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
   --glass-strong: rgba(255,255,255,0.09) !important;
   --glass-border: var(--lg2026-glass-border) !important;
   --glass-highlight: rgba(255,255,255,0.16) !important;
+  --hover-tint: rgba(255,255,255,0.08) !important;
   border: 1.5px solid var(--lg2026-glass-border);
 }
 
