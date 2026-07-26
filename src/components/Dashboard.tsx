@@ -3605,14 +3605,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       isActive: false,
       onClick: () => { nextUploadIsPolaroidRef.current = true; setActiveTab('upload'); setMobileHome(false); },
     },
-    {
-      key: 'category-doc-check',
-      label: 'Проверка фото',
-      icon: GlassDocCheckRefIcon,
-      glow: 'capsule-glow-green',
-      isActive: false,
-      onClick: () => setShowDocCheckModal(true),
-    },
   ];
 
   const homeAllTiles = [
