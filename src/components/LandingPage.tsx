@@ -52,7 +52,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/70 dark:bg-black/40 border-b border-slate-150 dark:border-white/10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src="/logo-192-v2.png" alt="Фото-Север" className="w-9 h-9 rounded-xl object-cover" />
+            <img src="/logo-header.webp" alt="Фото-Север" width="36" height="36" className="w-9 h-9 rounded-xl object-cover" />
             <div className="leading-tight">
               <div className="text-sm font-black">Фото-Север</div>
               <div className="text-[11px] text-slate-500 dark:text-white/40">Северное шоссе, 18</div>
@@ -267,7 +267,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid sm:grid-cols-3 gap-8 text-xs text-slate-500 dark:text-white/50">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <img src="/logo-192-v2.png" alt="Фото-Север" className="w-7 h-7 rounded-lg object-cover" />
+              <img src="/logo-header.webp" alt="Фото-Север" width="28" height="28" className="w-7 h-7 rounded-lg object-cover" />
               <span className="text-sm font-black text-slate-900 dark:text-white">Фото-Север</span>
             </div>
             <p className="leading-relaxed">Копи-центр в Раменском.<br />Печать фото, документов, чертежей.</p>
