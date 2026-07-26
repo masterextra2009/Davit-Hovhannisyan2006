@@ -45,9 +45,15 @@ import {
 // вместо обычного сайта. Поставь false и задеплой, когда работы закончены.
 const MAINTENANCE_MODE = false;
 
+const SPLASH_SHOWN_KEY = 'print_shop_splash_shown';
+
 export default function App() {
-  // Premium splash state for high-end feel
-  const [showSplash, setShowSplash] = useState(true);
+  // Premium splash state for high-end feel — только на первую загрузку за
+  // сессию (иначе он на 2.8с+ блокирует отрисовку лендинга при каждом
+  // визите/перезагрузке и сильно бьёт по LCP).
+  const [showSplash, setShowSplash] = useState(() => {
+    try { return !sessionStorage.getItem(SPLASH_SHOWN_KEY); } catch { return true; }
+  });
 
   // Маркетинговая главная страница — показывается гостям до формы входа
   const [showLanding, setShowLanding] = useState(true);
@@ -65,11 +71,13 @@ export default function App() {
   }, [paymentReturnOrderId]);
 
   useEffect(() => {
+    if (!showSplash) return;
     const timer = setTimeout(() => {
       setShowSplash(false);
+      try { sessionStorage.setItem(SPLASH_SHOWN_KEY, '1'); } catch { /* ignore */ }
     }, 2800);
     return () => clearTimeout(timer);
-  }, []);
+  }, [showSplash]);
 
   // Учёт визита на сайт — срабатывает для КАЖДОГО посетителя,
   // независимо от того, вошёл ли он в аккаунт или зарегистрирован ли вообще
