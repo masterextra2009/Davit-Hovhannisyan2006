@@ -64,6 +64,24 @@ export default function App() {
     }
   }, [paymentReturnOrderId]);
 
+  // Открытие сразу на нужной вкладке кабинета по ссылке вида /?open=orders —
+  // используется PWA-ярлыками на иконке приложения (см. manifest.json
+  // "shortcuts"). Валидируем значение против допустимых вкладок Dashboard,
+  // чтобы мусорный/чужой query-параметр молча игнорировался, а не ломал вид.
+  const ALLOWED_SHORTCUT_TABS = ['upload', 'orders', 'chat', 'profile', 'contacts', 'services'] as const;
+  const [requestedTab] = useState<typeof ALLOWED_SHORTCUT_TABS[number] | undefined>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const open = params.get('open');
+    return (ALLOWED_SHORTCUT_TABS as readonly string[]).includes(open || '')
+      ? (open as typeof ALLOWED_SHORTCUT_TABS[number])
+      : undefined;
+  });
+  useEffect(() => {
+    if (requestedTab) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [requestedTab]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
@@ -456,6 +474,7 @@ export default function App() {
                   onUpdateDatabase={handleUpdateDatabase}
                   onDeleteAccount={handleDeleteAccount}
                   hasSyncedFromServer={hasSyncedFromServer}
+                  initialTab={requestedTab}
                 />
               </Suspense>
             )}
