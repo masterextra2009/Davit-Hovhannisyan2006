@@ -22,7 +22,6 @@ import polaroidIconRefImg from '../assets/polaroid-icon-ref.webp';
 import scanIconRefImg from '../assets/scan-icon-ref.webp';
 import photoIconRefImg from '../assets/photo-icon-ref.webp';
 import documentsIconRefImg from '../assets/documents-icon-ref.webp';
-import homeIconRefImg from '../assets/home-icon-ref.webp';
 import a3IconRefImg from '../assets/a3-icon-ref.webp';
 import ordersIconRefImg from '../assets/orders-icon-ref.webp';
 import laminationIconRefImg from '../assets/lamination-icon-ref.webp';
@@ -427,15 +426,6 @@ function GlassDocumentsRefIcon(_props: { style?: React.CSSProperties }) {
   return (
     <img
       src={documentsIconRefImg}
-      alt=""
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-    />
-  );
-}
-function GlassHomeRefIcon(_props: { style?: React.CSSProperties }) {
-  return (
-    <img
-      src={homeIconRefImg}
       alt=""
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
     />
@@ -3873,10 +3863,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
         <div className="absolute inset-0 z-[1] grid grid-cols-5 items-end pb-3 px-5">
           <button
-            onClick={() => setMobileHome(true)}
+            onClick={() => setShowDocCheckModal(true)}
             className="flex flex-col items-center cursor-pointer justify-self-center active:scale-90 transition-transform"
           >
-            <GlassIcon icon={GlassHomeRefIcon} glow="capsule-glow-purple" size={44} colored />
+            <GlassIcon icon={GlassDocCheckRefIcon} glow="capsule-glow-green" size={44} colored />
           </button>
           <button
             onClick={() => { setActiveTab('orders'); setMobileHome(false); }}
