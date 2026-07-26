@@ -4693,7 +4693,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                   : isPhoto
                                   ? `${selSize.label} × ${selSize.price} ₽ × ${copies} шт.`
                                   : isBindingFile
-                                  ? `${pages} стр., пружина ${file.bindingKind === 'spring_metal' ? 'металл' : 'пластик'} × ${filePP} ₽ × ${copies} шт.`
+                                  ? `${pages} стр., пружина ${file.bindingKind === 'spring_metal' ? 'металл' : 'пластик'} × ${filePP} ₽`
                                   : `${pages} стр. × ${filePP} ₽${!isA3 && (file.printColor || 'bw') !== 'bw' ? ` (${colorFillLabel(fillPct)}, ${fillPct}% цвета)` : ''} × ${copies} шт.`}
                               </span>
                               <strong className="text-white text-lg">{fileCost} ₽</strong>
@@ -6905,29 +6905,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     </p>
                   </div>
 
-                  <div>
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Копий</p>
-                    <div className="flex items-center gap-3">
-                      <button type="button" onClick={() => patch({ fileCopies: Math.max(1, copies - 1) })}
-                        className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">−</button>
-                      <input
-                        type="number"
-                        min={1}
-                        value={copies}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value, 10);
-                          patch({ fileCopies: Number.isNaN(v) || v < 1 ? 1 : v });
-                        }}
-                        className="w-12 text-sm font-black text-slate-800 dark:text-white text-center bg-slate-100 dark:bg-slate-800 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <button type="button" onClick={() => patch({ fileCopies: copies + 1 })}
-                        className="btn-glass-sheen w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-base font-black cursor-pointer flex items-center justify-center">+</button>
-                    </div>
-                  </div>
-
                   <div className="flex items-center justify-between pt-3 border-t border-slate-150 dark:border-slate-800">
                     <span className="text-xs text-slate-500 dark:text-slate-400">
-                      {pages} стр. × {copies} шт.
+                      {pages} стр.
                     </span>
                     <strong className="text-xl font-black text-slate-800 dark:text-white">{fileCost} ₽</strong>
                   </div>
