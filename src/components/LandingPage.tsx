@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import {
   Phone, MapPin, Clock, ArrowRight, Upload, Sliders, PackageCheck,
@@ -41,6 +41,10 @@ const PRICES = [
 ];
 
 export function LandingPage({ onEnter }: LandingPageProps) {
+  // Карта Яндекса весит ~400 КБ и грузит собственные скрипты/куки — показываем
+  // её только по нажатию, а не сразу при открытии лендинга, чтобы не тратить
+  // трафик и время первой загрузки у тех, кто до карты не долистает.
+  const [showMap, setShowMap] = useState(false);
   return (
     <div className="min-h-dvh bg-slate-50 dark:bg-[#03000a] text-slate-900 dark:text-white">
 
@@ -48,14 +52,14 @@ export function LandingPage({ onEnter }: LandingPageProps) {
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/70 dark:bg-black/40 border-b border-slate-150 dark:border-white/10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src="/logo-192-v2.png" alt="Фото-Север" className="w-9 h-9 rounded-xl object-cover" />
+            <img src="/logo-header.webp" alt="Фото-Север" width="36" height="36" className="w-9 h-9 rounded-xl object-cover" />
             <div className="leading-tight">
               <div className="text-sm font-black">Фото-Север</div>
               <div className="text-[11px] text-slate-500 dark:text-white/40">Северное шоссе, 18</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <a href="tel:+79680508800" className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-white/70 hover:text-orange-500 transition-colors p-2.5 -m-2.5 sm:p-0 sm:m-0">
+            <a href="tel:+79680508800" aria-label="Позвонить по телефону +7 968 050-88-00" className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-white/70 hover:text-orange-500 transition-colors p-2.5 -m-2.5 sm:p-0 sm:m-0">
               <Phone className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" />
               <span className="hidden sm:inline">+7 (968) 050-88-00</span>
             </a>
@@ -69,6 +73,8 @@ export function LandingPage({ onEnter }: LandingPageProps) {
           </div>
         </div>
       </header>
+
+      <main>
 
       {/* ===== HERO ===== */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-14 grid md:grid-cols-2 gap-10 items-center">
@@ -214,14 +220,26 @@ export function LandingPage({ onEnter }: LandingPageProps) {
         <p className="text-sm text-slate-500 dark:text-white/50 text-center mb-8">Раменское, Северное шоссе, 18</p>
 
         <div className="glass-card rounded-3xl overflow-hidden">
-          <iframe
-            title="Карта — Фото-Север, Северное шоссе 18, Раменское"
-            src="https://yandex.ru/map-widget/v1/?ll=38.215369%2C55.580156&z=17&pt=38.215369,55.580156"
-            width="100%"
-            height="360"
-            style={{ border: 0 }}
-            loading="lazy"
-          />
+          {showMap ? (
+            <iframe
+              title="Карта — Фото-Север, Северное шоссе 18, Раменское"
+              src="https://yandex.ru/map-widget/v1/?ll=38.215369%2C55.580156&z=17&pt=38.215369,55.580156"
+              width="100%"
+              height="360"
+              style={{ border: 0 }}
+              loading="lazy"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowMap(true)}
+              className="w-full h-[360px] flex flex-col items-center justify-center gap-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <MapPin className="w-10 h-10 text-orange-500" />
+              <span className="text-sm font-bold text-slate-700 dark:text-white/80">Показать карту</span>
+              <span className="text-xs text-slate-500 dark:text-white/50">Северное шоссе, 18, Раменское</span>
+            </button>
+          )}
           <div className="p-5 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-orange-500" />
@@ -243,11 +261,13 @@ export function LandingPage({ onEnter }: LandingPageProps) {
       </section>
 
       {/* ===== FOOTER ===== */}
+      </main>
+
       <footer className="border-t border-slate-150 dark:border-white/10 mt-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid sm:grid-cols-3 gap-8 text-xs text-slate-500 dark:text-white/50">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <img src="/logo-192-v2.png" alt="Фото-Север" className="w-7 h-7 rounded-lg object-cover" />
+              <img src="/logo-header.webp" alt="Фото-Север" width="28" height="28" className="w-7 h-7 rounded-lg object-cover" />
               <span className="text-sm font-black text-slate-900 dark:text-white">Фото-Север</span>
             </div>
             <p className="leading-relaxed">Копи-центр в Раменском.<br />Печать фото, документов, чертежей.</p>
@@ -255,9 +275,9 @@ export function LandingPage({ onEnter }: LandingPageProps) {
 
           <div className="space-y-1.5">
             <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2">Контакты</div>
-            <a href="tel:+79680508800" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors"><Phone className="w-3.5 h-3.5" /> +7 (968) 050-88-00</a>
-            <a href="https://t.me/photosever18" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors"><Send className="w-3.5 h-3.5" /> @photosever18</a>
-            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-[#25D366] transition-colors">
+            <a href="tel:+79680508800" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors py-2 -my-2"><Phone className="w-3.5 h-3.5" /> +7 (968) 050-88-00</a>
+            <a href="https://t.me/photosever18" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-orange-500 transition-colors py-2 -my-2"><Send className="w-3.5 h-3.5" /> @photosever18</a>
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-[#25D366] transition-colors py-2 -my-2">
               <WhatsAppIcon className="w-3.5 h-3.5" /> WhatsApp
             </a>
             <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> Северное шоссе, 18, Раменское</div>
@@ -271,8 +291,8 @@ export function LandingPage({ onEnter }: LandingPageProps) {
             <div>ИП, ИНН 501110120673</div>
             <div>ОГРНИП 324774600314137</div>
             <div className="pt-2 flex flex-col gap-1">
-              <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted">Публичная оферта</a>
-              <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted">Политика обработки персональных данных</a>
+              <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted py-2 -my-2">Публичная оферта</a>
+              <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted py-2 -my-2">Политика обработки персональных данных</a>
             </div>
           </div>
         </div>
