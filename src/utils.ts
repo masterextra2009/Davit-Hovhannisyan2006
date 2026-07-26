@@ -434,13 +434,12 @@ export function calculateOrderCost(
     if (binding === 'staple') bindingFee = 15;
     else if (binding === 'file') bindingFee = 5;
     // Прайс из "Витрины услуг" (см. bindingFeePerCopy в Dashboard.tsx) —
-    // металл: до 50 стр. 350₽, до 90 стр. 450₽; пластик: до 50 стр. 250₽,
-    // свыше 90 стр. 550₽ (промежуток 51-90 для пластика пока держим по
-    // ставке "до 50", в прайсе отдельно не указан).
+    // металл: до 50 стр. 350₽, 51-90 стр. 450₽; пластик: до 50 стр. 250₽,
+    // 51-90 стр. 350₽, свыше 90 стр. 450₽.
     else if (binding === 'spring_metal') {
       bindingFee = totalPages <= 50 ? 350 : 450;
     }
-    else if (binding === 'spring_plastic') bindingFee = totalPages <= 90 ? 250 : 550;
+    else if (binding === 'spring_plastic') bindingFee = totalPages <= 50 ? 250 : totalPages <= 90 ? 350 : 450;
     else if (binding === 'hard_cover') bindingFee = 450;
     subtotal += (bindingFee * copies);
   }

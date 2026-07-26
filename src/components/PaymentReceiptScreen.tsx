@@ -34,7 +34,7 @@ function filePrice(f: Order['files'][number]): number {
     // Прайс из "Витрины услуг" — см. bindingFeePerCopy в Dashboard.tsx.
     const bindingFee = f.bindingKind === 'spring_metal'
       ? (pages <= 50 ? 350 : 450)
-      : (pages <= 90 ? 250 : 550);
+      : (pages <= 50 ? 250 : pages <= 90 ? 350 : 450);
     return bindingFee * copies;
   }
   const pp = (f.printColor || 'bw') === 'bw'
