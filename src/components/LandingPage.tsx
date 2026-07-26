@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import {
   Phone, MapPin, Clock, ArrowRight, Upload, Sliders, PackageCheck,
@@ -41,6 +41,10 @@ const PRICES = [
 ];
 
 export function LandingPage({ onEnter }: LandingPageProps) {
+  // Карта Яндекса весит ~400 КБ и грузит собственные скрипты/куки — показываем
+  // её только по нажатию, а не сразу при открытии лендинга, чтобы не тратить
+  // трафик и время первой загрузки у тех, кто до карты не долистает.
+  const [showMap, setShowMap] = useState(false);
   return (
     <div className="min-h-dvh bg-slate-50 dark:bg-[#03000a] text-slate-900 dark:text-white">
 
@@ -214,14 +218,26 @@ export function LandingPage({ onEnter }: LandingPageProps) {
         <p className="text-sm text-slate-500 dark:text-white/50 text-center mb-8">Раменское, Северное шоссе, 18</p>
 
         <div className="glass-card rounded-3xl overflow-hidden">
-          <iframe
-            title="Карта — Фото-Север, Северное шоссе 18, Раменское"
-            src="https://yandex.ru/map-widget/v1/?ll=38.215369%2C55.580156&z=17&pt=38.215369,55.580156"
-            width="100%"
-            height="360"
-            style={{ border: 0 }}
-            loading="lazy"
-          />
+          {showMap ? (
+            <iframe
+              title="Карта — Фото-Север, Северное шоссе 18, Раменское"
+              src="https://yandex.ru/map-widget/v1/?ll=38.215369%2C55.580156&z=17&pt=38.215369,55.580156"
+              width="100%"
+              height="360"
+              style={{ border: 0 }}
+              loading="lazy"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowMap(true)}
+              className="w-full h-[360px] flex flex-col items-center justify-center gap-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <MapPin className="w-10 h-10 text-orange-500" />
+              <span className="text-sm font-bold text-slate-700 dark:text-white/80">Показать карту</span>
+              <span className="text-xs text-slate-500 dark:text-white/50">Северное шоссе, 18, Раменское</span>
+            </button>
+          )}
           <div className="p-5 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-orange-500" />
