@@ -36,6 +36,8 @@ import aiAssistantCoinMp4 from '../assets/ai-assistant-coin.mp4';
 import polaroidCameraAnim from '../assets/polaroid-camera.webp';
 import a3ChertyozhAnim from '../assets/a3-chertyozh.mp4';
 import a3PhotoAnim from '../assets/a3-photo.mp4';
+import bindingSpringMetalAnim from '../assets/binding-spring-metal.mp4';
+import bindingSpringPlasticAnim from '../assets/binding-spring-plastic.mp4';
 import docCheckIconRefImg from '../assets/doc-check-icon-ref.webp';
 import {
   FileText, Upload, Trash2, MapPin, Sliders, FileType, CheckCircle, Clock, 
@@ -230,6 +232,18 @@ function a3FilePrice(file: PrintFile): number {
   const is200g = file.a3PaperWeight === '200';
   if (isColor) return is200g ? 150 : 100;
   return is200g ? 100 : 70;
+}
+
+// Наценка за отделку (за один комплект копий), см. calculateOrderCost в utils.ts —
+// та же формула, продублирована здесь т.к. чек в форме заказа считается
+// напрямую из per-file полей, а не через тот калькулятор.
+function bindingFeePerCopy(binding: 'none' | 'staple' | 'file' | 'spring_plastic' | 'spring_metal' | 'hard_cover', totalPages: number): number {
+  if (binding === 'staple') return 15;
+  if (binding === 'file') return 5;
+  if (binding === 'spring_metal') return totalPages <= 100 ? 250 : 350;
+  if (binding === 'spring_plastic') return 100;
+  if (binding === 'hard_cover') return 450;
+  return 0;
 }
 
 // На нестабильной (особенно мобильной) сети запрос может зависнуть без ошибки
@@ -3015,7 +3029,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         : ((f.printColor || 'bw') === 'bw' ? 20 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65));
       return acc + pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies;
     }, 0);
-    const totalCost = finalDiscount ? Math.round(subtotal * (1 - finalDiscount / 100)) : subtotal;
+    const totalPagesForBinding = uploadedFiles.reduce((acc, f) => acc + (f.pageCount || 1), 0);
+    const orderCopiesForBinding = uploadedFiles[0]?.fileCopies || 1;
+    const bindingFee = binding !== 'none' ? bindingFeePerCopy(binding, totalPagesForBinding) * orderCopiesForBinding : 0;
+    const subtotalWithBinding = subtotal + bindingFee;
+    const totalCost = finalDiscount ? Math.round(subtotalWithBinding * (1 - finalDiscount / 100)) : subtotalWithBinding;
 
     // Если заказ из витрины услуг — добавляем цену услуги
     const serviceExtra = selectedService?.price || 0;
@@ -3052,7 +3070,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       printColor: (uploadedFiles[0]?.printColor || 'bw') as 'bw' | 'color' | 'color_full',
       copies: uploadedFiles[0]?.fileCopies || 1,
       notes: notes.trim(),
-      binding: 'none',
+      binding,
       ...(finalPromo ? { promoCode: finalPromo, promoDiscount: finalDiscount } : {}),
       ...(selectedService ? { serviceId: selectedService.id } : {}),
     };
@@ -4930,6 +4948,68 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     />
                   </div>
 
+                  {/* Отделка — скрепление распечатанных страниц */}
+                  {uploadedFiles.length > 0 && (
+                    <div>
+                      <label className="block text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">
+                        Отделка
+                      </label>
+                      <div className="grid grid-cols-4 gap-1.5 mb-2">
+                        {([
+                          { key: 'none', label: 'Нет' },
+                          { key: 'staple', label: 'Степлер' },
+                          { key: 'file', label: 'Файлик' },
+                          { key: 'hard_cover', label: 'Твёрдый' },
+                        ] as const).map(opt => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => setBinding(opt.key)}
+                            className={`py-2 rounded-lg text-[10.5px] font-black cursor-pointer transition-all border ${
+                              binding === opt.key
+                                ? 'bg-indigo-500/30 border-indigo-400/50 text-indigo-200'
+                                : 'bg-white/8 border-white/15 text-white/70 hover:bg-white/15'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {([
+                          { key: 'spring_metal', label: 'Металлическая пружина', video: bindingSpringMetalAnim },
+                          { key: 'spring_plastic', label: 'Пластиковая пружина', video: bindingSpringPlasticAnim },
+                        ] as const).map(opt => {
+                          const selected = binding === opt.key;
+                          return (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => setBinding(opt.key)}
+                              className={`relative p-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
+                                selected
+                                  ? 'border-indigo-400 bg-indigo-500/20 ring-2 ring-indigo-400/30'
+                                  : 'border-white/15 bg-white/5 hover:border-indigo-300/40'
+                              }`}
+                            >
+                              {selected && (
+                                <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center">
+                                  <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                                </div>
+                              )}
+                              <video
+                                src={opt.video}
+                                autoPlay loop muted playsInline
+                                className="w-full aspect-square rounded-lg object-cover pointer-events-none"
+                              />
+                              <div className={`text-[10.5px] font-black leading-tight ${selected ? 'text-indigo-200' : 'text-white/80'}`}>{opt.label}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Чек */}
                   {uploadedFiles.length > 0 && (
                     <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
@@ -4989,11 +5069,21 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 : ((f.printColor || 'bw') === 'bw' ? 20 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65));
                               return acc + (f.bundleFixedPrice !== undefined ? f.bundleFixedPrice : pp * (isPhotoFile || isCollageFile ? 1 : pages) * fileCopies);
                             }, 0);
+                            const totalPagesForBinding = uploadedFiles.reduce((acc, f) => acc + (f.pageCount || 1), 0);
+                            const orderCopiesForBinding = uploadedFiles[0]?.fileCopies || 1;
+                            const bindingFee = binding !== 'none' ? bindingFeePerCopy(binding, totalPagesForBinding) * orderCopiesForBinding : 0;
+                            const subtotalWithBinding = subtotal + bindingFee;
                             const discount = activePromo ? getActiveDiscountPercent(activePromo) : 0;
-                            const total = Math.round(subtotal * (1 - discount / 100));
-                            const savings = subtotal - total;
+                            const total = Math.round(subtotalWithBinding * (1 - discount / 100));
+                            const savings = subtotalWithBinding - total;
                             return (
                               <>
+                                {bindingFee > 0 && (
+                                  <div className="flex justify-between text-white/60 font-bold text-[12px]">
+                                    <span>Отделка:</span>
+                                    <span>+{bindingFee} ₽</span>
+                                  </div>
+                                )}
                                 {savings > 0 && (
                                   <div className="flex justify-between text-rose-400 font-bold text-[12px]">
                                     <span>Промокод ({activePromo}):</span>
