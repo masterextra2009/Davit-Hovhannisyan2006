@@ -2090,11 +2090,23 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               клиентом параметры (скрепление/промокод скрыты, если не заданы). */}
                           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-3 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border-l-4 border-l-indigo-500 border-y border-r border-slate-100 dark:border-slate-850/80 text-xs text-slate-500 dark:text-slate-400 font-medium">
                             <div>Бумага: <strong className="text-slate-800 dark:text-white">
-                              {order.paperType === 'standard' ? 'А4 Обычная' :
-                               order.paperType === 'glossy' ? 'А4 Глянцевая' :
-                               order.paperType === 'matte' ? 'А4 Матовая' :
-                               order.paperType === 'standard_a3' ? 'А3 Обычная' :
-                               order.paperType === 'bw_a3' ? 'А3 Фотобумага' : order.paperType}
+                              {(() => {
+                                const firstFile = order.files?.[0];
+                                // Фото/Полароид/коллаж хранятся в БД как paperType:'glossy' на уровне
+                                // заказа (см. Dashboard.tsx), но это не обычная бумага А4 — сверяемся
+                                // с реальным типом файла, чтобы не показывать неверную подпись.
+                                if (firstFile?.paperType === 'photo') {
+                                  return `Фотопечать (${PHOTO_SIZE_LABELS[firstFile.photoSize || '10x15'] || firstFile.photoSize})`;
+                                }
+                                if (firstFile?.paperType === 'collage') {
+                                  return 'Фотоколлаж';
+                                }
+                                return order.paperType === 'standard' ? 'А4 Обычная' :
+                                  order.paperType === 'glossy' ? 'А4 Глянцевая' :
+                                  order.paperType === 'matte' ? 'А4 Матовая' :
+                                  order.paperType === 'standard_a3' ? 'А3 Обычная' :
+                                  order.paperType === 'bw_a3' ? 'А3 Фотобумага' : order.paperType;
+                              })()}
                             </strong></div>
                             <div>Цветность: <strong className="text-slate-800 dark:text-white">
                               {order.printColor === 'bw' ? 'Черно-белая (Ч/Б)' :
