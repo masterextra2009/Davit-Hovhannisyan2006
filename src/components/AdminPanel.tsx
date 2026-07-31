@@ -236,6 +236,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
   // Selected client for chat thread
   const [activeChatUserId, setActiveChatUserId] = useState<string>('');
+  const [chatSearchQuery, setChatSearchQuery] = useState<string>('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showClientInfoPanel, setShowClientInfoPanel] = useState(false);
   const [adminChatInput, setAdminChatInput] = useState('');
@@ -1446,6 +1447,17 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     return tB - tA;
   });
 
+  // Поиск клиента в списке чатов по имени, email или телефону — не трогает
+  // сортировку по последней активности выше, просто сужает итоговый список.
+  const chatSearchNormalized = chatSearchQuery.trim().toLowerCase();
+  const filteredChatSessions = chatSearchNormalized
+    ? chatSessions.filter(s =>
+        s.client.fullName?.toLowerCase().includes(chatSearchNormalized) ||
+        s.client.email?.toLowerCase().includes(chatSearchNormalized) ||
+        s.client.phone?.toLowerCase().includes(chatSearchNormalized)
+      )
+    : chatSessions;
+
   const activeTalkingChat = database.chatMessages.filter(c => c.userId === activeChatUserId);
   const activeChatClient = clientsOnly.find(u => u.id === activeChatUserId);
 
@@ -2169,8 +2181,19 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <div className={`grok-chat-app ${activeChatUserId ? 'chat-open' : ''} ${showClientInfoPanel && activeChatClient ? 'profile-open' : ''}`}>
               <aside className="grok-sidebar grok-glass">
                 <div className="grok-sidebar-header">Чаты ({clientsOnly.length})</div>
+                <div className="px-3 pb-2">
+                  <input
+                    type="text"
+                    value={chatSearchQuery}
+                    onChange={(e) => setChatSearchQuery(e.target.value)}
+                    placeholder="Поиск по имени, email или телефону"
+                    className="w-full text-xs rounded-lg px-3 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 outline-none focus:border-orange-400"
+                  />
+                </div>
                 <div className="grok-chat-list">
-                  {chatSessions.map(session => {
+                  {filteredChatSessions.length === 0 ? (
+                    <p className="grok-empty-hint px-3">Никого не нашлось</p>
+                  ) : filteredChatSessions.map(session => {
                     const isSelected = session.client.id === activeChatUserId;
                     const preview = session.lastMsg
                       ? (session.lastMsg.message.startsWith('[IMAGE]:') ? '📷 Фото' : session.lastMsg.message.startsWith('[STICKER]:') ? '✨ Стикер' : session.lastMsg.message)
