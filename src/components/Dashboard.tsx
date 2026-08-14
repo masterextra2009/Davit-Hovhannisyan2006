@@ -12,6 +12,7 @@ import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import { AnimatedTitle } from './AnimatedTitle';
 import { AiPriceCard } from './AiPriceCard';
+import { ChromaKeyVideo } from './ChromaKeyVideo';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import JSZip from 'jszip';
@@ -5050,9 +5051,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                   <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
                                 </div>
                               )}
-                              <video
+                              <ChromaKeyVideo
                                 src={opt.video}
-                                autoPlay loop muted playsInline
                                 className="w-full aspect-square rounded-lg object-cover pointer-events-none"
                               />
                               <div className={`text-[10.5px] font-black leading-tight ${selected ? 'text-indigo-200' : 'text-white/80'}`}>{opt.label}</div>
@@ -6870,9 +6870,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
                               </div>
                             )}
-                            <video
+                            <ChromaKeyVideo
                               src={opt.video}
-                              autoPlay loop muted playsInline
                               className="w-full aspect-square rounded-xl object-cover pointer-events-none"
                             />
                             <div className={`text-[12px] font-black ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{opt.label}</div>
