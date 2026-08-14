@@ -2555,7 +2555,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     // записей в заказе собираем один zip-архив и кладём его одной строкой.
     // Реальные файлы для печати внутри — админ распаковывает архив сам перед
     // печатью (обсуждено и подтверждено явно, это не побочный эффект).
-    const willZip = filesList.length > 2;
+    //
+    // Исключение: пачка из ОДНИХ фото (например, клиент с телефона отметил
+    // сразу 50 снимков) не архивируется, сколько бы их ни было — иначе для
+    // них пропадал выбор размера/цвета печати (та же жалоба "не даёт выбрать
+    // размер фото", что и для загруженного архива). Идут тем же путём, что
+    // и обычная групповая загрузка 2 фото — каждое отдельной настраиваемой
+    // карточкой. Смешанные и документные пачки >2 файлов по-прежнему архивируются.
+    const allFilesAreImages = Array.from(filesList).every(f => {
+      const fg = getFileFormatGroup(f.name);
+      return fg === 'image' || f.type.startsWith('image/');
+    });
+    const willZip = filesList.length > 2 && !allFilesAreImages;
     const rawFilesForZip: File[] = [];
     // Расходуем флаги ровно один раз — на эту порцию файлов, дальше снова обычный режим.
     const forcePhoto = nextUploadIsPhotoRef.current;

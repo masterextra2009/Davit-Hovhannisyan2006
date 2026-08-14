@@ -336,7 +336,11 @@ export function getFileFormatGroup(fileName: string): FileFormatGroup {
 
   const docExts = ['doc', 'docx', 'xls', 'xlsx', 'pdf', 'txt', 'rtf', 'odt', 'ods', 'ppt', 'pptx'];
   const archiveExts = ['zip', 'rar', '7z', 'tar', 'gz', 'bz2'];
-  const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'tiff', 'webp'];
+  // heic/heif — формат фото по умолчанию на iPhone (пока клиент не поменял
+  // настройки камеры на "Наиболее совместимые"). Раньше их не было в этом
+  // списке — такие фото считались "other", не показывали выбор размера
+  // печати и не попадали в групповую загрузку фото.
+  const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'tiff', 'webp', 'heic', 'heif'];
 
   if (docExts.includes(extension)) return 'document';
   if (archiveExts.includes(extension)) return 'archive';
