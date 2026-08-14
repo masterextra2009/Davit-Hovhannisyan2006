@@ -37,7 +37,8 @@ import {
   syncLocalUpdatesToFirebase,
   deleteUserAccountWithFirebase,
   signOutUserWithFirebase,
-  trackSiteVisit
+  trackSiteVisit,
+  signInAsGuest
 } from './firebaseUtils';
 
 // Заглушка "технические работы" на весь сайт. true = показывать её всем посетителям
@@ -47,6 +48,10 @@ const MAINTENANCE_MODE = false;
 export default function App() {
   // Маркетинговая главная страница — показывается гостям до формы входа
   const [showLanding, setShowLanding] = useState(true);
+
+  // "Загрузить файл" на лендинге — вместо формы входа тихо выдаём гостевой
+  // Firebase-пропуск (см. signInAsGuest) и сразу ведём на экран загрузки.
+  const [guestSignInStatus, setGuestSignInStatus] = useState<'idle' | 'pending' | 'error'>('idle');
 
   // Возврат со страницы оплаты ЮKassa (?payment=success&order=ORD-...) —
   // показываем красивый чек вместо обычного кабинета.
@@ -280,6 +285,19 @@ export default function App() {
     saveCurrentUser(authenticatedUser);
   };
 
+  const handleUploadClick = async () => {
+    setGuestSignInStatus('pending');
+    try {
+      const guestUser = await signInAsGuest();
+      handleAuthSuccess(guestUser);
+      setShowLanding(false);
+      setGuestSignInStatus('idle');
+    } catch (err) {
+      console.error('Guest sign-in failed:', err);
+      setGuestSignInStatus('error');
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOutUserWithFirebase();
@@ -314,8 +332,24 @@ export default function App() {
               onClose={() => setPaymentReturnOrderId(null)}
             />
           </Suspense>
+        ) : guestSignInStatus === 'pending' ? (
+          <div className="min-h-dvh flex items-center justify-center bg-[#02050f]">
+            <span className="w-8 h-8 rounded-full border-2 border-indigo-300/40 border-t-indigo-500 animate-spin" />
+          </div>
+        ) : guestSignInStatus === 'error' ? (
+          <div className="min-h-dvh flex items-center justify-center bg-[#02050f] text-white text-center p-6">
+            <div>
+              <p className="text-lg font-bold mb-4">Не получилось загрузить, попробуйте ещё раз</p>
+              <button
+                onClick={handleUploadClick}
+                className="px-6 py-3 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold cursor-pointer"
+              >
+                Попробовать ещё раз
+              </button>
+            </div>
+          </div>
         ) : !user && showLanding ? (
-          <LandingPage onEnter={() => setShowLanding(false)} />
+          <LandingPage onEnter={() => setShowLanding(false)} onUploadClick={handleUploadClick} />
         ) : !user ? (
           <Suspense fallback={<AppSectionLoader />}>
             <AuthScreen

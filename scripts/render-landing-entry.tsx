@@ -7,5 +7,5 @@ import { renderToString } from 'react-dom/server';
 import { LandingPage } from '../src/components/LandingPage';
 
 export function renderLandingHtml(): string {
-  return renderToString(<LandingPage onEnter={() => {}} />);
+  return renderToString(<LandingPage onEnter={() => {}} onUploadClick={() => {}} />);
 }

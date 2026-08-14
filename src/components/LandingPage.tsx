@@ -13,6 +13,7 @@ import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
 
 interface LandingPageProps {
   onEnter: () => void;
+  onUploadClick: () => void;
 }
 
 const STEPS = [
@@ -40,7 +41,7 @@ const PRICES = [
   { label: 'Срочная печать', price: '+50%', unit: 'к стоимости' },
 ];
 
-export function LandingPage({ onEnter }: LandingPageProps) {
+export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
   // Карта Яндекса весит ~400 КБ и грузит собственные скрипты/куки — показываем
   // её только по нажатию, а не сразу при открытии лендинга, чтобы не тратить
   // трафик и время первой загрузки у тех, кто до карты не долистает.
@@ -101,7 +102,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
 
           <div className="flex flex-wrap items-center gap-3 mb-8">
             <button
-              onClick={onEnter}
+              onClick={onUploadClick}
               className="landing-cta-btn btn-holo-glass flex items-center gap-2 px-6 py-3.5 rounded-full text-sm font-bold cursor-pointer"
             >
               <Upload className="w-4 h-4" />
