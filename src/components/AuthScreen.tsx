@@ -230,49 +230,37 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     }
   };
 
-  // Загружаем официальный виджет Telegram Login в контейнер
-  const telegramWidgetRef = useRef<HTMLDivElement>(null);
-  // Виджет не загрузился (telegram.org заблокирован оператором/сетью и т.п.) —
-  // тогда невидимый слот отключаем, а по тапу на видимую кнопку показываем
-  // честное объяснение вместо мёртвого молчания.
-  const [tgWidgetFailed, setTgWidgetFailed] = useState(false);
+  // Вход через Telegram — без JS-виджета (telegram-widget.js), потому что тот
+  // сам внутри вызывает eval(), а это требует 'unsafe-eval' в CSP script-src —
+  // разрешение не адресное, оно открыло бы eval() для ЛЮБОГО скрипта на
+  // странице, не только telegram.org (заметно ослабляет защиту от XSS).
+  // Вместо этого — официальный redirect-режим того же Telegram Login: обычная
+  // ссылка на oauth.telegram.org, пользователь подтверждает вход там (не в
+  // iframe), Telegram возвращает его на сайт с теми же полями (id, hash и
+  // т.д.) прямо в адресной строке — их и проверяет тот же telegram-verify.php,
+  // что и раньше. Никакого стороннего JS на странице — eval вообще не нужен.
+  const TELEGRAM_BOT_ID = '8854566946'; // @photosever_bot — не секрет, публичный ID бота (не путать с токеном)
+  const telegramReturnUrl = window.location.origin + window.location.pathname;
+  const telegramLoginUrl = `https://oauth.telegram.org/auth?bot_id=${TELEGRAM_BOT_ID}&origin=${encodeURIComponent(window.location.origin)}&embed=0&request_access=write&return_to=${encodeURIComponent(telegramReturnUrl)}`;
+
+  // После возврата с oauth.telegram.org данные входа приходят в query-параметрах
+  // этой же страницы — подхватываем их один раз при монтировании.
   useEffect(() => {
-    (window as any).onTelegramAuthCallback = handleTelegramAuth;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('hash') || !params.has('id') || !params.has('auth_date')) return;
 
-    const container = telegramWidgetRef.current;
-    if (!container || container.childElementCount > 0) return;
-
-    const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.async = true;
-    script.setAttribute('data-telegram-login', 'photosever_bot');
-    script.setAttribute('data-size', 'medium');
-    script.setAttribute('data-radius', '14');
-    script.setAttribute('data-onauth', 'onTelegramAuthCallback(user)');
-    script.setAttribute('data-request-access', 'write');
-    script.onerror = () => setTgWidgetFailed(true);
-    container.appendChild(script);
-
-    // Виджет вставляет свой iframe асинхронно уже после монтирования — в момент
-    // вставки он на первый кадр игнорирует opacity:0 родителя и на секунду
-    // проступает поверх нашей стилизованной кнопки. Ставим прозрачность прямо
-    // на сам iframe, как только он появится, а не только на контейнер.
-    const observer = new MutationObserver(() => {
-      const iframe = container.querySelector('iframe');
-      if (iframe) {
-        iframe.style.opacity = '0';
-        observer.disconnect();
-      }
-    });
-    observer.observe(container, { childList: true });
-
-    // Если за 6 секунд iframe так и не появился — считаем, что виджет не
-    // доехал (скрипт или oauth.telegram.org недоступны в этой сети).
-    const failTimer = setTimeout(() => {
-      if (!container.querySelector('iframe')) setTgWidgetFailed(true);
-    }, 6000);
-
-    return () => { observer.disconnect(); clearTimeout(failTimer); };
+    const telegramData: TelegramAuthData = {
+      id: Number(params.get('id')),
+      first_name: params.get('first_name') || '',
+      last_name: params.get('last_name') || undefined,
+      username: params.get('username') || undefined,
+      photo_url: params.get('photo_url') || undefined,
+      auth_date: Number(params.get('auth_date')),
+      hash: params.get('hash') || '',
+    };
+    window.history.replaceState({}, '', window.location.pathname);
+    handleTelegramAuth(telegramData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Simulate Social network logins (VK/Яндекс — pending real integration)
@@ -658,36 +646,23 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                   )}
                 </button>
 
-                <div className="relative w-full h-[46px] flex justify-center items-center rounded-full overflow-hidden">
-                  {/* Видимая кнопка в стиле "Войти в кабинет". Пока живой виджет
-                      Telegram на месте — клики проходят сквозь неё в невидимый
-                      iframe. Если виджет не загрузился (сеть блокирует
-                      telegram.org) — кнопка сама ловит тап и честно объясняет. */}
-                  <div
-                    onClick={tgWidgetFailed ? () => setErrorMsg('Вход через Telegram сейчас недоступен в вашей сети — войдите по почте или через Google.') : undefined}
-                    className={`btn-holo-glass absolute inset-0 flex justify-center items-center gap-2 px-3 rounded-full text-xs font-bold text-slate-900 ${tgWidgetFailed ? 'cursor-pointer' : 'pointer-events-none'}`}
-                    style={{ position: 'absolute' }}
-                  >
-                    {socialLoading === 'telegram' ? (
-                      <span className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-blue-600 animate-spin" />
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 240 240">
-                          <circle cx="120" cy="120" r="120" fill="#229ED9"/>
-                          <path fill="#fff" d="M167.5 76.5c1.9-8-2.7-11.4-8.4-9.3L54.6 108.9c-7.7 3-7.6 7.5-1.4 9.4l26.8 8.4 62.1-39.2c2.9-1.9 5.6-.8 3.4 1.3l-50.3 45.4h-.1l1.8 28.7c2.6 0 3.8-1.2 5.3-2.6l12.7-12.3 26.4 19.4c4.9 2.7 8.4 1.3 9.6-4.5l17.5-85.4Z"/>
-                        </svg>
-                        <span>Telegram</span>
-                      </>
-                    )}
-                  </div>
-                  {/* Настоящий виджет Telegram — растянут поверх невидимо, ловит клик по-настоящему.
-                      При сбое загрузки отключаем его от кликов, чтобы тап доставался видимой кнопке. */}
-                  <div
-                    id="telegram-login-slot"
-                    ref={telegramWidgetRef}
-                    className={`absolute inset-0 opacity-0 ${tgWidgetFailed ? 'pointer-events-none' : ''}`}
-                  />
-                </div>
+                <a
+                  href={telegramLoginUrl}
+                  className="btn-holo-glass w-full h-[46px] flex justify-center items-center gap-2 px-3 rounded-full text-xs font-bold text-slate-900 transition-all hover:-translate-y-0.5 active:translate-y-0"
+                  title="Войти через Telegram"
+                >
+                  {socialLoading === 'telegram' ? (
+                    <span className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-blue-600 animate-spin" />
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 240 240">
+                        <circle cx="120" cy="120" r="120" fill="#229ED9"/>
+                        <path fill="#fff" d="M167.5 76.5c1.9-8-2.7-11.4-8.4-9.3L54.6 108.9c-7.7 3-7.6 7.5-1.4 9.4l26.8 8.4 62.1-39.2c2.9-1.9 5.6-.8 3.4 1.3l-50.3 45.4h-.1l1.8 28.7c2.6 0 3.8-1.2 5.3-2.6l12.7-12.3 26.4 19.4c4.9 2.7 8.4 1.3 9.6-4.5l17.5-85.4Z"/>
+                      </svg>
+                      <span>Telegram</span>
+                    </>
+                  )}
+                </a>
               </div>
             </div>
 
