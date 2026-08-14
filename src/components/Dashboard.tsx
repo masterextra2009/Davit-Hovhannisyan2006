@@ -1561,6 +1561,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
+  // Имя+телефон гостя (пришёл через "Загрузить файл" без регистрации) —
+  // собираются один раз, здесь, на "Шаг 2. Оформление" (см. handlePlaceOrder).
+  const [guestFullName, setGuestFullName] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
   const [selectedService, setSelectedService] = useState<{id: string; title: string; price: number} | null>(null);
   const [showTornPaperAnimation, setShowTornPaperAnimation] = useState(false);
   const [tornPromoCode, setTornPromoCode] = useState<string>('');
@@ -3085,6 +3089,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     }
     if (uploadedFiles.length === 0 && !selectedService) return;
 
+    if (user.isGuest && (!guestFullName.trim() || !guestPhone.trim())) {
+      setUploadError("Пожалуйста, укажите имя и телефон, чтобы мы могли передать вам заказ.");
+      return;
+    }
+
     const stillUploading = uploadedFiles.some(f => !f.url);
     if (stillUploading) {
       setUploadError("Пожалуйста, подождите, пока все файлы загрузятся в облако.");
@@ -3157,7 +3166,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     const newOrder: Order = {
       id: orderId,
       userId: getLiveUserId(),
-      userName: user.fullName,
+      userName: user.isGuest ? guestFullName.trim() : user.fullName,
       userEmail: user.email,
       files: uploadedFiles,
       orderDate: new Date().toISOString(),
@@ -3182,7 +3191,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     if (isPersonalPromo) {
       setTornPromoCode(user.promoCode || '');
       setShowTornPaperAnimation(true);
-      
+
       updatedUsers = database.users.map(u => {
         if (u.id === user.id) {
           const updatedUser = { ...u };
@@ -3193,6 +3202,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         }
         return u;
       });
+    }
+
+    if (user.isGuest) {
+      updatedUsers = updatedUsers.map(u =>
+        u.id === user.id
+          ? { ...u, fullName: guestFullName.trim(), phone: guestPhone.trim(), isGuest: false }
+          : u
+      );
     }
 
     // Сохраняем данные заказа временно в sessionStorage
@@ -3472,14 +3489,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       chatMessages: [...database.chatMessages, newMsg]
     });
 
-    // Уведомляем администратора в Telegram о новом сообщении от клиента
-    fetch('https://sever-18.ru/api/telegram_admin_notify.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: `💬 <b>Новое сообщение от ${user.fullName}</b>\n\n${chatInput.trim()}`
-      })
-    }).catch(() => {});
+    // Уведомление админу в Telegram теперь отправляет сервер (Cloud Function
+    // notifyNewChatMessage, functions/index.js) в момент, когда сообщение
+    // реально долетает до базы — а не браузер клиента сразу после отправки.
+    // Раньше, если вкладку клиента сворачивали/усыпляли (особенно на iPhone)
+    // до того как этот fetch успевал уйти, уведомление зависало вместе с
+    // вкладкой и приходило с большим опозданием.
 
     setChatInput('');
   };
@@ -5019,6 +5034,42 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 </h3>
 
                 <form onSubmit={handlePlaceOrder} className="space-y-5">
+
+                  {/* Гость (пришёл через "Загрузить файл" без регистрации) —
+                      имя и телефон нужны один раз, здесь, вместо полной формы
+                      регистрации на входе. */}
+                  {user.isGuest && (
+                    <div className="space-y-3 pb-2 border-b border-white/10">
+                      <div>
+                        <label htmlFor="guest-name" className="block text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">
+                          Ваше имя
+                        </label>
+                        <input
+                          id="guest-name"
+                          type="text"
+                          required
+                          value={guestFullName}
+                          onChange={e => setGuestFullName(e.target.value)}
+                          placeholder="Иван Иванов"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white text-xs placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/30"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="guest-phone" className="block text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">
+                          Телефон
+                        </label>
+                        <input
+                          id="guest-phone"
+                          type="tel"
+                          required
+                          value={guestPhone}
+                          onChange={e => setGuestPhone(e.target.value)}
+                          placeholder="+7 (999) 999-99-99"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white text-xs placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/30"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Промокод */}
                   <div>
