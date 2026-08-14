@@ -8,3 +8,4 @@ coverage/
 !.env.example
 .claude/settings.local.json
 sever18-backup-*.json
+scripts/.tmp-prerender-landing-bundle.cjs
