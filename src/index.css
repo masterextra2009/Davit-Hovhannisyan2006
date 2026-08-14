@@ -4007,6 +4007,36 @@ a.landing-cta-btn, button.landing-cta-btn, a.landing-cta-btn *, button.landing-c
   }
 }
 
+/* Появление блоков на лендинге (заглавной странице) — раньше делалось через
+   библиотеку motion/react, но её грузили ВСЕ посетители сайта ещё до
+   какого-либо взаимодействия, только ради этих простых плавных появлений.
+   Тот же визуальный эффект даёт обычная CSS-анимация без единого байта
+   лишнего кода. */
+@keyframes landing-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes landing-fade-scale {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.landing-anim-hero-text {
+  animation: landing-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.landing-anim-hero-media {
+  animation: landing-fade-scale 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+.landing-anim-step {
+  animation: landing-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-anim-hero-text,
+  .landing-anim-hero-media,
+  .landing-anim-step {
+    animation-duration: 0.001ms;
+  }
+}
+
 /* ============================================
    ЗОНА ЗАГРУЗКИ ФАЙЛОВ — стеклянная карточка с покачивающимися
    слоями и свечением позади (по мотивам CodePen "Glass Cards")

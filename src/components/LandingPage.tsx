@@ -4,7 +4,6 @@
  */
 
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
 import {
   Phone, MapPin, Clock, ArrowRight, Upload, Sliders, PackageCheck,
   FileText, Printer, Send, ShieldCheck, ExternalLink
@@ -86,7 +85,7 @@ export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
 
       {/* ===== HERO ===== */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-14 grid md:grid-cols-2 gap-10 items-center">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+        <div className="landing-anim-hero-text">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Принимаем заказы онлайн
@@ -141,14 +140,9 @@ export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-          className="relative flex justify-center"
-        >
+        <div className="landing-anim-hero-media relative flex justify-center">
           <div className="relative w-full max-w-[320px] rounded-[32px] overflow-hidden shadow-2xl border border-white/20 glass-card">
             <video
               autoPlay
@@ -162,7 +156,7 @@ export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
               <source src="/hero-demo.mp4" type="video/mp4" />
             </video>
           </div>
-        </motion.div>
+        </div>
       </section>
 
       {/* ===== КАК ЗАКАЗАТЬ ===== */}
@@ -172,13 +166,10 @@ export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
 
         <div className="grid sm:grid-cols-3 gap-5">
           {STEPS.map((step, i) => (
-            <motion.div
+            <div
               key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="glass-card rounded-3xl p-6 relative"
+              className="landing-anim-step glass-card rounded-3xl p-6 relative"
+              style={{ animationDelay: `${i * 0.1}s` }}
             >
               <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-purple-600 text-white text-xs font-black flex items-center justify-center shadow-lg">
                 {i + 1}
@@ -188,7 +179,7 @@ export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
               </div>
               <h3 className="landing-h3 text-sm font-black mb-1.5">{step.title}</h3>
               <p className="text-xs text-slate-500 dark:text-white/50 leading-relaxed">{step.desc}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
