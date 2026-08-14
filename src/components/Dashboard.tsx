@@ -54,7 +54,7 @@ import {
   formatServicePrice, sortServicesByGroup
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
-import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode } from '../firebaseUtils';
+import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode, registerUserWithFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Synthesized high-quality feedback sound chimes using Web Audio API
@@ -1565,6 +1565,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // собираются один раз, здесь, на "Шаг 2. Оформление" (см. handlePlaceOrder).
   const [guestFullName, setGuestFullName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
+  // Форма "Завести полноценный аккаунт" для гостя — Личный кабинет → Безопасность.
+  const [guestRegEmail, setGuestRegEmail] = useState('');
+  const [guestRegPassword, setGuestRegPassword] = useState('');
+  const [guestRegError, setGuestRegError] = useState<string | null>(null);
+  const [guestRegLoading, setGuestRegLoading] = useState(false);
   const [selectedService, setSelectedService] = useState<{id: string; title: string; price: number} | null>(null);
   const [showTornPaperAnimation, setShowTornPaperAnimation] = useState(false);
   const [tornPromoCode, setTornPromoCode] = useState<string>('');
@@ -3077,6 +3082,30 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       setUploadError('Не удалось собрать коллаж: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setCollageBuilding(false);
+    }
+  };
+
+  // Гость апгрейдит анонимную сессию до полноценного аккаунта (email+пароль)
+  // прямо из Личного кабинета — registerUserWithFirebase сам определяет, что
+  // сессия анонимная, и связывает её (linkWithCredential), а не создаёт
+  // отдельный новый аккаунт, так что заказы гостя остаются в истории.
+  const handleGuestRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGuestRegError(null);
+    setGuestRegLoading(true);
+    try {
+      const linkedUser = await registerUserWithFirebase(
+        guestRegEmail,
+        guestRegPassword,
+        user.fullName || 'Клиент',
+        user.phone || '',
+        'client'
+      );
+      onUpdateDatabase({ users: database.users.map(u => (u.id === user.id ? linkedUser : u)) });
+    } catch (err: any) {
+      setGuestRegError(err?.message || 'Не удалось завести аккаунт. Попробуйте ещё раз.');
+    } finally {
+      setGuestRegLoading(false);
     }
   };
 
@@ -6206,19 +6235,59 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
                   <div className="space-y-4">
                     
-                    {/* Social connection options */}
-                    <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl space-y-3 border border-slate-100 dark:border-slate-850">
-                      <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider block">Связанные соцсети</span>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border ${
-                          user.isSocial 
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400' 
-                            : 'bg-slate-100 border-slate-200 text-slate-550 dark:bg-slate-900 dark:text-slate-400'
-                        }`}>
-                          {user.isSocial ? 'Подключено через OAuth' : 'Локальный Email пароль'}
-                        </span>
+                    {/* Гость ("Загрузить файл" без регистрации) — вместо бейджа
+                        способа входа предлагаем завести полноценный аккаунт:
+                        та же анонимная Firebase-сессия апгрейдится на месте
+                        (см. registerUserWithFirebase/linkWithCredential), все
+                        заказы гостя остаются в истории под тем же аккаунтом. */}
+                    {user.isGuest ? (
+                      <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl space-y-3 border border-slate-100 dark:border-slate-850">
+                        <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider block">Завести полноценный аккаунт</span>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Сейчас у вас гостевой доступ. Заведите почту и пароль — сможете входить с любого устройства, а этот и будущие заказы останутся в истории.
+                        </p>
+                        <form onSubmit={handleGuestRegister} className="space-y-2.5">
+                          <input
+                            type="email"
+                            required
+                            value={guestRegEmail}
+                            onChange={e => setGuestRegEmail(e.target.value)}
+                            placeholder="Электронная почта"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                          />
+                          <input
+                            type="password"
+                            required
+                            minLength={6}
+                            value={guestRegPassword}
+                            onChange={e => setGuestRegPassword(e.target.value)}
+                            placeholder="Пароль (минимум 6 символов)"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                          />
+                          {guestRegError && <p className="text-[11px] text-rose-500 font-bold">{guestRegError}</p>}
+                          <button
+                            type="submit"
+                            disabled={guestRegLoading}
+                            className="w-full py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-black cursor-pointer disabled:opacity-50"
+                          >
+                            {guestRegLoading ? 'Создаём аккаунт…' : 'Завести аккаунт'}
+                          </button>
+                        </form>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl space-y-3 border border-slate-100 dark:border-slate-850">
+                        <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider block">Связанные соцсети</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border ${
+                            user.isSocial
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400'
+                              : 'bg-slate-100 border-slate-200 text-slate-550 dark:bg-slate-900 dark:text-slate-400'
+                          }`}>
+                            {user.isSocial ? 'Подключено через OAuth' : 'Локальный Email пароль'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Self Account deletion */}
                     <div className="p-4 border border-rose-100 dark:border-rose-950/40 rounded-2xl bg-rose-50/50 dark:bg-rose-950/10 space-y-3">

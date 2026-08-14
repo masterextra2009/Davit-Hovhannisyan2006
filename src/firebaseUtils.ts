@@ -16,6 +16,8 @@ import {
   signInWithPopup,
   signInWithCustomToken,
   signInAnonymously,
+  linkWithCredential,
+  EmailAuthProvider,
   doc,
   getDoc,
   setDoc,
@@ -165,8 +167,29 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 export async function registerUserWithFirebase(email: string, password: string,fullName: string, phone: string, role: 'client' | 'admin' = 'client', referralCodeInput?: string): Promise<User> {
   const trimmedEmail = email.trim();
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
-    const fbUser = userCredential.user;
+    // Если в этой же вкладке уже есть анонимная гостевая сессия ("Загрузить
+    // файл" без регистрации, см. signInAsGuest) — апгрейдим её на месте
+    // (linkWithCredential), а не создаём отдельный новый аккаунт. Firebase
+    // при этом СОХРАНЯЕТ uid, значит все заказы гостя (userId == uid)
+    // остаются на месте и сразу видны в новом аккаунте — переносить их
+    // отдельно не нужно.
+    const wasAnonymous = auth.currentUser?.isAnonymous === true;
+    let fbUser;
+    if (wasAnonymous) {
+      try {
+        const credential = EmailAuthProvider.credential(trimmedEmail, password);
+        const linkedCredential = await linkWithCredential(auth.currentUser!, credential);
+        fbUser = linkedCredential.user;
+      } catch (err: any) {
+        if (err?.code === 'auth/credential-already-in-use' || err?.code === 'auth/email-already-in-use') {
+          throw new Error('Этот email уже зарегистрирован — войдите в существующий аккаунт вместо регистрации нового.');
+        }
+        throw err;
+      }
+    } else {
+      const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+      fbUser = userCredential.user;
+    }
 
     // Update the Auth display name
     await updateProfile(fbUser, { displayName: fullName });
