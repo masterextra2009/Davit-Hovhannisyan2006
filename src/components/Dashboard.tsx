@@ -2556,17 +2556,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     // Реальные файлы для печати внутри — админ распаковывает архив сам перед
     // печатью (обсуждено и подтверждено явно, это не побочный эффект).
     //
-    // Исключение: пачка из ОДНИХ фото (например, клиент с телефона отметил
-    // сразу 50 снимков) не архивируется, сколько бы их ни было — иначе для
-    // них пропадал выбор размера/цвета печати (та же жалоба "не даёт выбрать
-    // размер фото", что и для загруженного архива). Идут тем же путём, что
-    // и обычная групповая загрузка 2 фото — каждое отдельной настраиваемой
-    // карточкой. Смешанные и документные пачки >2 файлов по-прежнему архивируются.
+    // Пачка из ОДНИХ фото архивируется точно так же — раньше для неё вообще
+    // не было выбора размера/цвета печати, теперь у архива-бандла есть один
+    // общий размер на все фото внутри (см. isPhotoBundle в модалке настройки
+    // ниже); если нужны разные размеры — клиент грузит такие фото отдельно.
     const allFilesAreImages = Array.from(filesList).every(f => {
       const fg = getFileFormatGroup(f.name);
       return fg === 'image' || f.type.startsWith('image/');
     });
-    const willZip = filesList.length > 2 && !allFilesAreImages;
+    const willZip = filesList.length > 2;
     const rawFilesForZip: File[] = [];
     // Расходуем флаги ровно один раз — на эту порцию файлов, дальше снова обычный режим.
     const forcePhoto = nextUploadIsPhotoRef.current;
@@ -2638,58 +2636,28 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           const entries = Object.values(zip.files).filter(e => !e.dir);
 
           // Архив из ОДНИХ фото — раньше всегда становился одной строкой с
-          // прикидочной ценой без единой настройки, поэтому клиент не мог
-          // выбрать размер/цвет ни для одного снимка внутри ("не выдаёт
-          // выбора размера фото"). Вместо этого распаковываем и добавляем
-          // каждое фото как обычную загруженную фотографию — тем же путём,
-          // что и массовая загрузка нескольких фото без архива (10×15,
-          // цвет, можно поправить в списке файлов). Смешанные архивы
-          // (документы/PDF внутри) — как и раньше, одной строкой с ценой.
+          // прикидочной ценой без единой настройки печати ("не выдаёт выбора
+          // размера фото"). Первая версия исправления распаковывала архив на
+          // отдельную карточку под каждое фото — при 13+ фото это превращало
+          // "Шаг 2" в длинную прокрутку карточек ("что это за бред, при чём
+          // тут переплёт" — по факту жалоба была на объём прокрутки, а
+          // видимость переплёта для фото — отдельный, уже исправленный баг).
+          // Теперь вместо расспаковки на карточки — одна строка-архив с ОДНИМ
+          // общим размером на все фото внутри (выбирается в модалке настройки,
+          // см. isPhotoBundle ниже); если нужны разные размеры — клиент
+          // грузит такие фото отдельно, вне архива.
           const allEntriesArePhotos = entries.length > 0 && entries.every(e => getFileFormatGroup(e.name) === 'image');
 
           if (allEntriesArePhotos) {
-            // Плейсхолдер-запись архива уже могла попасть в очередь настройки
-            // (pendingUploads) до того как распаковка здесь завершилась —
-            // убираем её и закрываем модалку, если она как раз на неё открыта.
-            setPendingUploads(prev => prev.filter(f => f.id !== fileId));
-            setActiveConfigFileId(prev => (prev === fileId ? null : prev));
-
-            const extracted: PrintFile[] = [];
-            for (const entry of entries) {
-              const blob = await entry.async('blob');
-              const imgFile = new File([blob], entry.name, { type: blob.type || 'image/jpeg' });
-              const entryId = 'file_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-              const entryPreviewUrl = URL.createObjectURL(imgFile);
-
-              extracted.push({
-                id: entryId,
-                name: entry.name,
-                size: imgFile.size,
-                type: imgFile.type,
-                uploadedAt: new Date().toISOString(),
-                formatGroup: 'image',
-                pageCount: 1,
-                previewUrl: entryPreviewUrl,
-                paperType: 'photo',
-                photoSize: '10x15',
-                photoBorder: 'borderless',
-                printColor: 'color',
-                fileCopies: 1,
-              });
-
-              analyzeColorFill(entryPreviewUrl).then(pct => {
-                patchFileState(entryId, { colorFillPercent: pct });
-              });
-              const probe = new Image();
-              probe.onload = () => {
-                patchFileState(entryId, { imagePixelWidth: probe.naturalWidth, imagePixelHeight: probe.naturalHeight });
-              };
-              probe.src = entryPreviewUrl;
-
-              uploadFileToFirebaseStorage(imgFile, entryId);
-            }
-
-            setUploadedFiles(prev => [...prev, ...extracted]);
+            patchFileState(fileId, {
+              paperType: 'photo',
+              photoSize: '10x15',
+              photoBorder: 'borderless',
+              printColor: 'color',
+              bundleFileCount: entries.length,
+              bundleFixedPrice: entries.length * 20,
+              pageCount: undefined,
+            });
             return;
           }
 
@@ -2815,9 +2783,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           formatGroup: 'archive',
           bundleFixedPrice: total,
           bundleFileCount: newFiles.length,
+          // Пачка из ОДНИХ фото (клиент отметил сразу >2 снимков) — даём
+          // общий размер на всё через ту же модалку настройки, что и для
+          // загруженного архива (isPhotoBundle), вместо жёстко зашитого
+          // 10×15 без права выбора.
+          ...(allFilesAreImages ? { paperType: 'photo', photoSize: '10x15', photoBorder: 'borderless', printColor: 'color' } : {}),
         };
-        setUploadedFiles(prev => [...prev, bundleEntry]);
         uploadFileToFirebaseStorage(zipFile, bundleId);
+        if (allFilesAreImages) {
+          setPendingUploads(prev => [...prev, bundleEntry]);
+        } else {
+          setUploadedFiles(prev => [...prev, bundleEntry]);
+        }
       })();
       return;
     }
@@ -4738,7 +4715,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             {isBundle ? (
                               <div className="border-t border-white/8 px-3.5 py-2.5 flex items-center gap-1.5 flex-wrap text-[11px] font-bold text-white/50">
                                 <span className="px-2 py-1 rounded-lg bg-white/5">📦 Архив · {file.bundleFileCount} файлов</span>
-                                <span className="px-2 py-1 rounded-lg bg-white/5">по умолчанию: фото — цвет 10×15, документы — Ч/Б</span>
+                                {isPhoto ? (
+                                  <>
+                                    <span className="px-2 py-1 rounded-lg bg-white/5">🖼 Фото {selSize.label} на все</span>
+                                    <button type="button" onClick={() => editUploadedFile(file.id)}
+                                      className="px-2 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 cursor-pointer">↻ Изменить размер</button>
+                                  </>
+                                ) : (
+                                  <span className="px-2 py-1 rounded-lg bg-white/5">по умолчанию: документы — Ч/Б</span>
+                                )}
                               </div>
                             ) : (
                             <div className="border-t border-white/8 px-3.5 py-2.5 flex items-center gap-1.5 flex-wrap text-[11px] font-bold text-white/50">
@@ -4763,7 +4748,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             {/* Стоимость файла */}
                             <div className="px-3.5 pb-3 flex justify-between items-center text-sm text-white/60">
                               <span>
-                                {isCollage
+                                {isBundle && isPhoto
+                                  ? `${file.bundleFileCount} шт. × ${selSize.label} × ${selSize.price} ₽`
+                                  : isCollage
                                   ? `Лист А4-коллаж (${file.collagePaper === 'photo' ? 'фото' : 'обычная'}) × ${collagePriceFor(file.collagePaper)} ₽`
                                   : isPhoto
                                   ? `${selSize.label} × ${selSize.price} ₽ × ${copies} шт.`
@@ -6894,6 +6881,97 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         const canConfirm = (!isPhoto || !!file.photoSize) && (!isBinding || !!file.bindingKind) && !colorlessBlocksConfirm;
 
         const patch = (updates: Partial<PrintFile>) => patchFileState(file.id, updates);
+
+        // Пачка из нескольких фото (загруженный архив или сразу >2 фото за
+        // раз) — вместо отдельной карточки на каждое фото один общий размер
+        // на все, чтобы не листать десятки одинаковых карточек. Другой
+        // размер для части фото — грузятся отдельно, вне архива/пачки.
+        const isPhotoBundle = !!file.bundleFileCount && file.paperType === 'photo';
+        if (isPhotoBundle) {
+          const bundleCount = file.bundleFileCount || 1;
+          const bundleSelSize = photoSizes.find(s => s.key === (file.photoSize || '10x15')) || photoSizes[0];
+          return (
+            <motion.div
+              key="photoBundleConfigModal"
+              className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
+              exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+            >
+              <motion.div
+                className="glass-window w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+                data-css-anim-off
+                initial={{ opacity: 0, scale: 0.82, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
+                exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
+              >
+                <div className="p-5 pb-0 text-center">
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>Размер фото в архиве</AnimatedTitle></h3>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{file.name} · {bundleCount} фото</p>
+                </div>
+
+                <div className="p-5 space-y-4 overflow-y-auto">
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/25 border border-amber-200/60 dark:border-amber-900/40 rounded-xl p-2.5 leading-relaxed">
+                    Выбранный размер применится ко всем {bundleCount} фото в этом файле. Если часть фото нужна в другом размере — загрузите их отдельно, не в архиве.
+                  </p>
+
+                  <div>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Размер фотографий</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {photoSizes.filter(s => s.key !== 'polaroid').map(s => {
+                        const sizeSelected = (file.photoSize || '10x15') === s.key;
+                        return (
+                          <button key={s.key} type="button"
+                            onClick={() => patch({ photoSize: s.key, bundleFixedPrice: s.price * bundleCount })}
+                            className={`btn-glass-sheen relative p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                              sizeSelected
+                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25 scale-[1.03]'
+                                : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                            }`}
+                          >
+                            {sizeSelected && (
+                              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
+                                <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                              </div>
+                            )}
+                            <div className={`text-[12px] font-black ${sizeSelected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{s.label}</div>
+                            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{s.price} ₽/шт</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-150 dark:border-slate-800">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {bundleCount} шт. × {bundleSelSize.price} ₽
+                    </span>
+                    <strong className="text-xl font-black text-slate-800 dark:text-white">{bundleSelSize.price * bundleCount} ₽</strong>
+                  </div>
+                </div>
+
+                <div className="p-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => confirmFileConfig(file.id, false)}
+                    className="glass-icon colored capsule-glow-purple glass-icon-pill w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer"
+                  >
+                    <span className="beam"><i /></span>
+                    <span className="relative z-[3]">Выбрать →</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => cancelFileConfig(file.id)}
+                    className="w-full py-2 text-xs font-bold text-rose-500 hover:text-rose-600 cursor-pointer"
+                  >
+                    Убрать файл
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        }
 
         // Брошюровка — отдельная, самостоятельная модалка (по тому же принципу,
         // что и Полароид/А3 ниже): клиент выбирает тип пружины (металл/пластик)
