@@ -45,11 +45,18 @@ export function LandingPage({ onEnter }: LandingPageProps) {
   // её только по нажатию, а не сразу при открытии лендинга, чтобы не тратить
   // трафик и время первой загрузки у тех, кто до карты не долистает.
   const [showMap, setShowMap] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
   return (
     <div className="min-h-dvh bg-slate-50 dark:bg-[#03000a] text-slate-900 dark:text-white">
 
       {/* ===== HEADER ===== */}
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/70 dark:bg-black/40 border-b border-slate-150 dark:border-white/10">
+      {/* bg-white/95 (не /70) — на части мобильных браузеров backdrop-blur
+          молча не работает (эффект производительности/старый WebKit), и без
+          него полупрозрачная шапка становится буквально "просвечивающей":
+          сквозь неё виден наползающий при скролле текст. Высокая базовая
+          непрозрачность держит шапку читаемой даже без блюра, а там где
+          блюр есть — по-прежнему выглядит как лёгкое стекло. */}
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/95 dark:bg-black/90 border-b border-slate-150 dark:border-white/10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <img src="/logo-header.webp" alt="Фото-Север" width="36" height="36" className="w-9 h-9 rounded-xl object-cover" />
@@ -221,14 +228,25 @@ export function LandingPage({ onEnter }: LandingPageProps) {
 
         <div className="glass-card rounded-3xl overflow-hidden">
           {showMap ? (
-            <iframe
-              title="Карта — Фото-Север, Северное шоссе 18, Раменское"
-              src="https://yandex.ru/map-widget/v1/?ll=38.215369%2C55.580156&z=17&pt=38.215369,55.580156"
-              width="100%"
-              height="360"
-              style={{ border: 0 }}
-              loading="lazy"
-            />
+            <div className="relative w-full h-[360px]">
+              {/* Виджет Яндекс.Карт грузится несколько секунд — без этой
+                  заглушки на месте карты несколько секунд был пустой белый
+                  прямоугольник, и клиент мог решить, что кнопка не сработала. */}
+              {!mapLoaded && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5">
+                  <div className="w-6 h-6 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin" />
+                  <span className="text-xs text-slate-500 dark:text-white/50">Загружаем карту…</span>
+                </div>
+              )}
+              <iframe
+                title="Карта — Фото-Север, Северное шоссе 18, Раменское"
+                src="https://yandex.ru/map-widget/v1/?ll=38.215369%2C55.580156&z=17&pt=38.215369,55.580156"
+                width="100%"
+                height="360"
+                style={{ border: 0 }}
+                onLoad={() => setMapLoaded(true)}
+              />
+            </div>
           ) : (
             <button
               type="button"
@@ -291,8 +309,8 @@ export function LandingPage({ onEnter }: LandingPageProps) {
             <div>ИП, ИНН 501110120673</div>
             <div>ОГРНИП 324774600314137</div>
             <div className="pt-2 flex flex-col gap-1">
-              <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted py-2 -my-2">Публичная оферта</a>
-              <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted py-2 -my-2">Политика обработки персональных данных</a>
+              <a href="/legal.html#oferta" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted py-2 -my-2">Публичная оферта</a>
+              <a href="/legal.html#privacy" target="_blank" rel="noopener noreferrer" className="text-left hover:text-orange-500 transition-colors underline decoration-dotted py-2 -my-2">Политика обработки персональных данных</a>
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
+import { Sun, Moon } from 'lucide-react';
 
 export function ThemeToggle() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -96,36 +97,36 @@ export function ThemeToggle() {
           transition: 'all 0.5s ease',
         }}
       >
-        <span
+        {/* Луна/солнце вместо ON/OFF — переключатель темы иначе выглядел
+            непонятным "забытым тестовым элементом" без всякой подписи. */}
+        <Moon
+          size={13}
+          strokeWidth={2.5}
           style={{
             position: 'absolute',
             top: '50%',
             right: 9,
             transform: 'translateY(-50%)',
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            color: 'rgba(200,150,255,0.7)',
+            color: 'rgba(220,190,255,0.85)',
             opacity: isDark ? 1 : 0,
             transition: 'opacity 0.4s',
             pointerEvents: 'none',
           }}
-        >OFF</span>
-        <span
+        />
+        <Sun
+          size={13}
+          strokeWidth={2.5}
           style={{
             position: 'absolute',
             top: '50%',
             left: 9,
             transform: 'translateY(-50%)',
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            color: '#475569',
+            color: '#e8a13c',
             opacity: isDark ? 0 : 1,
             transition: 'opacity 0.4s',
             pointerEvents: 'none',
           }}
-        >ON</span>
+        />
       </div>
 
       {/* Тонкая вращающаяся линия свечения по контуру */}

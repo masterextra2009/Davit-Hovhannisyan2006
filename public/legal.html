@@ -64,8 +64,8 @@
 </div>
 
 <div class="tabs">
-  <div class="tab active" onclick="showTab('oferta')">Публичная оферта</div>
-  <div class="tab" onclick="showTab('privacy')">Политика ПДн</div>
+  <div class="tab active" data-tab="oferta" onclick="showTab('oferta')">Публичная оферта</div>
+  <div class="tab" data-tab="privacy" onclick="showTab('privacy')">Политика ПДн</div>
 </div>
 
 <div class="content">
@@ -211,7 +211,15 @@ function showTab(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  event.target.classList.add('active');
+  document.querySelector('.tab[data-tab="' + id + '"]').classList.add('active');
+}
+
+// Ссылки в подвале сайта ведут на /legal.html#oferta и /legal.html#privacy
+// (раньше обе шли на голый /legal.html и всегда открывали "Оферту" —
+// клиент, кликнувший "Политика обработки персональных данных", видел не тот
+// раздел). Открываем нужную вкладку сразу, без лишнего клика.
+if (location.hash === '#privacy') {
+  showTab('privacy');
 }
 </script>
 
