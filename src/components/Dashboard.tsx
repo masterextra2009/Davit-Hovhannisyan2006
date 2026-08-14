@@ -4186,9 +4186,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     style={{ scrollSnapAlign: 'start' }}
                   >
                     {tileRows.map((row, rowIdx) => {
-                      const rowStartCol = row.length < 4 ? Math.floor((4 - row.length) / 2) + 1 : undefined;
+                      // Неполный последний ряд (меньше 4 плиток) центрируем через flex —
+                      // надёжнее, чем вручную считать gridColumnStart: работает для
+                      // любого остатка (1, 2 или 3 плитки) без отдельной формулы под
+                      // каждый случай. Ширина плитки в px-эквиваленте повторяет колонку
+                      // grid-cols-4 с gap-x-2 (0.5rem × 3 промежутка = 1.5rem суммарно),
+                      // чтобы плитки не "плыли" по размеру относительно полных рядов выше.
+                      const isPartialRow = row.length < 4;
                       return (
-                    <div key={rowIdx} className="grid grid-cols-4 gap-x-2">
+                    <div key={rowIdx} className={isPartialRow ? 'flex justify-center gap-x-2' : 'grid grid-cols-4 gap-x-2'}>
                     {row.map((item, ri) => {
                       const i = rowIdx * 4 + ri;
                       const isDragged = draggedTileKey === item.key;
@@ -4199,7 +4205,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           ref={(el) => { homeTileElsRef.current[item.key] = el; }}
                           style={{
                             '--jiggle-i': i,
-                            gridColumnStart: rowStartCol !== undefined ? rowStartCol + ri : undefined,
+                            ...(isPartialRow ? { width: 'calc((100% - 1.5rem) / 4)', flex: '0 0 auto' } : {}),
                             transform: isDragged && tileDragPos ? `translate(${tileDragPos.x}px, ${tileDragPos.y}px) scale(1.08)` : undefined,
                             touchAction: jiggleMode ? 'none' : undefined,
                             WebkitTouchCallout: 'none',
@@ -5006,9 +5012,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       <div>
                         <strong>Покрытие:</strong> {uploadedFiles[0]?.paperType === 'photo' ? 'Фотобумага' : paperType === 'glossy' ? 'Глянцевая' : paperType === 'matte' ? 'Матовая' : paperType === 'kraft' ? 'Крафтовая' : 'Обычное'}
                       </div>
-                      <div>
-                        <strong>Отделка:</strong> {binding === 'none' ? 'Без скрепления' : binding === 'staple' ? 'Степлер (угол)' : binding === 'file' ? 'Файлик' : binding === 'spring_metal' ? 'Металлическая пружина' : binding === 'spring_plastic' ? 'Пластиковая пружина' : 'Твёрдый переплет'}
-                      </div>
+                      {!uploadedFiles.every(f => f.paperType === 'photo' || f.paperType === 'collage') && (
+                        <div>
+                          <strong>Отделка:</strong> {binding === 'none' ? 'Без скрепления' : binding === 'staple' ? 'Степлер (угол)' : binding === 'file' ? 'Файлик' : binding === 'spring_metal' ? 'Металлическая пружина' : binding === 'spring_plastic' ? 'Пластиковая пружина' : 'Твёрдый переплет'}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -5070,8 +5078,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     />
                   </div>
 
-                  {/* Отделка — скрепление распечатанных страниц */}
-                  {uploadedFiles.length > 0 && (
+                  {/* Отделка — скрепление распечатанных страниц (не применимо к фото/коллажам) */}
+                  {uploadedFiles.length > 0 && !uploadedFiles.every(f => f.paperType === 'photo' || f.paperType === 'collage') && (
                     <div>
                       <label className="block text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">
                         Отделка
@@ -7441,8 +7449,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 {isPhoto && !isPolaroidSize && (
                   <div>
                     <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Размер фотографии</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {photoSizes.map(s => {
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Полароид и 30×40 не показываем тут — у них уже есть свои
+                          отдельные кнопки на Главной ("Полароид", "30×40"),
+                          дублировать выбор в общем списке размеров не нужно. */}
+                      {photoSizes.filter(s => s.key !== 'polaroid' && s.key !== '30x40').map(s => {
                         const sizeSelected = (file.photoSize || '10x15') === s.key;
                         return (
                           <button key={s.key} type="button" onClick={() => patch({ photoSize: s.key })}
