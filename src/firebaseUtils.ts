@@ -15,6 +15,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithCustomToken,
+  signInAnonymously,
   doc,
   getDoc,
   setDoc,
@@ -353,6 +354,40 @@ export async function signInWithGoogleFirebase(): Promise<User> {
   const provider = new GoogleAuthProvider();
   const result = await signInWithPopup(auth, provider);
   return upsertGoogleUserProfile(result.user);
+}
+
+/**
+ * "Загрузить файл" без регистрации: подписывает анонимно через Firebase
+ * (signInAnonymously) и создаёт лёгкий гостевой профиль — тот же паттерн,
+ * что и для входа через Telegram (email: '' и т.д.), плюс isGuest: true.
+ * fullName/phone дозаполняются позже, на "Шаг 2. Оформление" (см.
+ * Dashboard.tsx). Если этот же браузер потом регистрируется по-настоящему
+ * через AuthScreen, registerUserWithFirebase апгрейдит этот же профиль на
+ * месте (linkWithCredential) — заказы остаются на том же uid.
+ */
+export async function signInAsGuest(): Promise<User> {
+  const userCredential = await signInAnonymously(auth);
+  const fbUser = userCredential.user;
+
+  const newUser: User = {
+    id: fbUser.uid,
+    email: '',
+    fullName: '',
+    phone: '',
+    role: 'client',
+    createdAt: new Date().toISOString(),
+    isGuest: true,
+    referralCode: generateReferralCode(fbUser.uid),
+  };
+
+  const userDocRef = doc(db, 'users', fbUser.uid);
+  try {
+    await setDoc(userDocRef, newUser);
+  } catch (e) {
+    handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
+  }
+
+  return newUser;
 }
 
 /**
