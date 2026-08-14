@@ -12,6 +12,10 @@ export interface User {
   phone?: string;
   avatarUrl?: string;
   isSocial?: boolean;
+  // Аккаунт создан анонимно при клике "Загрузить файл" (без пароля/почты) —
+  // см. signInAsGuest в firebaseUtils.ts. true, пока клиент не ввёл
+  // имя+телефон на оформлении заказа или не завёл полноценный аккаунт.
+  isGuest?: boolean;
   isOnline?: boolean;
   lastActiveAt?: string;
   pushSubscription?: PushSubscriptionJSON;

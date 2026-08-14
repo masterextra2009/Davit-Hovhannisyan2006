@@ -14,6 +14,9 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithCustomToken,
+  signInAnonymously,
+  linkWithCredential,
+  EmailAuthProvider,
   type User as FirebaseUser
 } from 'firebase/auth';
 import {
@@ -58,6 +61,9 @@ export {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithCustomToken,
+  signInAnonymously,
+  linkWithCredential,
+  EmailAuthProvider,
   doc,
   getDoc,
   setDoc,
