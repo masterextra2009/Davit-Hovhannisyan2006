@@ -2625,6 +2625,63 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       if (formatGroup === 'archive') {
         JSZip.loadAsync(file).then(async zip => {
           const entries = Object.values(zip.files).filter(e => !e.dir);
+
+          // Архив из ОДНИХ фото — раньше всегда становился одной строкой с
+          // прикидочной ценой без единой настройки, поэтому клиент не мог
+          // выбрать размер/цвет ни для одного снимка внутри ("не выдаёт
+          // выбора размера фото"). Вместо этого распаковываем и добавляем
+          // каждое фото как обычную загруженную фотографию — тем же путём,
+          // что и массовая загрузка нескольких фото без архива (10×15,
+          // цвет, можно поправить в списке файлов). Смешанные архивы
+          // (документы/PDF внутри) — как и раньше, одной строкой с ценой.
+          const allEntriesArePhotos = entries.length > 0 && entries.every(e => getFileFormatGroup(e.name) === 'image');
+
+          if (allEntriesArePhotos) {
+            // Плейсхолдер-запись архива уже могла попасть в очередь настройки
+            // (pendingUploads) до того как распаковка здесь завершилась —
+            // убираем её и закрываем модалку, если она как раз на неё открыта.
+            setPendingUploads(prev => prev.filter(f => f.id !== fileId));
+            setActiveConfigFileId(prev => (prev === fileId ? null : prev));
+
+            const extracted: PrintFile[] = [];
+            for (const entry of entries) {
+              const blob = await entry.async('blob');
+              const imgFile = new File([blob], entry.name, { type: blob.type || 'image/jpeg' });
+              const entryId = 'file_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+              const entryPreviewUrl = URL.createObjectURL(imgFile);
+
+              extracted.push({
+                id: entryId,
+                name: entry.name,
+                size: imgFile.size,
+                type: imgFile.type,
+                uploadedAt: new Date().toISOString(),
+                formatGroup: 'image',
+                pageCount: 1,
+                previewUrl: entryPreviewUrl,
+                paperType: 'photo',
+                photoSize: '10x15',
+                photoBorder: 'borderless',
+                printColor: 'color',
+                fileCopies: 1,
+              });
+
+              analyzeColorFill(entryPreviewUrl).then(pct => {
+                patchFileState(entryId, { colorFillPercent: pct });
+              });
+              const probe = new Image();
+              probe.onload = () => {
+                patchFileState(entryId, { imagePixelWidth: probe.naturalWidth, imagePixelHeight: probe.naturalHeight });
+              };
+              probe.src = entryPreviewUrl;
+
+              uploadFileToFirebaseStorage(imgFile, entryId);
+            }
+
+            setUploadedFiles(prev => [...prev, ...extracted]);
+            return;
+          }
+
           let total = 0;
           for (const entry of entries) {
             const entryFormatGroup = getFileFormatGroup(entry.name);
