@@ -2560,6 +2560,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       setUploadError("К сожалению, приём файлов приостановлен во внерабочее время. Мы работаем: Пн-Пт 09:00-19:00, Сб-Вс 10:00-19:00.");
       return;
     }
+    // Гость может добавлять файлы только по одному действию за раз (клик
+    // или drag-and-drop = максимум 1 файл) — сам заказ этим не ограничен,
+    // просто по одному действию сразу. Берём первый файл как обычно, на
+    // остальные из этой же пачки показываем предложение регистрации.
+    if (user.isGuest && filesList.length > 1) {
+      setGuestUpsellReason('multi_file');
+      filesList = [filesList[0]];
+    }
     setUploadError(null);
     const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 МБ — заявлено на лендинге, но раньше нигде не проверялось
     const oversizedNames: string[] = [];
