@@ -26,3 +26,18 @@ jobs:
           local_path: './dist/*'
           remote_path: 'sever-18.ru/public_html'
           sftpArgs: '-o ConnectTimeout=30'
+      - name: Deploy dotfiles via SFTP (password)
+        # './dist/*' раскрывается самим клиентом sftp (внутри действия
+        # выше), а его glob, как и обычный shell, никогда не находит
+        # файлы, начинающиеся с точки — .htaccess молча пропускался при
+        # каждой публикации. У явного пути без wildcard нет glob'а,
+        # который мог бы его отфильтровать, поэтому он загрузится всегда.
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          username: mastesu6
+          server: ${{ secrets.FTP_HOST }}
+          port: 22
+          password: ${{ secrets.FTP_PASSWORD }}
+          local_path: './dist/.htaccess'
+          remote_path: 'sever-18.ru/public_html'
+          sftpArgs: '-o ConnectTimeout=30'
