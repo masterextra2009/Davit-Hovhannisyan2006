@@ -8374,12 +8374,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       {/* Гостевое предложение регистрации — после заказа, или по клику на
           одну из 4 ограниченных функций (см. GuestUpsellModal). */}
       <AnimatePresence>{guestUpsellReason && (
-        <GuestUpsellModal
-          reason={guestUpsellReason}
-          user={user}
-          onClose={handleCloseGuestUpsell}
-          onSuccess={handleGuestUpsellSuccess}
-        />
+        <motion.div key="guestUpsellModal" style={{ display: 'contents' }}>
+          <GuestUpsellModal
+            reason={guestUpsellReason}
+            user={user}
+            onClose={handleCloseGuestUpsell}
+            onSuccess={handleGuestUpsellSuccess}
+          />
+        </motion.div>
       )}</AnimatePresence>
 
       {/* CUSTOM SELF DELETE CONFIRMATION MODAL */}
