@@ -3144,12 +3144,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   const handleGuestUpsellSuccess = (linkedUser: User) => {
     onUpdateDatabase({ users: database.users.map(u => (u.id === user.id ? linkedUser : u)) });
+    wasGuestAtLastOrderRef.current = false;
     setGuestUpsellReason(null);
   };
 
   const handleClosePayingOrder = () => {
     setPayingOrder(null);
     if (wasGuestAtLastOrderRef.current && !sessionStorage.getItem('sever18_guest_upsell_dismissed')) {
+      wasGuestAtLastOrderRef.current = false;
       setGuestUpsellReason('post_order');
     }
   };
