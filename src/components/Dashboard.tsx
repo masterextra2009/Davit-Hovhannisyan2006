@@ -12,6 +12,7 @@ import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import { AnimatedTitle } from './AnimatedTitle';
 import { AiPriceCard } from './AiPriceCard';
+import { GuestUpsellModal, GuestUpsellReason } from './GuestUpsellModal';
 import { ChromaKeyVideo } from './ChromaKeyVideo';
 import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
 import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
@@ -1677,6 +1678,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   // Payment popup state
   const [payingOrder, setPayingOrder] = useState<Order | null>(null);
+  // Гостевое предложение регистрации (после заказа) + 4 точки-ограничения
+  // для гостей (см. GuestUpsellModal) — одно состояние на все 5 мест показа.
+  const [guestUpsellReason, setGuestUpsellReason] = useState<GuestUpsellReason | null>(null);
+  // user.isGuest переключается на false в том же вызове handlePlaceOrder,
+  // где создаётся заказ (см. Task 3 ниже) — к моменту, когда гость закроет
+  // модалку payingOrder (отдельный, более поздний клик), user.isGuest уже
+  // не отражает, кем он был на момент заказа. Ref держит этот факт между
+  // вызовами.
+  const wasGuestAtLastOrderRef = useRef(false);
   const [retryPayingOrderId, setRetryPayingOrderId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'sbp' | 'qr' | 'on_receipt'>('card');
   const [cardNumber, setCardNumber] = useState('');
@@ -3109,9 +3119,39 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     }
   };
 
+  // Общая модалка предложения регистрации (после заказа + 4 ограниченные
+  // функции, см. GuestUpsellModal) — три общих обработчика, переиспользуются
+  // всеми 5 точками показа.
+  const handleCloseGuestUpsell = () => {
+    if (guestUpsellReason === 'post_order') {
+      // Только "после заказа" — разовое предложение, не повторяем в этой
+      // вкладке/сессии. Остальные 4 — сообщение о конкретном ограничении,
+      // уместно показать заново при следующей попытке.
+      sessionStorage.setItem('sever18_guest_upsell_dismissed', '1');
+    }
+    setGuestUpsellReason(null);
+  };
+
+  const handleGuestUpsellSuccess = (linkedUser: User) => {
+    onUpdateDatabase({ users: database.users.map(u => (u.id === user.id ? linkedUser : u)) });
+    setGuestUpsellReason(null);
+  };
+
+  const handleClosePayingOrder = () => {
+    setPayingOrder(null);
+    if (wasGuestAtLastOrderRef.current && !sessionStorage.getItem('sever18_guest_upsell_dismissed')) {
+      setGuestUpsellReason('post_order');
+    }
+  };
+
   // Build the order from uploaded files
   const handlePlaceOrder = async (e: React.FormEvent, onReceipt: boolean = false) => {
     e.preventDefault();
+    // Захватываем ДО того, как этот же вызов ниже (см. updatedUsers) поставит
+    // isGuest: false — иначе к моменту показа предложения регистрации уже
+    // поздно проверять user.isGuest.
+    const wasGuestAtOrder = !!user.isGuest;
+    wasGuestAtLastOrderRef.current = wasGuestAtOrder;
     if (!isWorkingHours()) {
       setUploadError("К сожалению, отправка заказов приостановлена во внерабочее время. Мы работаем: Пн-Пт 09:00-19:00, Сб-Вс 10:00-19:00.");
       return;
@@ -3283,7 +3323,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         setActiveTab('orders');
         setMobileHome(false);
         setOrderAcceptPhase('success');
-        setTimeout(() => setOrderAcceptPhase('idle'), 1400);
+        setTimeout(() => {
+          setOrderAcceptPhase('idle');
+          if (wasGuestAtOrder && !sessionStorage.getItem('sever18_guest_upsell_dismissed')) {
+            setGuestUpsellReason('post_order');
+          }
+        }, 1400);
         playPlaceOrderSound();
       } catch (err) {
         console.error('On-receipt order error:', err);
@@ -8268,7 +8313,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">ЗАКАЗ В ОБРАБОТКЕ: <strong>{payingOrder.id}</strong></span>
               </div>
               <button
-                onClick={() => setPayingOrder(null)}
+                onClick={handleClosePayingOrder}
                 className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold text-lg"
               >
                 &times;
@@ -8315,7 +8360,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               {/* Back Button */}
               <button
                 type="button"
-                onClick={() => setPayingOrder(null)}
+                onClick={handleClosePayingOrder}
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>Вернуться назад</span>
@@ -8324,6 +8369,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
           </motion.div>
         </motion.div>
+      )}</AnimatePresence>
+
+      {/* Гостевое предложение регистрации — после заказа, или по клику на
+          одну из 4 ограниченных функций (см. GuestUpsellModal). */}
+      <AnimatePresence>{guestUpsellReason && (
+        <GuestUpsellModal
+          reason={guestUpsellReason}
+          user={user}
+          onClose={handleCloseGuestUpsell}
+          onSuccess={handleGuestUpsellSuccess}
+        />
       )}</AnimatePresence>
 
       {/* CUSTOM SELF DELETE CONFIRMATION MODAL */}
