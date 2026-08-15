@@ -6002,7 +6002,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   {speechRecognitionSupported && (
                     <button
                       type="button"
-                      onClick={handleMicClick}
+                      onClick={() => (user.isGuest ? setGuestUpsellReason('voice') : handleMicClick())}
                       title={micState === 'listening' ? 'Слушаю…' : 'Голосовой ввод'}
                       aria-label={micState === 'listening' ? 'Слушаю…' : 'Голосовой ввод'}
                       className={`shrink-0 p-3 rounded-xl transition flex items-center justify-center border h-full ${
