@@ -4096,6 +4096,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             // чата за ним (по явной просьбе клиента 2026-07-18: "чат нам не
             // нужен, только в центре экрана наш ИИ"). Закрыл оверлей — вернулся
             // туда, где был (Главная/вкладка), а не в текстовый чат.
+            if (user.isGuest) { setGuestUpsellReason('voice'); return; }
             handleOpenVoiceOverlay();
           }}
           className="disc cursor-pointer"
@@ -9201,7 +9202,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               {speechRecognitionSupported && (
                 <button
                   type="button"
-                  onClick={handleOpenVoiceOverlay}
+                  onClick={() => (user.isGuest ? setGuestUpsellReason('voice') : handleOpenVoiceOverlay())}
                   title="Голосовой вопрос"
                   aria-label="Голосовой вопрос"
                   className="shrink-0 p-3 rounded-xl transition flex items-center justify-center border bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-850"
