@@ -1068,14 +1068,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   // Клиенты, зарегистрированные до реферальной программы, не получили свой
   // код при регистрации — досоздаём один раз при первом заходе в кабинет.
+  // Гостю код не создаём — ему всё равно некуда получать бонус без
+  // постоянного профиля (см. карточку "Пригласите друга" ниже).
   useEffect(() => {
-    if (!user.referralCode) {
+    if (!user.isGuest && !user.referralCode) {
       const code = generateReferralCode(user.id);
       const updatedUsers = database.users.map(u => (u.id === user.id ? { ...u, referralCode: code } : u));
       onUpdateDatabase({ users: updatedUsers });
       registerReferralCode(code, user.id);
     }
-  }, [user.id, user.referralCode]);
+  }, [user.id, user.isGuest, user.referralCode]);
 
   // Keep client online status synced in Firestore
   useEffect(() => {
@@ -4491,7 +4493,27 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             </motion.div>
           )}
 
-          {user.referralCode && (
+          {user.isGuest ? (
+            <button
+              type="button"
+              onClick={() => setGuestUpsellReason('referral')}
+              className="w-full text-left bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 text-white rounded-3xl p-5 border border-indigo-400/30 shadow-lg shadow-indigo-500/20 relative overflow-hidden cursor-pointer"
+            >
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
+              <div className="flex items-start gap-3 relative z-10">
+                <div className="p-3 bg-white/10 rounded-2xl border border-white/20 shrink-0">
+                  <Gift className="w-6 h-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-black uppercase tracking-wider">Пригласите друга — оба получите скидку 🎁</h4>
+                  <p className="text-xs text-white/85 mt-1 font-medium">
+                    Своя реферальная ссылка доступна после регистрации — заведите аккаунт за 10 секунд.
+                  </p>
+                </div>
+              </div>
+            </button>
+          ) : user.referralCode && (
             <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 text-white rounded-3xl p-5 border border-indigo-400/30 shadow-lg shadow-indigo-500/20 relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
               <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
