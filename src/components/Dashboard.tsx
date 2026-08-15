@@ -4052,7 +4052,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
         <div className="absolute inset-0 z-[1] grid grid-cols-5 items-end pb-3 px-5">
           <button
-            onClick={() => setShowDocCheckModal(true)}
+            onClick={() => (user.isGuest ? setGuestUpsellReason('doc_check') : setShowDocCheckModal(true))}
             className="flex flex-col items-center cursor-pointer justify-self-center active:scale-90 transition-transform"
           >
             <GlassIcon icon={GlassDocCheckRefIcon} glow="capsule-glow-green" size={44} colored />
