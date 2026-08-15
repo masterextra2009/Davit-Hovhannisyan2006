@@ -101,7 +101,7 @@ export function GuestUpsellModal({ reason, user, onClose, onSuccess }: GuestUpse
         <div className="p-6 space-y-5">
           <div className="space-y-2">
             <h3 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-wide">
-              <AnimatedTitle key={reason}>{copy.title}</AnimatedTitle>
+              <AnimatedTitle>{copy.title}</AnimatedTitle>
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
               {copy.body}
