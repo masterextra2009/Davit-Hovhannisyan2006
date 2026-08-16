@@ -2540,7 +2540,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         if (!matchesName && !matchesEmail && !matchesPhone) return false;
                       }
                       return true;
-                    }).map(cli => {
+                    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(cli => {
                       const userOrders = database.orders.filter(o => o.userId === cli.id);
                       const filesCount = userOrders.reduce((sum, o) => sum + (o.files?.length || 0), 0);
                       const isAdmin = cli.role === 'admin';
