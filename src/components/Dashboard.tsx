@@ -1178,6 +1178,22 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // переходом на оплату/переключением вкладки, чтобы клиент увидел явное
   // подтверждение "заказ принят" до того как страница уйдёт на ЮKassa.
   const [orderAcceptPhase, setOrderAcceptPhase] = useState<'idle' | 'loading' | 'success'>('idle');
+  // Уходя на оплату ЮKassa (window.location.href = paymentUrl) мы намеренно
+  // не сбрасываем orderAcceptPhase обратно в 'idle' — ожидаем, что страница
+  // уйдёт на другой домен. Но если клиент передумает и нажмёт "назад" на
+  // странице ЮKassa, браузер часто восстанавливает эту страницу целиком из
+  // bfcache — со старым React-состоянием, включая orderAcceptPhase: 'success'.
+  // Итог: полноэкранная зелёная галочка "Заказ принят!" зависает навсегда,
+  // пока не обновить страницу вручную. pageshow с event.persisted===true —
+  // это и есть сигнал "страница восстановлена из bfcache", после него сразу
+  // сбрасываем фазу.
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setOrderAcceptPhase('idle');
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
   const [dragActive, setDragActive] = useState(false);
   // Анимация зоны загрузки (диск -> цветная полоса прогресса -> галочка с
   // искрами), по образцу присланного макета progress-bar-only.html — чисто
@@ -5354,6 +5370,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             const discount = activePromo ? getActiveDiscountPercent(activePromo) : 0;
                             const total = Math.round(subtotalWithBinding * (1 - discount / 100));
                             const savings = subtotalWithBinding - total;
+                            // Итого обязано включать цену выбранной услуги (selectedService) —
+                            // она тоже входит в finalTotalCost, который реально уходит в
+                            // ЮKassa при оформлении (см. handleSubmitOrder). Раньше здесь не
+                            // учитывалась, и клиент видел заниженный "Итого" по сравнению с
+                            // суммой, которую с него на самом деле снимала ЮKassa.
+                            const serviceExtra = selectedService?.price || 0;
+                            const grandTotal = total + serviceExtra;
                             return (
                               <>
                                 {bindingFee > 0 && (
@@ -5368,9 +5391,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                     <span>−{savings} ₽</span>
                                   </div>
                                 )}
+                                {serviceExtra > 0 && (
+                                  <div className="flex justify-between text-white/60 font-bold text-[12px]">
+                                    <span>Услуга ({selectedService?.title}):</span>
+                                    <span>+{serviceExtra} ₽</span>
+                                  </div>
+                                )}
                                 <div className="flex justify-between items-center mt-1">
                                   <span className="text-[11px] font-black text-white/50 uppercase tracking-wider">Итого:</span>
-                                  <span className="text-2xl font-black text-white">₽{total}</span>
+                                  <span className="text-2xl font-black text-white">₽{grandTotal}</span>
                                 </div>
                               </>
                             );

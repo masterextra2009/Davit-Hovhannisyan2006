@@ -76,6 +76,11 @@ service cloud.firestore {
     // (удаление файла из своего pending/approved заказа и пересчёт суммы,
     // см. handleDeleteFileFromOrder) и rating/ratingComment (оценка
     // выполненного заказа) — остальные поля защищены от подмены.
+    // totalCost клиенту разрешено только УМЕНЬШАТЬ — раньше правило не
+    // проверяло направление изменения, и после оплаты заказа totalCost
+    // мог задним числом вырасти (например, из-за гонки между асинхронной
+    // распаковкой zip-архива и моментом оплаты), а paymentStatus='paid' с
+    // предыдущей, меньшей суммы так и оставался висеть на новой, большей.
     match /orders/{orderId} {
       allow create: if isSignedIn() && (
         isAdmin() ||
@@ -87,7 +92,8 @@ service cloud.firestore {
       allow update: if isSignedIn() && (
         isAdmin() ||
         (resource.data.userId == request.auth.uid &&
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['files', 'totalCost', 'rating', 'ratingComment', 'transactionId']))
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['files', 'totalCost', 'rating', 'ratingComment', 'transactionId']) &&
+         request.resource.data.totalCost <= resource.data.totalCost)
       );
       // Клиент может удалить свой собственный заказ, только пока он ещё
       // неоплачен и не взят в обработку (pending) — не даёт скрыть

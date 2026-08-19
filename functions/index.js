@@ -16,6 +16,23 @@ const VAPID_PUBLIC_KEY = 'BAWT1sZ2a1ES2-anphGlydEvZNAA4xM6ty-g-_I9um9VWexVqAlbNZ
 const ONLINE_FRESHNESS_MS = 2 * 60 * 1000;
 
 const vapidPrivateKey = defineSecret('VAPID_PRIVATE_KEY');
+// Бот для уведомлений админу в Telegram (тот же, что уже используется для
+// заказов/оплаты — telegram_admin_notify.php на хостинге). Отдельно от бота
+// входа (@photosever_bot).
+const telegramAdminBotToken = defineSecret('TELEGRAM_ADMIN_BOT_TOKEN');
+const TELEGRAM_ADMIN_CHAT_ID = '1182317072';
+
+async function sendTelegramAdminMessage(text) {
+  try {
+    await fetch(`https://api.telegram.org/bot${telegramAdminBotToken.value()}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_ADMIN_CHAT_ID, text, parse_mode: 'HTML', disable_web_page_preview: true }),
+    });
+  } catch (err) {
+    console.error('Telegram admin notify failed:', err);
+  }
+}
 
 const app = initializeApp();
 const db = getFirestore(app, FIRESTORE_DATABASE_ID);
@@ -84,7 +101,7 @@ exports.notifyOrderStatusChange = onDocumentUpdated(
 );
 
 exports.notifyNewChatMessage = onDocumentCreated(
-  { document: 'chatMessages/{messageId}', database: FIRESTORE_DATABASE_ID, secrets: [vapidPrivateKey] },
+  { document: 'chatMessages/{messageId}', database: FIRESTORE_DATABASE_ID, secrets: [vapidPrivateKey, telegramAdminBotToken] },
   async (event) => {
     const msg = event.data.data();
     if (!msg) return;
@@ -92,11 +109,20 @@ exports.notifyNewChatMessage = onDocumentCreated(
     const preview = (msg.message || '').replace(/^\[STICKER\]:.*/, '🖼 Стикер').slice(0, 120);
 
     if (msg.senderRole === 'client') {
-      // Сообщение от клиента — уведомляем всех админов
+      // Сообщение от клиента — уведомляем всех админов (push в браузер +
+      // Telegram). Раньше в Telegram слал сам браузер клиента сразу после
+      // отправки — если его вкладку сворачивали/усыпляли (особенно на
+      // iPhone), запрос на уведомление зависал вместе с ней, и уведомление
+      // приходило с опозданием в десятки минут (вместе с самим сообщением,
+      // которое Firestore держит в очереди на отправку до возврата вкладки
+      // в foreground). Здесь, на сервере, уведомление уходит сразу же, как
+      // только сообщение реально долетело до базы — независимо от того,
+      // что происходит с вкладкой отправителя дальше.
       const adminsSnap = await db.collection('users').where('role', '==', 'admin').get();
-      await Promise.all(
-        adminsSnap.docs.map((d) => pushToUser(d.id, `Новое сообщение от ${msg.senderName || 'клиента'}`, preview))
-      );
+      await Promise.all([
+        ...adminsSnap.docs.map((d) => pushToUser(d.id, `Новое сообщение от ${msg.senderName || 'клиента'}`, preview)),
+        sendTelegramAdminMessage(`💬 <b>Новое сообщение от ${msg.senderName || 'клиента'}</b>\n\n${preview}`),
+      ]);
     } else {
       // Сообщение от админа — уведомляем клиента, которому принадлежит чат
       await pushToUser(msg.userId, 'Ответ от Фото-Север', preview);
