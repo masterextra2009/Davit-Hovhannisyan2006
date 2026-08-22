@@ -1,0 +1,15 @@
+# Тот же .htaccess, что и на боевом сайте (public/.htaccess), плюс блок
+# Basic Auth сверху — только для test.sever-18.ru. Этот файл лежит вне
+# public/, поэтому обычная сборка (npm run build для боевого деплоя) его
+# не подхватывает; в дело он идёт только в .github/workflows/deploy-staging.yml,
+# который подменяет им dist/.htaccess перед загрузкой на staging.
+
+AuthType Basic
+AuthName "Фото-Север — тестовый сайт"
+AuthUserFile /home/mastesu6/test.sever-18.ru/public_html/.htpasswd
+Require valid-user
+
+RewriteEngine On
+RewriteRule ^share-target$ /index.html [L]
+
+ErrorDocument 404 /404.html
