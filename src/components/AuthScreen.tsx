@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
-import { Lock, Mail, User as UserIcon, Phone, ArrowRight, ShieldAlert, CheckCircle, Printer, Gift } from 'lucide-react';
+import { Lock, Mail, User as UserIcon, Phone, ArrowRight, ShieldAlert, CheckCircle, Printer, Gift, Eye, EyeOff } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { signInUserWithFirebase, registerUserWithFirebase, signInWithGoogleFirebase, signInWithTelegram, TelegramAuthData } from '../firebaseUtils';
 import { motion } from 'motion/react';
@@ -61,6 +61,10 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
   const [successMsg, setSuccessMsg] = useState('');
   const [isForgotPasswordSent, setIsForgotPasswordSent] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  // Показать/скрыть пароль — глазик вместо повторного поля ввода: клиент
+  // видит, что напечатал, вместо того чтобы вводить пароль дважды.
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [isDark, setIsDark] = useState<boolean>(() => document.documentElement.classList.contains('dark'));
 
   useEffect(() => {
@@ -391,6 +395,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                       id="login-email"
                       type="email"
                       required
+                      autoComplete="email"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       placeholder="name@example.com"
@@ -416,13 +421,23 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     </div>
                     <input
                       id="login-password"
-                      type="password"
+                      type={showLoginPassword ? 'text' : 'password'}
                       required
+                      autoComplete="current-password"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="block w-full pl-11 pr-4 py-3 border border-transparent rounded-full glass-cozy-input text-slate-900 dark:text-white placeholder-slate-450 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 sm:text-xs transition-colors"
+                      className="block w-full pl-11 pr-11 py-3 border border-transparent rounded-full glass-cozy-input text-slate-900 dark:text-white placeholder-slate-450 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 sm:text-xs transition-colors"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(v => !v)}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+                      aria-label={showLoginPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                      tabIndex={-1}
+                    >
+                      {showLoginPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                    </button>
                   </div>
                 </div>
 
@@ -457,6 +472,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                       id="signup-fullname"
                       type="text"
                       required
+                      autoComplete="name"
                       value={fullName}
                       onChange={e => setFullName(e.target.value)}
                       placeholder="Иван Иванов"
@@ -475,6 +491,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                       id="signup-phone"
                       type="tel"
                       required
+                      autoComplete="tel"
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
                       placeholder="+7 (999) 999-99-99"
@@ -493,6 +510,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                       id="signup-email"
                       type="email"
                       required
+                      autoComplete="email"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       placeholder="name@example.com"
@@ -509,13 +527,23 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     </div>
                     <input
                       id="signup-password"
-                      type="password"
+                      type={showSignupPassword ? 'text' : 'password'}
                       required
+                      autoComplete="new-password"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder="минимум 6 символов"
-                      className="block w-full pl-11 pr-4 py-2.5 border border-transparent rounded-full glass-cozy-input text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 sm:text-xs"
+                      className="block w-full pl-11 pr-11 py-2.5 border border-transparent rounded-full glass-cozy-input text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 sm:text-xs"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignupPassword(v => !v)}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+                      aria-label={showSignupPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                      tabIndex={-1}
+                    >
+                      {showSignupPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                    </button>
                   </div>
                 </div>
 
@@ -584,6 +612,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                       id="forgot-email"
                       type="email"
                       required
+                      autoComplete="email"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       placeholder="name@example.com"
