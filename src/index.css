@@ -2891,6 +2891,37 @@ button:hover .glass-icon-capsule {
   .home-mesh-stars { animation: none; }
 }
 
+/* Сплэш-экран (SplashScreen.tsx) — своё звёздное мерцание + дрейф трёх
+   слоёв глубины (параллакс без скролла: непрерывный медленный автономный
+   сдвиг, дальний слой почти неподвижен, ближний заметнее — обычный приём
+   ощущения глубины на статичном полноэкранном фоне). */
+@keyframes splash-star-twinkle {
+  0%, 100% { opacity: var(--star-op, 1); }
+  50% { opacity: calc(var(--star-op, 1) * 0.25); }
+}
+.splash-star {
+  animation: splash-star-twinkle var(--star-dur, 3s) ease-in-out infinite;
+  animation-delay: var(--star-delay, 0s);
+}
+@keyframes splash-drift-far {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(4px, -3px); }
+}
+@keyframes splash-drift-mid {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-9px, 6px); }
+}
+@keyframes splash-drift-near {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(14px, -10px); }
+}
+.splash-layer-far { animation: splash-drift-far 22s ease-in-out infinite; }
+.splash-layer-mid { animation: splash-drift-mid 14s ease-in-out infinite; }
+.splash-layer-near { animation: splash-drift-near 9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .splash-star, .splash-layer-far, .splash-layer-mid, .splash-layer-near { animation: none; }
+}
+
 /* Нижняя часть "Главной" (под сеткой значков, до самого дока) — правка
    клиента: там оставалась голая чёрная пустота, ничего не связывало эту
    зону с AI-кружком в доке внизу. Тёплое сияние снизу поднимается ему
