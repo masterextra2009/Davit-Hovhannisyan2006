@@ -14,8 +14,6 @@ import { AnimatedTitle } from './AnimatedTitle';
 import { AiPriceCard } from './AiPriceCard';
 import { GuestUpsellModal, GuestUpsellReason } from './GuestUpsellModal';
 import { ChromaKeyVideo } from './ChromaKeyVideo';
-import homeWallpaperDark from '../assets/home-wallpaper-dark.jpg';
-import homeWallpaperLight from '../assets/home-wallpaper-light.jpg';
 import JSZip from 'jszip';
 import logoImg from '../assets/logo.webp';
 import printerInkIcon from '../assets/printer-ink-icon.svg';
@@ -47,6 +45,40 @@ import {
   Layers, RefreshCw, Smartphone, Phone, Star, Trophy, Award, Share2, Copy, Mail, Gift,
   Maximize2, Eye, ZoomIn, ZoomOut, RotateCw, Printer, X, Camera, Search
 } from 'lucide-react';
+// Единый набор иконок для плиток "жидкого стекла" (см. GlassTile выше) —
+// Tabler Icons, по явной просьбе клиента заменяет прежние растровые
+// картинки-глифы плиток "Главной" и дока, чтобы все иконки экрана были
+// из одного набора и одинаковой толщины линии.
+import {
+  IconMessageCircle, IconFileCheck,
+  IconPrinter, IconClock, IconClipboardCheck, IconCircleCheck, IconAlertTriangle,
+} from '@tabler/icons-react';
+// Залитые (не контурные) варианты — для HomeAppIcon: клиент попросил
+// "иконки айвоновские" — сплошные глифы ближе к настоящим иконкам
+// приложений iOS, чем тонкий Tabler-контур. С 2026-08-22 используются и в
+// сетке услуг, и в нижнем доке (тот же компонент, оба места — глянцевые
+// 3D-значки). Статус заказа (GlassTile) — отдельное место, использует
+// контурные иконки выше, его не трогаем.
+import {
+  IconPhotoFilled, IconFileTextFilled, IconBookFilled, IconTagFilled,
+  IconClipboardListFilled, IconMessageCircleFilled, IconBellFilled, IconSettingsFilled,
+  IconHome2Filled,
+} from '@tabler/icons-react';
+// Плитка-иконка статуса заказа (карточка "Заказы" — жидкое стекло, см.
+// GlassTile выше) — тот же набор Tabler, тот же принцип, что у плиток
+// Главной: один глиф + один акцентный цвет на статус, rejected перекрывает
+// остальные статусы (брак важнее того, на каком этапе он случился).
+const ORDER_STATUS_TILE: Record<OrderStatus, { icon: typeof IconPrinter; accent: string }> = {
+  pending: { icon: IconClock, accent: '#f59e0b' },
+  approved: { icon: IconClipboardCheck, accent: '#0ea5e9' },
+  printing: { icon: IconPrinter, accent: '#6366f1' },
+  ready: { icon: IconCircleCheck, accent: '#10b981' },
+  printed: { icon: IconFileCheck, accent: '#64748b' },
+};
+function getOrderStatusTile(ord: Order): { icon: typeof IconPrinter; accent: string } {
+  if (ord.rejected) return { icon: IconAlertTriangle, accent: '#f43f5e' };
+  return ORDER_STATUS_TILE[ord.status];
+}
 import { 
   calculateOrderCost, getFileFormatGroup, formatFileSize, 
   formatDateTime, getStatusLabel, getStatusColor, 
@@ -505,6 +537,127 @@ function GlassIcon({ icon: Icon, glow, size = 56, colored = false, noOuterShadow
   );
 }
 
+// Плитка "жидкого стекла" (Apple Liquid Glass iOS 26 Control Center,
+// Figma fileKey QdB4bqajWUTL7RE5frYUYh, узел 6023:1027 — собственная копия
+// клиента). Отдельный компонент, а не только CSS-классы (см. .lg-tile*
+// в index.css) — поверхность собрана из 4 вложенных слоёв (3 смешивания +
+// блик по кромке), которые иначе пришлось бы дублировать в разметке на
+// каждом экране. accent — сплошная заливка цветом вместо нейтрального
+// стекла (см. .lg-tile-accent), для "активных"/важных плиток; pulse —
+// мягкое дыхание (.lg-pulse) для индикаторов вроде новых заказов.
+function GlassTile({
+  icon: Icon,
+  shape = 'rect',
+  size = 56,
+  iconSize,
+  accent,
+  pulse = false,
+  frost = false,
+  className = '',
+}: {
+  icon: typeof Upload;
+  shape?: 'rect' | 'circle' | 'square';
+  size?: number;
+  iconSize?: number;
+  accent?: string;
+  pulse?: boolean;
+  // Настоящий backdrop-filter вместо трёх слоёв смешивания — только там, где
+  // под плиткой заведомо яркий фон (см. .lg-tile-frost/.home-mesh-bg в
+  // index.css): нижний док "Главной". На плоских .glass-panel карточках
+  // (статус заказа, пустые состояния) старый приём оставлен по умолчанию.
+  frost?: boolean;
+  className?: string;
+}) {
+  const shapeClass = shape === 'circle' ? 'lg-tile-circle' : shape === 'square' ? 'lg-tile-square' : 'lg-tile-rect';
+  return (
+    <span
+      className={`lg-tile ${shapeClass} inline-flex items-center justify-center shrink-0${accent ? ' lg-tile-accent' : frost ? ' lg-tile-frost' : ''}${pulse ? ' lg-pulse' : ''}${className ? ` ${className}` : ''}`}
+      style={{ width: size, height: size, ...(accent ? ({ '--lg-accent': accent } as React.CSSProperties) : {}) }}
+    >
+      {!accent && !frost && (
+        <>
+          <span className="lg-tile-layer lg-tile-layer-1" />
+          <span className="lg-tile-layer lg-tile-layer-2" />
+          <span className="lg-tile-layer lg-tile-layer-3" />
+        </>
+      )}
+      <span className="lg-tile-rim" />
+      <span className="relative inline-flex items-center justify-center">
+        <Icon style={{ width: iconSize ?? size * 0.46, height: iconSize ?? size * 0.46 }} className="text-white" />
+      </span>
+    </span>
+  );
+}
+
+// Значок "Главной" — глянцевые 3D-иконки "как настоящие иконки приложений
+// на iPhone" (правка клиента, ссылалась на платный Figma-кит "Glossy icons
+// for iOS14" — сам файл открыть не вышло, только обложка-превью, поэтому
+// стиль собран по текстовому ТЗ клиента: скруглённый квадрат-подложка
+// своего цвета на раздел + объёмный градиент + широкий глянцевый блик-купол
+// сверху). Три слоя поверх базового цветного квадрата: 1) вертикальный
+// градиент цвет→темнее (объём), 2) эллиптический блик-купол вверху
+// (.icon-glossy-sheen, тот самый "стеклянный шар" классических iOS-иконок),
+// 3) тонкая нижняя подсветка-отражение (.icon-glossy-reflection). Размер
+// параметризован (size/iconSize/radius) — один компонент обслуживает и
+// крупные значки сетки услуг, и мелкие кнопки дока.
+function HomeAppIcon({
+  icon: Icon,
+  label,
+  onClick,
+  color,
+  badge,
+  size = 60,
+  iconSize,
+  radius,
+  showLabel = true,
+}: {
+  icon: typeof Upload;
+  label: string;
+  onClick: () => void;
+  color: string;
+  badge?: 'ready' | 'pending' | null;
+  size?: number;
+  iconSize?: number;
+  radius?: number;
+  showLabel?: boolean;
+}) {
+  const r = radius ?? size * 0.2237;
+  return (
+    <motion.button
+      onClick={onClick}
+      whileTap={{ scale: 0.94, opacity: 0.85 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+      className="flex flex-col items-center gap-2 cursor-pointer"
+    >
+      <div className="relative">
+        <span
+          className="icon-glossy-3d"
+          style={{
+            width: size,
+            height: size,
+            borderRadius: r,
+            background: `linear-gradient(165deg, color-mix(in srgb, ${color} 100%, white 12%), ${color} 45%, color-mix(in srgb, ${color} 78%, black))`,
+            boxShadow: `0 ${Math.round(size * 0.16)}px ${Math.round(size * 0.32)}px -${Math.round(size * 0.1)}px rgba(0,0,0,0.55), 0 0 0 1px color-mix(in srgb, ${color} 35%, transparent) inset`,
+          }}
+        >
+          <span className="icon-glossy-sheen" />
+          <span className="icon-glossy-reflection" />
+          <Icon className="relative z-[2] text-white" style={{ width: iconSize ?? size * 0.46, height: iconSize ?? size * 0.46 }} />
+        </span>
+        {badge === 'ready' && (
+          <span className="lg-pulse absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white z-10 pointer-events-none" />
+        )}
+        {badge === 'pending' && (
+          <span className="lg-pulse absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rose-500 border-2 border-white z-10 pointer-events-none" />
+        )}
+      </div>
+      {showLabel && (
+        <span className="ios-app-label text-[12px] font-bold text-white leading-tight text-center">{label}</span>
+      )}
+    </motion.button>
+  );
+}
+
 // Крупные часы над плитками "Главной" — как на экране блокировки iPhone
 // (время крупным тонким шрифтом, дата под ним). Размер переключается тапом
 // по часам, пока активен "режим редактирования" (тот же jiggleMode, что и
@@ -529,13 +682,14 @@ function HomeBigClock({ size, resizable, onCycleSize }: { size: ClockSize; resiz
   const cls = clockSizeClasses[size];
   return (
     <div
+      id="home-big-clock"
       onClick={resizable ? onCycleSize : undefined}
       className={`text-center mb-5 select-none transition-transform ${resizable ? 'cursor-pointer active:scale-95 tile-jiggle' : ''}`}
     >
-      <div className={`${cls.time} font-thin text-slate-800 dark:text-white tracking-tight leading-none`}>{hh}:{mm}</div>
-      <div className={`${cls.date} font-bold text-slate-500 dark:text-slate-400 capitalize`}>{dateStr}</div>
+      <div className={`${cls.time} home-clock-time font-thin text-white tracking-tight leading-none`}>{hh}:{mm}</div>
+      <div className={`${cls.date} home-clock-date font-bold text-white/55 capitalize`}>{dateStr}</div>
       {resizable && (
-        <div className="mt-2 text-[11px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wide">
+        <div className="mt-2 text-[11px] font-bold text-indigo-300 uppercase tracking-wide">
           Нажмите, чтобы изменить размер
         </div>
       )}
@@ -759,7 +913,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   
   // Visual Theme Customizer
   const [designTheme, setDesignTheme] = useState<'blue' | 'kraft' | 'cyber'>(() => {
-    return (localStorage.getItem('print_shop_design_theme') as 'blue' | 'kraft' | 'cyber') || 'cyber';
+    return (localStorage.getItem('print_shop_design_theme') as 'blue' | 'kraft' | 'cyber') || 'blue';
   });
 
   useEffect(() => {
@@ -2250,6 +2404,24 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [orderToConfirmDelete, setOrderToConfirmDelete] = useState<string | null>(null);
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
+  // ТОСТ-УВЕДОМЛЕНИЕ — маленькая плашка сверху экрана на 2.5с, исчезает сама,
+  // без кнопок (правка клиента 2026-08-22, единый стиль всплывающих окон
+  // сайта — см. .toast-* в index.css). Один общий стейт на весь Dashboard —
+  // хватает одного тоста на экране в любой момент, второй вызов просто
+  // перезапускает таймер новым текстом. Реальный пример из ТЗ клиента
+  // ("Заказ оформлен") занят существующей крупной анимацией галочки
+  // (orderAcceptPhase) — чтобы не дублировать её, тост подключён к другому
+  // реальному, но сейчас совсем без обратной связи месту: успешному
+  // применению промокода (см. handleApplyPromo ниже).
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = (message: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastMessage(message);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 2500);
+  };
+  useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
+
   const canDeleteFileFromOrder = (ord: Order) => {
     return ord.status === 'pending' || ord.status === 'approved';
   };
@@ -3461,6 +3633,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       setAppliedPromo(code);
       setPromoError(null);
       playPlaceOrderSound();
+      showToast('Промокод применён');
     } else {
       setPromoError('Неверный или истекший промокод');
       setAppliedPromo(null);
@@ -3901,6 +4074,46 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   return (
     <div id="client-dashboard-root" className="liquid-glass-bg min-h-dvh md:h-dvh text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative overflow-x-hidden overflow-y-auto md:overflow-hidden">
 
+      {/* Скрытый SVG-фильтр "жидкого" искажения стекла — распылённый шум
+          (feTurbulence) сдвигает пиксели блика (feDisplacementMap), отчего
+          прямая полоска света на стекле выглядит слегка волнистой, как
+          настоящее толстое стекло, а не плоская засветка. Параметры взяты
+          1:1 из настоящего SVG-экспорта клиента (узел "Track Artist" из
+          того же Figma-кита iOS 26 Liquid Glass — filter1_g_6023_2500):
+          baseFrequency 0.01, 3 октавы шума, seed 1742, смещение×20.
+          Определён один раз здесь и переиспользуется через
+          filter: url(#lg-glass-turbulence) на .lg-tile-rim (см. index.css)
+          — везде, где встречается наша стеклянная плитка GlassTile. */}
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+        <defs>
+          <filter id="lg-glass-turbulence" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves={3} seed={1742} result="lgNoise" />
+            <feDisplacementMap in="SourceGraphic" in2="lgNoise" scale={6} xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+      </svg>
+
+      {/* ТОСТ-УВЕДОМЛЕНИЕ — рендерится на самом верхнем уровне (не внутри
+          конкретной вкладки), чтобы одинаково всплывало поверх любого
+          экрана, независимо от того, где вызван showToast(). Плавная
+          анимация как в iOS — вылетает сверху с лёгкой пружиной, исчезает
+          растворяясь вверх. */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            className="fixed top-4 inset-x-0 z-[100] flex justify-center px-4 pointer-events-none"
+            initial={{ opacity: 0, y: -24 }}
+            animate={{ opacity: 1, y: 0, transition: { type: 'spring', stiffness: 420, damping: 32 } }}
+            exit={{ opacity: 0, y: -16, transition: { duration: 0.22 } }}
+          >
+            <div className="toast-card">
+              <span className="toast-icon"><Check className="w-3.5 h-3.5" strokeWidth={3} /></span>
+              <span className="toast-text">{toastMessage}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Neutral frosted glow accents (no color tint) */}
 
       {/* Заказ принят — круг-загрузчик плавно перетекает в галочку (по мотивам
@@ -4045,14 +4258,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </div>
       </aside>
 
-      {/* Нижняя навигация на телефоне — только на "Главной" с плитками; внутри
-          раздела (mobileHome === false) за возврат отвечает кнопка "Назад" в
-          шапке, дублировать её доком снизу не нужно. Панель рисуется одной
-          SVG-фигурой, вырез под кнопку загрузки — часть контура (кнопка "лежит"
-          в вырезе, а не просто наложена поверх плашки). Стеклянные иконки с
-          бегущим бликом, цвет только у самого глифа. */}
-      {mobileHome && (
+      {/* Нижняя навигация на телефоне — с 2026-08-22 ПОСТОЯННАЯ на всех
+          мобильных экранах (правка клиента: список Главная/Заказы/Чат/
+          Настройки подразумевает именно постоянный таб-бар, а не панель
+          только на "Главной" — иначе кнопка "Главная" была бы видна лишь
+          тогда, когда мы и так уже на ней). Кнопка "Назад" в шапке раздела
+          (mobileHome === false) оставлена как есть — не мешает, просто
+          второй способ вернуться домой. Панель рисуется одной SVG-фигурой,
+          вырез под AI-кнопку — часть контура (кнопка "лежит" в вырезе, а не
+          просто наложена поверх плашки). Глянцевые 3D-иконки (тот же
+          HomeAppIcon, что и в сетке услуг, меньшего размера) — кроме
+          центральной AI-кнопки, её явно просили не трогать. */}
       <nav
+        id="home-dock-nav"
         className="md:hidden fixed bottom-0 left-0 right-0 z-40"
         style={{ width: navWidth, height: 90 }}
       >
@@ -4079,45 +4297,46 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         </svg>
 
         <div className="absolute inset-0 z-[1] grid grid-cols-5 items-end pb-3 px-5">
-          <button
-            onClick={() => (user.isGuest ? setGuestUpsellReason('doc_check') : setShowDocCheckModal(true))}
-            className="flex flex-col items-center cursor-pointer justify-self-center active:scale-90 transition-transform"
-          >
-            <GlassIcon icon={GlassDocCheckRefIcon} glow="capsule-glow-green" size={44} colored />
-          </button>
-          <button
-            onClick={() => { setActiveTab('orders'); setMobileHome(false); }}
-            className="nav-shift-left relative flex flex-col items-center cursor-pointer justify-self-center"
-          >
-            <div className="relative">
-              <GlassIcon icon={GlassOrdersRefIcon} glow="capsule-glow-indigo" size={44} colored />
-              {userOrders.some(o => o.status === 'ready') ? (
-                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 z-10 animate-pulse border border-white" />
-              ) : userOrders.some(o => o.status !== 'printed') ? (
-                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#ef4444] z-10 animate-ping border border-white" />
-              ) : null}
-            </div>
-          </button>
+          {/* Главная — переключает обратно на сетку значков (setMobileHome
+              (true)), работает с любого раздела дока (Заказы/Чат/Профиль/
+              Загрузка), а не отдельный экран. Раньше в этом слоте была
+              "Проверка фото на документы" — перенесена в сетку услуг
+              (5-й значок, см. выше), это отдельная платная функция, а не
+              навигация, ей место среди услуг, а не тут. HomeAppIcon сам уже
+              <button> — обёртка тут строго <div>, не <button>, иначе выходит
+              кнопка внутри кнопки (невалидный HTML, дублирующиеся клики). */}
+          <div className="flex flex-col items-center justify-self-center">
+            <HomeAppIcon icon={IconHome2Filled} label="" color="#6366f1" size={38} iconSize={19} showLabel={false} onClick={() => setMobileHome(true)} />
+          </div>
+          <div className="nav-shift-left relative flex flex-col items-center justify-self-center">
+            <HomeAppIcon icon={IconClipboardListFilled} label="" color="#0d9488" size={38} iconSize={19} showLabel={false} onClick={() => { setActiveTab('orders'); setMobileHome(false); }} />
+            {userOrders.some(o => o.status === 'ready') ? (
+              <span className="lg-pulse absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 z-10 border border-white" />
+            ) : userOrders.some(o => o.status !== 'printed') ? (
+              <span className="lg-pulse absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#ef4444] z-10 border border-white" />
+            ) : null}
+          </div>
           <div />
-          <a
-            href="tel:+79680508800"
-            className="nav-shift-right flex flex-col items-center cursor-pointer justify-self-center"
-          >
-            <GlassIcon icon={GlassCallRefIcon} glow="capsule-glow-green" size={44} colored />
-          </a>
-          <button
-            onClick={() => { setActiveTab('profile'); setMobileHome(false); handleMarkNotificationsRead(); }}
-            className="relative flex flex-col items-center cursor-pointer justify-self-center active:scale-90 transition-transform"
-          >
-            <div className="relative">
-              <GlassIcon icon={GlassProfileIcon} glow="capsule-glow-rainbow" size={44} colored />
-              {(unreadNotificationsCount + unreadChatsCount) > 0 && (
-                <span className="absolute -top-1 -right-1 bg-amber-500 w-3 h-3 rounded-full border border-white z-10" />
-              )}
-            </div>
-          </button>
+          <div className="nav-shift-right relative flex flex-col items-center justify-self-center">
+            <HomeAppIcon icon={IconMessageCircleFilled} label="" color="#22c55e" size={38} iconSize={19} showLabel={false} onClick={() => { setActiveTab('chat'); setMobileHome(false); }} />
+            {unreadChatsCount > 0 && (
+              <span className="lg-pulse absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#ef4444] z-10 border border-white" />
+            )}
+          </div>
+          <div className="relative flex flex-col items-center justify-self-center">
+            <HomeAppIcon icon={IconSettingsFilled} label="" color="#64748b" size={38} iconSize={19} showLabel={false} onClick={() => { setActiveTab('profile'); setMobileHome(false); handleMarkNotificationsRead(); }} />
+            {(unreadNotificationsCount + unreadChatsCount) > 0 && (
+              <span className="lg-pulse absolute -top-1 -right-1 bg-amber-500 w-3 h-3 rounded-full border border-white z-10" />
+            )}
+          </div>
         </div>
 
+        {/* Мягкое космическое свечение позади AI-кружка — по референсу
+            клиента (Velaris AI), там центральная эмблема тоже стоит в
+            собственном ореоле мягкого света. Отдельный слой ПОД .disc
+            (не на нём самом), чтобы не мешать существующему вращающемуся
+            кольцу-лучу внутри .disc. */}
+        <div className="ai-orb-glow" style={{ left: '50%', top: 24 }} aria-hidden="true" />
         <button
           onClick={() => {
             // Центральная кнопка дока — только голосовой оверлей, без текстового
@@ -4143,35 +4362,41 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </video>
         </button>
       </nav>
-      )}
 
       {/* MAIN CONTENT WORKSPACE */}
-      <main className={`flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/50 backdrop-blur-md relative z-10 md:pb-0 ${mobileHome ? 'pb-28' : 'pb-4 mobile-page-safe-bottom'}`}>
+      {/* pb-28 всегда (не только при mobileHome) — с 2026-08-22 нижний док
+          стал постоянным на всех мобильных экранах (Главная/Заказы/Чат/
+          Профиль), а не только на "Главной", поэтому место под него нужно
+          резервировать везде, не только там. */}
+      <main className="flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/50 backdrop-blur-md relative z-10 md:pb-0 pb-28">
 
-        {/* Обои "Главной" рисуются на уровне <main>, ПОД шапкой тоже (не только
+        {/* Фон "Главной" рисуется на уровне <main>, ПОД шапкой тоже (не только
             под плитками) — иначе на стыке шапки и плиток виден шов: шапка стоит
-            на обычном фоне <main>, а ниже начинаются обои. -z-10 гарантирует,
-            что они красятся за любым обычным (непозиционированным) контентом
+            на обычном фоне <main>, а ниже начинается фон. -z-10 гарантирует,
+            что он красится за любым обычным (непозиционированным) контентом
             внутри <main>, включая шапку, независимо от порядка в разметке.
-            Новая пара обоев (2026-07-19, выбраны клиентом) — одна и та же
-            "стеклянная лента", тёмный и светлый вариант под соответствующую
-            тему; градиент оставлен под фото полупрозрачным слоем, чтобы текст
-            плиток не терял контраст поверх картинки. */}
+            2026-08-22: клиент прислал референс "Velaris AI" (Figma, Community
+            glassmorphism-кит) — тёмный космос с туманностью и звёздами вместо
+            прежних хромированных лент. Полностью на CSS (радиальные
+            градиенты-облака + звёзды россыпью), без картинки-обоев — так
+            фон не зависит от веса/резкости внешнего файла и легко
+            настраивается числами. .home-mesh-nebula — облака (::before/::after
+            через отдельные слои), .home-mesh-stars — точки звёзд. */}
         {mobileHome && (
-          <>
-            <div
-              className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 dark:hidden bg-cover bg-center"
-              style={{ backgroundImage: `url(${homeWallpaperLight})` }}
-            >
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(201,211,223,0.55) 0%, rgba(184,198,214,0.55) 50%, rgba(205,214,224,0.55) 100%)' }} />
-            </div>
-            <div
-              className="md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10 hidden dark:block bg-cover bg-center"
-              style={{ backgroundImage: `url(${homeWallpaperDark})` }}
-            >
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, rgba(26,37,53,0.6) 0%, rgba(15,26,40,0.6) 35%, rgba(18,24,32,0.6) 65%, rgba(13,21,32,0.6) 100%)' }} />
-            </div>
-          </>
+          <div className="home-mesh-bg md:hidden absolute inset-x-0 -top-4 -bottom-28 md:bottom-0 -z-10" aria-hidden="true">
+            <div className="home-mesh-nebula" />
+            <div className="home-mesh-stars" />
+            {/* Нижняя часть под сеткой значков раньше оставалась голой чёрной
+                пустотой до самого дока — по правке клиента добавлено тёплое
+                сияние снизу (ведёт взгляд к AI-кружку в доке, та же идея, что
+                и его собственный ореол) плюс дуга орбиты, отсылающая к
+                кольцевому лучу внутри самого AI-диска — тот же мотив, только
+                крупнее и на заднем плане. */}
+            <div className="home-mesh-glow-bottom" />
+            <svg className="home-mesh-orbit" viewBox="0 0 400 400" preserveAspectRatio="none" aria-hidden="true">
+              <ellipse cx="200" cy="60" rx="260" ry="260" />
+            </svg>
+          </div>
         )}
 
         {/* Top bar on small / medium devices for header */}
@@ -4188,11 +4413,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             ) : (
               <>
                 <img src={logoImg} alt="Фото-Север" className="w-8 h-8 shrink-0 object-contain drop-shadow-sm" />
-                <h1 className="text-sm font-black text-slate-900 dark:text-white leading-none font-bold">Фото-Север</h1>
+                <h1 className="home-mesh-title text-sm font-black text-white leading-none font-bold">Фото-Север</h1>
               </>
             )}
           </div>
           <div className="flex items-center gap-2">
+            {/* Иконка "Чат" раньше жила в шапке (см. историю в git) — с
+                появлением отдельной плитки "Чат" в новом ряду под визардом
+                на "Главной" (см. ниже) стала дублировать её один-в-один,
+                поэтому убрана отсюда: один явный вход в чат вместо двух. */}
             <ThemeToggle />
             <button
               onClick={onLogout}
@@ -4203,204 +4432,82 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </div>
         </header>
 
-        {/* Мобильная "Главная" — крупные подписанные плитки. Показывается вместо контента
-            раздела, пока mobileHome === true; тап по плитке уводит в раздел и прячет плитки. */}
-        {mobileHome && (() => {
-          const cancelLongPress = () => {
-            if (tileLongPressTimerRef.current) {
-              clearTimeout(tileLongPressTimerRef.current);
-              tileLongPressTimerRef.current = null;
-            }
-          };
-          // Перетаскивание плитки к краю экрана перелистывает свайп-страницу,
-          // как на iPhone — задержка перед перелистыванием, чтобы не улетало
-          // от одного случайного касания края.
-          const cancelEdgeFlip = () => {
-            if (edgeFlipTimerRef.current) {
-              clearTimeout(edgeFlipTimerRef.current);
-              edgeFlipTimerRef.current = null;
-            }
-          };
-          const handleDragEdgeScroll = (clientX: number) => {
-            const scrollEl = homePagesScrollRef.current;
-            if (!scrollEl) return;
-            const rect = scrollEl.getBoundingClientRect();
-            const EDGE = 36;
-            const nearRight = clientX > rect.right - EDGE;
-            const nearLeft = clientX < rect.left + EDGE;
-            if (!nearRight && !nearLeft) {
-              cancelEdgeFlip();
-              return;
-            }
-            if (edgeFlipTimerRef.current) return;
-            edgeFlipTimerRef.current = window.setTimeout(() => {
-              edgeFlipTimerRef.current = null;
-              const maxIndex = homeTilePages.length - 1;
-              const target = Math.max(0, Math.min(maxIndex, homePageIndex + (nearRight ? 1 : -1)));
-              if (target !== homePageIndex) {
-                scrollEl.scrollTo({ left: target * scrollEl.clientWidth, behavior: 'smooth' });
-              }
-            }, 650);
-          };
-
-          return (
-            <div ref={homeAreaRef} className="md:hidden relative isolate flex-1 flex flex-col min-h-full">
-              {/* Обои теперь рисуются выше, на уровне <main> (см. комментарий там) —
-                  так они продолжаются и под шапкой, без шва на стыке. */}
-              <div className="relative z-10 p-2 pt-6">
+        {/* Мобильная "Главная" — сетка значков в стиле Домашнего экрана iOS
+            (глянцевые 3D-иконки, правка клиента 2026-08-22). Только УСЛУГИ
+            (Фото/Документы/Переплёт/Цены и услуги/Проверка фото) — навигация
+            (Заказы/Чат/Настройки) переехала в нижний док вместе с "Главная"
+            (см. #home-dock-nav ниже), так стало разделено чётче: сетка —
+            что печатаем, док — куда идти. "Проверка фото на документы" была
+            единственной кнопкой дока без аналога в новом списке клиента
+            (Главная/Заказы/Чат/Настройки) — перенесена сюда 5-м значком
+            услуги, а не удалена: это отдельная платная функция, и до этой
+            правки у неё был только один вход (кнопка дока). */}
+        {mobileHome && (
+          <div ref={homeAreaRef} className="md:hidden relative isolate flex-1 flex flex-col min-h-full">
+            <div className="relative z-10 p-2 pt-6">
               <div ref={homeClockWrapRef}>
-                <HomeBigClock size={clockSize} resizable={jiggleMode} onCycleSize={cycleClockSize} />
+                <HomeBigClock size={clockSize} resizable={false} onCycleSize={cycleClockSize} />
               </div>
-              {jiggleMode && (
-                <div className="flex justify-end mb-2">
-                  <button
-                    onClick={() => setJiggleMode(false)}
-                    className="px-4 py-1.5 rounded-full bg-indigo-600 text-white text-xs font-black cursor-pointer"
-                  >
-                    Готово
-                  </button>
-                </div>
-              )}
-              <div
-                ref={homePagesScrollRef}
-                onScroll={handleHomePagesScroll}
-                className="mobile-tile-pages flex w-full overflow-x-auto"
-                style={{ scrollSnapType: jiggleMode ? 'none' : 'x mandatory' }}
-              >
-                {homeTilePages.map((page, pageIdx) => {
-                  // Разбиваем страницу плиток на ряды по 4 — если последний ряд
-                  // неполный (например 2 плитки из 4), центрируем его по сетке
-                  // явным gridColumnStart, а не оставляем прижатым к левому краю:
-                  // рядом с полным рядом сверху это выглядело "оборванным".
-                  const tileRows: typeof page[] = [];
-                  for (let r = 0; r < page.length; r += 4) tileRows.push(page.slice(r, r + 4));
-                  return (
-                  <nav
-                    key={pageIdx}
-                    className="mobile-tile-nav flex flex-col gap-y-4 w-full shrink-0"
-                    style={{ scrollSnapAlign: 'start' }}
-                  >
-                    {tileRows.map((row, rowIdx) => {
-                      // Неполный последний ряд (меньше 4 плиток) центрируем через flex —
-                      // надёжнее, чем вручную считать gridColumnStart: работает для
-                      // любого остатка (1, 2 или 3 плитки) без отдельной формулы под
-                      // каждый случай. Ширина плитки в px-эквиваленте повторяет колонку
-                      // grid-cols-4 с gap-x-2 (0.5rem × 3 промежутка = 1.5rem суммарно),
-                      // чтобы плитки не "плыли" по размеру относительно полных рядов выше.
-                      const isPartialRow = row.length < 4;
-                      return (
-                    <div key={rowIdx} className={isPartialRow ? 'flex justify-center gap-x-2' : 'grid grid-cols-4 gap-x-2'}>
-                    {row.map((item, ri) => {
-                      const i = rowIdx * 4 + ri;
-                      const isDragged = draggedTileKey === item.key;
-                      return (
-                        <button
-                          key={item.key}
-                          data-tile-key={item.key}
-                          ref={(el) => { homeTileElsRef.current[item.key] = el; }}
-                          style={{
-                            '--jiggle-i': i,
-                            ...(isPartialRow ? { width: 'calc((100% - 1.5rem) / 4)', flex: '0 0 auto' } : {}),
-                            transform: isDragged && tileDragPos ? `translate(${tileDragPos.x}px, ${tileDragPos.y}px) scale(1.08)` : undefined,
-                            touchAction: jiggleMode ? 'none' : undefined,
-                            WebkitTouchCallout: 'none',
-                          } as React.CSSProperties}
-                          onPointerDown={(e) => {
-                            if (jiggleMode) {
-                              e.preventDefault();
-                              (e.target as Element).setPointerCapture?.(e.pointerId);
-                              setDraggedTileKey(item.key);
-                              tileDragOffsetRef.current = { x: e.clientX, y: e.clientY };
-                              setTileDragPos({ x: 0, y: 0 });
-                            } else {
-                              tilePressStartRef.current = { x: e.clientX, y: e.clientY };
-                              cancelLongPress();
-                              tileLongPressTimerRef.current = window.setTimeout(() => {
-                                reorderHomeTiles(homeAllTiles.map(t => t.key));
-                                setJiggleMode(true);
-                                navigator.vibrate?.(10);
-                              }, 550);
-                            }
-                          }}
-                          onPointerMove={(e) => {
-                            if (!jiggleMode && tilePressStartRef.current) {
-                              const dx = Math.abs(e.clientX - tilePressStartRef.current.x);
-                              const dy = Math.abs(e.clientY - tilePressStartRef.current.y);
-                              if (dx > 8 || dy > 8) cancelLongPress();
-                            }
-                            if (draggedTileKey) {
-                              const dx = e.clientX - tileDragOffsetRef.current.x;
-                              const dy = e.clientY - tileDragOffsetRef.current.y;
-                              setTileDragPos({ x: dx, y: dy });
-                              handleDragEdgeScroll(e.clientX);
-                              // elementFromPoint берёт САМЫЙ ВЕРХНИЙ элемент в этой точке — а
-                              // это как раз перетаскиваемая плитка (у неё z-index:20 и она
-                              // визуально следует за пальцем/курсором), поэтому она сама себя
-                              // "находила" под курсором и своп никогда не срабатывал.
-                              // elementsFromPoint (мн.ч.) отдаёт весь стек по z-порядку —
-                              // берём первую плитку в нём, которая не является перетаскиваемой.
-                              const stack = document.elementsFromPoint(e.clientX, e.clientY);
-                              const tileEl = stack
-                                .map(node => node.closest('[data-tile-key]') as HTMLElement | null)
-                                .find(node => node && node.dataset.tileKey !== draggedTileKey);
-                              const overKey = tileEl?.dataset.tileKey;
-                              if (overKey && overKey !== draggedTileKey) {
-                                moveHomeTile(draggedTileKey, overKey);
-                              }
-                            }
-                          }}
-                          onPointerUp={() => {
-                            cancelLongPress();
-                            cancelEdgeFlip();
-                            setDraggedTileKey(null);
-                            setTileDragPos(null);
-                          }}
-                          onPointerLeave={cancelLongPress}
-                          onClick={() => {
-                            if (jiggleMode) return;
-                            item.onClick();
-                            if (item.key !== 'telegram') setMobileHome(false);
-                          }}
-                          className={`home-tile-btn select-none relative flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl transition-all duration-200 cursor-pointer active:scale-90 ${
-                            jiggleMode && !isDragged ? 'tile-jiggle' : ''
-                          } ${isDragged ? 'tile-dragging' : ''}`}
-                        >
-                          <div className="relative">
-                            <GlassIcon icon={item.icon} glow={item.glow} size={68} colored noOuterShadow />
-                            {item.badge}
-                          </div>
-                          {/* Фиксированная высота подписи (под 2 строки) — иначе у подписей
-                              в одну строку ("Чат") и в две ("Мои Заказы") получалась разная
-                              общая высота плитки, и иконки в одном ряду сидели не вровень. */}
-                          <span className="text-[12px] font-semibold text-center leading-tight text-slate-800 dark:text-white/85 h-[30px] flex items-center justify-center line-clamp-2">
-                            {item.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                    </div>
-                      );
-                    })}
-                  </nav>
-                  );
-                })}
-              </div>
-              {homeTilePages.length > 1 && (
-                <div className="flex justify-center gap-1.5 mt-4">
-                  {homeTilePages.map((_, idx) => (
-                    <span
-                      key={idx}
-                      className={`h-1.5 rounded-full transition-all duration-200 ${
-                        idx === homePageIndex ? 'w-4 bg-slate-800 dark:bg-white' : 'w-1.5 bg-slate-400/40 dark:bg-white/30'
-                      }`}
+
+              <div id="home-tile-grid" className="grid grid-cols-4 gap-x-2 gap-y-5 mt-7">
+                {([
+                  {
+                    key: 'photo',
+                    icon: IconPhotoFilled,
+                    label: 'Фото и полароид',
+                    color: '#fb7185',
+                    onClick: () => { nextUploadIsPhotoRef.current = true; setActiveTab('upload'); setMobileHome(false); },
+                  },
+                  {
+                    key: 'documents',
+                    icon: IconFileTextFilled,
+                    label: 'Документы и А3',
+                    color: '#3b82f6',
+                    onClick: () => { nextUploadIsDocsRef.current = true; setActiveTab('upload'); setMobileHome(false); },
+                  },
+                  {
+                    key: 'binding',
+                    icon: IconBookFilled,
+                    label: 'Переплёт и ламинация',
+                    color: '#10b981',
+                    onClick: () => { nextUploadIsBindingRef.current = true; setActiveTab('upload'); setMobileHome(false); },
+                  },
+                  {
+                    key: 'catalog',
+                    icon: IconTagFilled,
+                    label: 'Цены и услуги',
+                    color: '#22d3ee',
+                    onClick: () => { setServiceCategoryFilter(null); setActiveTab('services'); setMobileHome(false); },
+                  },
+                  {
+                    key: 'doccheck',
+                    icon: IconFileCheck,
+                    label: 'Проверка фото',
+                    color: '#f59e0b',
+                    onClick: () => (user.isGuest ? setGuestUpsellReason('doc_check') : setShowDocCheckModal(true)),
+                  },
+                ] as Array<{
+                  key: string;
+                  icon: typeof Upload;
+                  label: string;
+                  color: string;
+                  badge?: 'ready' | 'pending' | null;
+                  onClick: () => void;
+                }>).map(item => (
+                  <React.Fragment key={item.key}>
+                    <HomeAppIcon
+                      icon={item.icon}
+                      label={item.label}
+                      color={item.color}
+                      badge={item.badge}
+                      onClick={item.onClick}
                     />
-                  ))}
-                </div>
-              )}
+                  </React.Fragment>
+                ))}
               </div>
             </div>
-          );
-        })()}
+          </div>
+        )}
 
         <header className="hidden md:flex items-center justify-between px-8 py-5 glass-panel rounded-2xl">
           <div className="flex items-center gap-4">
@@ -4515,43 +4622,39 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <button
               type="button"
               onClick={() => setGuestUpsellReason('referral')}
-              className="w-full text-left bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 text-white rounded-3xl p-5 border border-indigo-400/30 shadow-lg shadow-indigo-500/20 relative overflow-hidden cursor-pointer"
+              className="w-full text-left glass-panel glass-rim-card text-slate-800 dark:text-white rounded-3xl p-5 relative overflow-hidden cursor-pointer"
             >
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
-              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
               <div className="flex items-start gap-3 relative z-10">
-                <div className="p-3 bg-white/10 rounded-2xl border border-white/20 shrink-0">
-                  <Gift className="w-6 h-6" />
+                <div className="p-3 bg-indigo-600/10 dark:bg-indigo-500/15 rounded-2xl border border-indigo-500/20 shrink-0">
+                  <Gift className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-black uppercase tracking-wider">Пригласите друга — оба получите скидку 🎁</h4>
-                  <p className="text-xs text-white/85 mt-1 font-medium">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
                     Своя реферальная ссылка доступна после регистрации — заведите аккаунт за 10 секунд.
                   </p>
                 </div>
               </div>
             </button>
           ) : user.referralCode && (
-            <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 text-white rounded-3xl p-5 border border-indigo-400/30 shadow-lg shadow-indigo-500/20 relative overflow-hidden">
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
-              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
+            <div className="glass-panel glass-rim-card text-slate-800 dark:text-white rounded-3xl p-5 relative overflow-hidden">
               <div className="flex items-start gap-3 relative z-10">
-                <div className="p-3 bg-white/10 rounded-2xl border border-white/20 shrink-0">
-                  <Gift className="w-6 h-6" />
+                <div className="p-3 bg-indigo-600/10 dark:bg-indigo-500/15 rounded-2xl border border-indigo-500/20 shrink-0">
+                  <Gift className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-black uppercase tracking-wider">Пригласите друга — оба получите скидку 🎁</h4>
-                  <p className="text-xs text-white/85 mt-1 font-medium">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
                     Друг получит 10% на первый заказ, а вы — 10% на следующий, как только он оплатит свой первый заказ.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 mt-3">
-                    <div className="flex-1 bg-white/10 border border-white/25 rounded-xl px-4 py-2.5 text-sm font-bold truncate">
+                    <div className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-2.5 text-sm font-bold truncate">
                       {referralLink}
                     </div>
                     <button
                       type="button"
                       onClick={handleShareReferral}
-                      className="flex items-center justify-center gap-1.5 bg-white hover:bg-slate-50 text-indigo-700 font-black text-xs px-5 py-2.5 rounded-xl shadow-md transition shrink-0 cursor-pointer"
+                      className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow-md transition shrink-0 cursor-pointer"
                     >
                       {referralCopied ? <><CheckCircle className="w-3.5 h-3.5" /> Скопировано</> : <><Send className="w-3.5 h-3.5" /> Поделиться</>}
                     </button>
@@ -4565,32 +4668,28 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 text-white rounded-3xl p-5 border border-fuchsia-400/30 shadow-lg shadow-fuchsia-500/20 relative overflow-hidden animate-pulse-slow"
+              className="glass-panel glass-rim-card text-slate-800 dark:text-white rounded-3xl p-5 relative overflow-hidden"
             >
-              {/* background decorative shapes — тот же приём, что и у баннера с промокодом */}
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
-              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
-
               <button
                 onClick={() => { setFeedbackDismissed(true); localStorage.setItem(`feedback_dismissed_${user.id}`, '1'); }}
-                className="absolute top-4 right-4 text-white/70 hover:text-white transition z-20 cursor-pointer"
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:text-white/50 dark:hover:text-white transition z-20 cursor-pointer"
                 aria-label="Скрыть"
               >
                 <X className="w-4 h-4" />
               </button>
 
               <div className="flex items-start gap-3 relative z-10 pr-7">
-                <div className="p-3 bg-white/10 rounded-2xl border border-white/20 shrink-0 animate-bounce">
-                  <Gift className="w-6 h-6" />
+                <div className="p-3 bg-indigo-600/10 dark:bg-indigo-500/15 rounded-2xl border border-indigo-500/20 shrink-0">
+                  <Gift className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-black uppercase tracking-wider">Есть пожелание или замечание? 💡</h4>
-                  <p className="text-xs text-white/85 mt-1 font-medium">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
                     Напишите, что улучшить или предложить — в благодарность дарим промокод на скидку! Мы обязательно прочитаем и ответим вам в чате.
                   </p>
 
                   {feedbackSent && !user.promoCode ? (
-                    <div className="flex items-center gap-2 text-white text-sm font-bold py-2 mt-2 animate-pulse">
+                    <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 text-sm font-bold py-2 mt-2 animate-pulse">
                       <Clock className="w-4 h-4" /> Ждём подарок за ваш отзыв...
                     </div>
                   ) : (
@@ -4601,12 +4700,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         onChange={(e) => setFeedbackText(e.target.value)}
                         placeholder="Ваше пожелание или замечание..."
                         maxLength={1000}
-                        className="flex-1 bg-white/10 border border-white/25 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/60 focus:outline-none focus:ring-2 focus:ring-white/40"
+                        className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-2.5 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                       <button
                         type="submit"
                         disabled={!feedbackText.trim() || feedbackSending}
-                        className="flex items-center justify-center gap-1.5 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-fuchsia-700 font-black text-xs px-5 py-2.5 rounded-xl shadow-md transition shrink-0 cursor-pointer"
+                        className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs px-5 py-2.5 rounded-xl shadow-md transition shrink-0 cursor-pointer"
                       >
                         <Send className="w-3.5 h-3.5" /> {feedbackSending ? 'Отправка...' : 'Отправить'}
                       </button>
@@ -5535,9 +5634,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
               {/* Order Lists Rendering */}
               {userOrders.length === 0 ? (
-                <div className="text-center glass-panel rounded-3xl p-12 max-w-lg mx-auto">
-                  <div className="bg-slate-100 dark:bg-slate-950 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-                    <FileCheck className="w-8 h-8" />
+                <div className="text-center glass-panel glass-rim-card rounded-3xl p-12 max-w-lg mx-auto">
+                  <div className="mx-auto mb-4">
+                    <GlassTile icon={IconFileCheck} shape="circle" size={64} accent="#64748b" className="mx-auto" />
                   </div>
                   <h4 className="text-lg font-black text-slate-800 dark:text-white">У вас еще нет заказов</h4>
                   <p className="text-xs text-slate-500 mt-2 max-w-sm mx-auto">
@@ -5555,21 +5654,30 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     .map(ord => (
                       <div
                         key={ord.id}
-                        className="glass-panel rounded-3xl overflow-hidden"
+                        className="glass-panel glass-rim-card rounded-3xl overflow-hidden"
                       >
                         {/* Upper Section */}
                         <div className="p-5 border-b border-slate-150 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/20 flex flex-col sm:flex-row justify-between gap-4">
-                          <div className="space-y-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-sm font-black text-slate-800 dark:text-white uppercase">
-                                {ord.id}
-                              </span>
-                              <span className="text-[11px] text-slate-400 font-medium">
-                                {formatDateTime(ord.orderDate)}
-                              </span>
-                            </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-450">
-                              Файлов: <strong>{ord.files.length} шт.</strong> | {ord.copies} {ord.copies === 1 ? 'копия' : ord.copies < 5 ? 'копии' : 'копий'} &bull; Бумага: <strong>{ord.paperType.toUpperCase()}</strong> &bull; Цветность: <strong>{ord.printColor === 'bw' ? 'Черно-белая' : 'Цветная'}</strong>
+                          <div className="flex items-start gap-3 min-w-0">
+                            <GlassTile
+                              icon={getOrderStatusTile(ord).icon}
+                              shape="square"
+                              size={44}
+                              accent={getOrderStatusTile(ord).accent}
+                              className="shrink-0"
+                            />
+                            <div className="space-y-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-black text-slate-800 dark:text-white uppercase">
+                                  {ord.id}
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-medium">
+                                  {formatDateTime(ord.orderDate)}
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-500 dark:text-slate-450">
+                                Файлов: <strong>{ord.files.length} шт.</strong> | {ord.copies} {ord.copies === 1 ? 'копия' : ord.copies < 5 ? 'копии' : 'копий'} &bull; Бумага: <strong>{ord.paperType.toUpperCase()}</strong> &bull; Цветность: <strong>{ord.printColor === 'bw' ? 'Черно-белая' : 'Цветная'}</strong>
+                              </div>
                             </div>
                           </div>
 
@@ -5624,7 +5732,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 return (
                                   <React.Fragment key={stage.id}>
                                     <div className="flex flex-col items-center gap-1.5 shrink-0 w-14">
-                                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-black border-2 transition-all ${
+                                      <div className={`order-step-dot w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-black border-2 transition-all ${
                                         isPast
                                           ? 'bg-emerald-500 border-emerald-500 text-white'
                                           : isCurrent
@@ -5809,35 +5917,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               Статус обработки
                             </button>
 
-                            {/* Удалить заказ целиком — только пока не оплачен и не взят в обработку */}
+                            {/* Удалить заказ целиком — только пока не оплачен и не взят в обработку.
+                                Раньше подтверждение было строкой прямо тут (Да/Нет рядом с кнопкой) —
+                                правка клиента 2026-08-22: настоящее окно подтверждения по центру
+                                экрана, единый стиль для всего сайта (см. .confirm-* в index.css
+                                и AnimatePresence-блок с окном ниже, после карточек заказов). */}
                             {canDeleteOwnOrder(ord) && (
-                              orderToConfirmDelete === ord.id ? (
-                                <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 p-1 rounded-lg border border-rose-100 dark:border-rose-900/40">
-                                  <span className="text-[10px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить заказ?</span>
-                                  <button
-                                    onClick={() => handleDeleteOwnOrder(ord.id)}
-                                    disabled={deletingOrderId === ord.id}
-                                    className="bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition disabled:opacity-50"
-                                  >
-                                    {deletingOrderId === ord.id ? '...' : 'Да'}
-                                  </button>
-                                  <button
-                                    onClick={() => setOrderToConfirmDelete(null)}
-                                    disabled={deletingOrderId === ord.id}
-                                    className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition disabled:opacity-50"
-                                  >
-                                    Нет
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => setOrderToConfirmDelete(ord.id)}
-                                  title="Удалить заказ"
-                                  className="flex items-center justify-center gap-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-xs font-bold px-3 py-2.5 rounded-xl transition"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )
+                              <button
+                                onClick={() => setOrderToConfirmDelete(ord.id)}
+                                title="Удалить заказ"
+                                className="flex items-center justify-center gap-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-xs font-bold px-3 py-2.5 rounded-xl transition"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             )}
                           </div>
                         </div>
@@ -5850,6 +5942,54 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </motion.div>
             )}
 
+            {/* ОКНО ПОДТВЕРЖДЕНИЯ ДЕЙСТВИЯ — компактное окно ПО ЦЕНТРУ экрана
+                (не шторка снизу, как у выбора опций), единый тёмный стиль
+                сайта (см. .confirm-* в index.css). "Удалить заказ?" — реальный
+                пример из ТЗ клиента: раньше подтверждение было инлайн-строкой
+                прямо в карточке заказа (Да/Нет), теперь — настоящее модальное
+                окно. Действие необратимое (заказ удаляется целиком) — вторая
+                кнопка красная (.confirm-btn-danger), не фиолетовая. */}
+            <AnimatePresence>
+              {orderToConfirmDelete && (
+                <motion.div
+                  className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+                  onClick={() => setOrderToConfirmDelete(null)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1, transition: { duration: 0.22 } }}
+                  exit={{ opacity: 0, transition: { duration: 0.18 } }}
+                >
+                  <motion.div
+                    className="confirm-card"
+                    onClick={(e) => e.stopPropagation()}
+                    initial={{ opacity: 0, scale: 0.88 }}
+                    animate={{ opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 380, damping: 28 } }}
+                    exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.18 } }}
+                  >
+                    <div className="confirm-title">Удалить заказ?</div>
+                    <div className="confirm-text">
+                      Заказ {orderToConfirmDelete} будет удалён без возможности восстановления.
+                    </div>
+                    <div className="confirm-actions">
+                      <button
+                        className="confirm-btn confirm-btn-cancel"
+                        onClick={() => setOrderToConfirmDelete(null)}
+                        disabled={deletingOrderId === orderToConfirmDelete}
+                      >
+                        Отмена
+                      </button>
+                      <button
+                        className="confirm-btn confirm-btn-danger"
+                        onClick={() => handleDeleteOwnOrder(orderToConfirmDelete)}
+                        disabled={deletingOrderId === orderToConfirmDelete}
+                      >
+                        {deletingOrderId === orderToConfirmDelete ? '...' : 'Удалить'}
+                      </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* TAB 3: LIVE FEEDBACK INTEGRATED CHAT */}
             {activeTab === 'chat' && (
               <motion.div
@@ -5858,7 +5998,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="glass-panel rounded-3xl flex flex-col h-[550px] md:h-full md:flex-1 min-h-0 md:min-h-0 overflow-hidden transition-all duration-300 w-full"
+                className="glass-panel glass-rim-card rounded-3xl flex flex-col h-[550px] md:h-full md:flex-1 min-h-0 md:min-h-0 overflow-hidden transition-all duration-300 w-full"
               >
               
               {/* Operator info header */}
@@ -5913,8 +6053,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <div ref={chatContentRef} className="space-y-4">
                 {userChats.length === 0 ? (
                   <div className="h-full flex flex-col justify-center items-center text-center p-8">
-                    <div className="bg-slate-100 dark:bg-slate-900 w-14 h-14 rounded-full flex items-center justify-center text-slate-400 mb-3">
-                      <MessageSquare className="w-7 h-7" />
+                    <div className="mb-3">
+                      <GlassTile icon={IconMessageCircle} shape="circle" size={56} accent="#3b82f6" />
                     </div>
                     <p className="text-xs font-bold text-slate-800 dark:text-white">Чат пуст. Начните диалог первым!</p>
                     <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
@@ -5937,65 +6077,88 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         ) : (
                           <UserAvatar
                             user={user}
-                            className="w-8 h-8 rounded-lg shrink-0 ring-2 ring-indigo-505/20 border border-white dark:border-slate-900"
+                            className="w-8 h-8 rounded-lg shrink-0 ring-2 ring-blue-500/20 border border-white dark:border-slate-900"
                           />
                         )}
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 px-1">
-                            <span>{isAdmin ? 'Оператор' : msg.senderName} &bull; {new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
-                            {!isAdmin && (
-                              <span className="inline-flex items-center ml-0.5" title={msg.readByAdmin ? "Прочитано" : "Доставлено"}>
-                                {msg.readByAdmin ? (
-                                  <span className="text-sky-450 dark:text-sky-400 flex items-center relative w-4.5 h-3">
-                                    <svg className="w-3 h-3 absolute left-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                                      <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                    <svg className="w-3 h-3 absolute left-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                                      <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-400 dark:text-slate-500 flex items-center w-3 h-3">
-                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                                      <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                  </span>
-                                )}
-                              </span>
-                            )}
-                          </span>
-                          {msg.message.startsWith('[STICKER]:') ? (
-                            <div className="msg-sticker">
-                              {msg.message.substring(10).endsWith('.webm') ? (
-                                <video src={msg.message.substring(10)} className="msg-sticker__img" autoPlay loop muted playsInline />
+                        {(() => {
+                          // Время + галочки прочтения — раньше отдельной строкой НАД
+                          // пузырём (с именем отправителя); теперь как в Telegram —
+                          // мелким текстом внутри самого пузыря (у фото — плашкой
+                          // поверх картинки, у стикеров — подписью под ними, т.к. у
+                          // них нет цветного пузыря, чтобы утопить время в нём).
+                          const timeStr = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                          const readTicks = !isAdmin && (
+                            <span className="inline-flex items-center ml-0.5" title={msg.readByAdmin ? "Прочитано" : "Доставлено"}>
+                              {msg.readByAdmin ? (
+                                <span className="flex items-center relative w-3.5 h-2.5">
+                                  <svg className="w-2.5 h-2.5 absolute left-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                  <svg className="w-2.5 h-2.5 absolute left-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                </span>
                               ) : (
-                                <img src={msg.message.substring(10)} loading="lazy" className="msg-sticker__img" alt="Стикер" />
+                                <span className="flex items-center w-2.5 h-2.5 opacity-75">
+                                  <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                </span>
+                              )}
+                            </span>
+                          );
+
+                          if (msg.message.startsWith('[STICKER]:')) {
+                            return (
+                              <div className="space-y-1">
+                                <div className="msg-sticker">
+                                  {msg.message.substring(10).endsWith('.webm') ? (
+                                    <video src={msg.message.substring(10)} className="msg-sticker__img" autoPlay loop muted playsInline />
+                                  ) : (
+                                    <img src={msg.message.substring(10)} loading="lazy" className="msg-sticker__img" alt="Стикер" />
+                                  )}
+                                </div>
+                                <span className={`text-[9px] font-bold text-slate-400 flex items-center gap-0.5 px-1 ${isAdmin ? '' : 'justify-end'}`}>
+                                  {timeStr}{readTicks}
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div
+                              className={`p-3.5 rounded-2xl text-xs leading-relaxed font-medium shadow-sm border ${
+                                isAdmin
+                                  ? 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-100 dark:border-slate-800 rounded-bl-md'
+                                  : 'bg-blue-600 text-white border-transparent rounded-br-md'
+                              }`}
+                            >
+                              {msg.message.startsWith('[IMAGE]:') ? (
+                                <div className="space-y-1 my-0.5">
+                                  <div className="relative">
+                                    <img
+                                      src={msg.message.substring(8)}
+                                      loading="lazy"
+                                      className="rounded-xl max-w-[200px] sm:max-w-xs cursor-pointer hover:opacity-90 shadow-sm border border-slate-200 dark:border-slate-800 block"
+                                      alt="Пример готового продукта"
+                                    />
+                                    <span className="absolute bottom-1.5 right-1.5 bg-black/55 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 leading-none">
+                                      {timeStr}{readTicks}
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] opacity-70 block italic">Защищено водяным знаком &bull; ПРИМЕР</span>
+                                </div>
+                              ) : (
+                                <>
+                                  {msg.message}
+                                  <span className={`float-right mt-1 ml-2 relative top-0.5 text-[9px] font-bold leading-none inline-flex items-center gap-0.5 ${isAdmin ? 'text-slate-400 dark:text-slate-500' : 'text-white/70'}`}>
+                                    {timeStr}{readTicks}
+                                  </span>
+                                </>
                               )}
                             </div>
-                          ) : (
-                          <div
-                            className={`p-3.5 rounded-2xl text-xs leading-relaxed font-medium shadow-sm border ${
-                              isAdmin
-                                ? 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-100 dark:border-slate-800 rounded-tl-none'
-                                : 'bg-indigo-600 text-white border-transparent rounded-tr-none'
-                            }`}
-                          >
-                            {msg.message.startsWith('[IMAGE]:') ? (
-                              <div className="space-y-1 my-0.5">
-                                <img
-                                  src={msg.message.substring(8)}
-                                  loading="lazy"
-                                  className="rounded-xl max-w-[200px] sm:max-w-xs cursor-pointer hover:opacity-90 shadow-sm border border-slate-200 dark:border-slate-800"
-                                  alt="Пример готового продукта"
-                                />
-                                <span className="text-[10px] opacity-70 block italic">Защищено водяным знаком &bull; ПРИМЕР</span>
-                              </div>
-                            ) : (
-                              msg.message
-                            )}
-                          </div>
-                          )}
-                        </div>
+                          );
+                        })()}
                       </div>
                     );
                   })
@@ -6016,7 +6179,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <button
                       type="button"
                       onClick={() => setShowEmojiPicker(v => !v)}
-                      className="bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 font-bold p-3 rounded-xl transition flex items-center justify-center border border-slate-200 dark:border-slate-850 h-full"
+                      className="bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 font-bold w-11 h-11 shrink-0 rounded-full transition flex items-center justify-center border border-slate-200 dark:border-slate-850"
                       title="Эмодзи"
                     >
                       <span className="text-base leading-none">😊</span>
@@ -6034,7 +6197,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       onClick={() => (user.isGuest ? setGuestUpsellReason('voice') : handleMicClick())}
                       title={micState === 'listening' ? 'Слушаю…' : 'Голосовой ввод'}
                       aria-label={micState === 'listening' ? 'Слушаю…' : 'Голосовой ввод'}
-                      className={`shrink-0 p-3 rounded-xl transition flex items-center justify-center border h-full ${
+                      className={`shrink-0 w-11 h-11 rounded-full transition flex items-center justify-center border ${
                         micState === 'listening'
                           ? 'bg-rose-500 border-rose-500 text-white animate-pulse'
                           : 'bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-850'
@@ -6052,12 +6215,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     // text-base (16px) вместо text-xs — на iOS Safari фокус на
                     // поле с шрифтом меньше 16px автоматически зумит страницу
                     // для читаемости, что ощущается как "сильный зум".
-                    className="flex-1 bg-slate-50 dark:bg-slate-950 text-base sm:text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 bg-slate-50 dark:bg-slate-950 text-base sm:text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-full px-4.5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
                     type="submit"
                     disabled={!chatInput.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:dark:bg-slate-850 text-white py-3 px-4.5 rounded-xl font-bold text-xs flex items-center justify-center transition"
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:dark:bg-slate-850 text-white w-11 h-11 shrink-0 rounded-full font-bold text-xs flex items-center justify-center transition"
                   >
                     <Send className="w-4 h-4" />
                   </button>
@@ -6080,7 +6243,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               <div className="grid grid-cols-1 md:grid-cols-2 content-start auto-rows-max gap-6">
 
                 {/* User Stats Card */}
-                <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6">
+                <div className="glass-panel glass-rim-card p-6 md:p-8 rounded-3xl space-y-6">
                   {isEditingProfile ? (
                     <form onSubmit={handleSaveProfile} className="space-y-4">
                       <div className="text-center space-y-4">
@@ -6334,7 +6497,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     строкой во всю ширину и не занимало место под первой карточкой */}
                 <div className="space-y-6">
                 {/* Secure System & Synchronization Details */}
-                <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6">
+                <div className="glass-panel glass-rim-card p-6 md:p-8 rounded-3xl space-y-6">
                   <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
                     <img src={settingsIconRefImg} alt="" className="w-6 h-6 rounded-lg shrink-0" />
                     <AnimatedTitle>Безопасность и Настройки</AnimatedTitle>
@@ -6413,7 +6576,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 </div>
 
                 {/* Social Share Referral Widget Card */}
-                <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-5">
+                <div className="glass-panel glass-rim-card p-6 md:p-8 rounded-3xl space-y-5">
                   <div className="flex items-center gap-2">
                     <Share2 className="w-4.5 h-4.5 text-indigo-650" />
                     <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider"><AnimatedTitle>Поделиться Сервисом</AnimatedTitle></h3>
@@ -6508,7 +6671,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </div>
 
               {/* In App Notifications Journal */}
-              <div className="glass-panel rounded-3xl p-6 md:p-8">
+              <div className="glass-panel glass-rim-card rounded-3xl p-6 md:p-8">
                 <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-150 dark:border-slate-800">
                   <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
                     <Bell className="w-4.5 h-4.5 text-indigo-650" /> <AnimatedTitle>Журнал уведомлений</AnimatedTitle>
@@ -7117,80 +7280,93 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         if (isPhotoBundle) {
           const bundleCount = file.bundleFileCount || 1;
           const bundleSelSize = photoSizes.find(s => s.key === (file.photoSize || '10x15')) || photoSizes[0];
+          // Пропорция карточки-превью — реальное соотношение сторон печатного
+          // формата (10×15 → 2:3 и т.д.), а не декоративная картинка: у нас
+          // нет фотографии клиента на этом шаге (файл ещё не открыт), зато
+          // есть настоящие размеры листа — превью честно показывает форму
+          // отпечатка, не выдумывает несуществующее фото.
+          const sizeAspect = (key: string) => {
+            const [w, h] = key.split('x').map(Number);
+            return w && h ? w / h : 1;
+          };
           return (
+            /* ОКНО ВЫБОРА ОПЦИЙ — "bottom sheet" (правка клиента, единый стиль
+               всплывающих окон сайта, 2026-08-22): выезжает снизу вверх поверх
+               затемнённого фона, вместо прежнего окна по центру экрана.
+               Раньше здесь были плоские двухколоночные карточки без превью —
+               теперь карточки в ряд с превью-пропорцией формата, круглая
+               фиолетовая галочка на выбранной, чёрная кнопка-таблетка снизу. */
             <motion.div
               key="photoBundleConfigModal"
-              className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4"
+              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end justify-center"
+              onClick={() => cancelFileConfig(file.id)}
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}
-              exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeInOut' } }}
+              animate={{ opacity: 1, transition: { duration: 0.3, ease: [0.32, 0.72, 0, 1] } }}
+              exit={{ opacity: 0, transition: { duration: 0.25, ease: 'easeInOut' } }}
             >
               <motion.div
-                className="glass-window w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh]"
+                className="sheet-card w-full max-w-sm overflow-hidden flex flex-col max-h-[85vh]"
                 onClick={(e) => e.stopPropagation()}
                 data-css-anim-off
-                initial={{ opacity: 0, scale: 0.82, y: 8 }}
-                animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 170, damping: 18, mass: 1 } }}
-                exit={{ opacity: 0, scale: 0.9, y: 6, transition: { duration: 0.32, ease: [0.4, 0, 1, 1] } }}
+                initial={{ y: '100%' }}
+                animate={{ y: 0, transition: { type: 'spring', stiffness: 340, damping: 34 } }}
+                exit={{ y: '100%', transition: { duration: 0.28, ease: [0.4, 0, 1, 1] } }}
               >
-                <div className="p-5 pb-0 text-center">
-                  <h3 className="text-sm font-black text-slate-800 dark:text-white"><AnimatedTitle>Размер фото в архиве</AnimatedTitle></h3>
-                  <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{file.name} · {bundleCount} фото</p>
+                <div className="sheet-grabber" />
+                <div className="px-5 pt-1 pb-0 text-center">
+                  <h3 className="sheet-title">Размер фото в архиве</h3>
+                  <p className="text-[12px] text-white/45 truncate mt-1">{file.name} · {bundleCount} фото</p>
                 </div>
 
                 <div className="p-5 space-y-4 overflow-y-auto">
-                  <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/25 border border-amber-200/60 dark:border-amber-900/40 rounded-xl p-2.5 leading-relaxed">
+                  <p className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-xl p-2.5 leading-relaxed">
                     Выбранный размер применится ко всем {bundleCount} фото в этом файле. Если часть фото нужна в другом размере — загрузите их отдельно, не в архиве.
                   </p>
 
                   <div>
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Размер фотографий</p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <p className="sheet-eyebrow mb-2.5">Размер фотографий</p>
+                    <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-1 px-1">
                       {photoSizes.filter(s => s.key !== 'polaroid').map(s => {
                         const sizeSelected = (file.photoSize || '10x15') === s.key;
                         return (
                           <button key={s.key} type="button"
                             onClick={() => patch({ photoSize: s.key, bundleFixedPrice: s.price * bundleCount })}
-                            className={`btn-glass-sheen relative p-2 rounded-xl border text-center transition-all cursor-pointer ${
-                              sizeSelected
-                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/25 scale-[1.03]'
-                                : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300'
-                            }`}
+                            className={`sheet-option ${sizeSelected ? 'sheet-option-selected' : ''}`}
                           >
                             {sizeSelected && (
-                              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center option-selected-pop">
-                                <Check className="w-2.5 h-2.5" strokeWidth={3.5} />
+                              <div className="sheet-option-check">
+                                <Check className="w-3 h-3" strokeWidth={3.5} />
                               </div>
                             )}
-                            <div className={`text-[12px] font-black ${sizeSelected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{s.label}</div>
-                            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{s.price} ₽/шт</div>
+                            <span className="sheet-option-preview" style={{ aspectRatio: sizeAspect(s.key) }} />
+                            <div className="text-[12px] font-black text-white mt-2">{s.label}</div>
+                            <div className="text-[11px] font-bold text-white/45">{s.price} ₽/шт</div>
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-150 dark:border-slate-800">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                    <span className="text-xs text-white/45">
                       {bundleCount} шт. × {bundleSelSize.price} ₽
                     </span>
-                    <strong className="text-xl font-black text-slate-800 dark:text-white">{bundleSelSize.price * bundleCount} ₽</strong>
+                    <strong className="text-xl font-black text-white">{bundleSelSize.price * bundleCount} ₽</strong>
                   </div>
                 </div>
 
-                <div className="p-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2.5 shrink-0">
+                <div className="p-5 pt-2 space-y-2.5 shrink-0 mobile-page-safe-bottom">
                   <button
                     type="button"
                     onClick={() => confirmFileConfig(file.id, false)}
-                    className="glass-icon colored capsule-glow-purple glass-icon-pill w-full py-3.5 rounded-2xl text-white font-black text-sm cursor-pointer"
+                    className="sheet-cta-pill"
                   >
-                    <span className="beam"><i /></span>
-                    <span className="relative z-[3]">Выбрать →</span>
+                    Выбрать →
                   </button>
                   <button
                     type="button"
                     onClick={() => cancelFileConfig(file.id)}
-                    className="w-full py-2 text-xs font-bold text-rose-500 hover:text-rose-600 cursor-pointer"
+                    className="w-full py-2 text-xs font-bold text-rose-400 hover:text-rose-300 cursor-pointer"
                   >
                     Убрать файл
                   </button>
