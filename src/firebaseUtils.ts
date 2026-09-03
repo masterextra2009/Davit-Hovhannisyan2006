@@ -519,42 +519,53 @@ export async function deleteOrderFromFirebase(orderId: string): Promise<void> {
  */
 export async function deleteUserAccountWithFirebase(userId: string): Promise<void> {
   const user = auth.currentUser;
-  
+
+  // handleFirestoreError() ниже перебрасывает исключение дальше — раньше
+  // это было нормально для обычных сохранений, но здесь, при самоудалении
+  // профиля, одна заблокированная запись (например, уже оплаченный заказ —
+  // правила Firestore намеренно не дают клиенту его удалить) обрывала весь
+  // процесс до шага 5, и сам аккаунт (Firebase Auth) вообще не удалялся —
+  // клиент получал ошибку и оставался "подвисшим" с частично стёртым
+  // профилем. Такие документы просто пропускаем и продолжаем дальше.
+  const safeDelete = async (path: string, id: string) => {
+    try {
+      await deleteDoc(doc(db, path, id));
+    } catch (e) {
+      console.warn(`deleteUserAccountWithFirebase: не удалось удалить ${path}/${id}`, e);
+    }
+  };
+
   // 1. Delete Firestore user document
-  try {
-    await deleteDoc(doc(db, 'users', userId));
-  } catch (e) {
-    handleFirestoreError(e, OperationType.DELETE, `users/${userId}`);
-  }
+  await safeDelete('users', userId);
 
   // 2. Query and delete user orders
   try {
     const ordersSnap = await getDocs(query(collection(db, 'orders'), where('userId', '==', userId)));
     for (const d of ordersSnap.docs) {
-      await deleteDoc(doc(db, 'orders', d.id));
+      await safeDelete('orders', d.id);
     }
   } catch (e) {
-    handleFirestoreError(e, OperationType.DELETE, 'orders');
+    console.warn('deleteUserAccountWithFirebase: не удалось получить список orders', e);
   }
 
   // 3. Query and delete user chats
   try {
     const chatsSnap = await getDocs(query(collection(db, 'chatMessages'), where('userId', '==', userId)));
     for (const d of chatsSnap.docs) {
-      await deleteDoc(doc(db, 'chatMessages', d.id));
+      await safeDelete('chatMessages', d.id);
     }
   } catch (e) {
-    handleFirestoreError(e, OperationType.DELETE, 'chatMessages');
+    console.warn('deleteUserAccountWithFirebase: не удалось получить список chatMessages', e);
   }
 
   // 4. Query and delete user notifications
   try {
     const alertsSnap = await getDocs(query(collection(db, 'notifications'), where('userId', '==', userId)));
     for (const d of alertsSnap.docs) {
-      await deleteDoc(doc(db, 'notifications', d.id));
+      await safeDelete('notifications', d.id);
     }
   } catch (e) {
-    handleFirestoreError(e, OperationType.DELETE, 'notifications');
+    console.warn('deleteUserAccountWithFirebase: не удалось получить список notifications', e);
   }
 
   // 5. Finally delete Auth session if matching
