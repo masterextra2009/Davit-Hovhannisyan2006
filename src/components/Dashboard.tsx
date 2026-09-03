@@ -13,7 +13,6 @@ import { EmojiPicker } from './EmojiPicker';
 import { AnimatedTitle } from './AnimatedTitle';
 import { AiPriceCard } from './AiPriceCard';
 import { GuestUpsellModal, GuestUpsellReason } from './GuestUpsellModal';
-import { WelcomeScreen } from './WelcomeScreen';
 import { ChromaKeyVideo } from './ChromaKeyVideo';
 import JSZip from 'jszip';
 import logoImg from '../assets/logo.webp';
@@ -1013,13 +1012,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const [shareCopied, setShareCopied] = useState(false);
   // Приветственный онбординг отключён по просьбе клиента
   const [showOnboarding, setShowOnboarding] = useState(false);
-  // Персонализированный экран приветствия (иллюстрация по полу из ФИО) —
-  // отдельная от старого онбординга выше вещь, показывается один раз на
-  // аккаунт (флаг привязан к user.id, а не глобально, чтобы у каждого
-  // нового клиента на этом устройстве экран снова появился один раз).
-  const [showWelcomeScreen, setShowWelcomeScreen] = useState(() => {
-    return !user.isGuest && !localStorage.getItem(`welcome_screen_seen_${user.id}`);
-  });
   const [activeLegalDoc, setActiveLegalDoc] = useState<'privacy' | 'terms' | 'delivery' | null>(null);
   const [editFullName, setEditFullName] = useState(user.fullName);
   const [editPhone, setEditPhone] = useState(user.phone || '');
@@ -8772,17 +8764,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Персонализированный экран приветствия (по полу из ФИО) */}
-      {showWelcomeScreen && (
-        <WelcomeScreen
-          fullName={user.fullName}
-          onDone={() => {
-            localStorage.setItem(`welcome_screen_seen_${user.id}`, '1');
-            setShowWelcomeScreen(false);
-          }}
-        />
-      )}
 
       {/* Онбординг для новых клиентов */}
       {showOnboarding && (
