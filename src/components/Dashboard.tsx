@@ -4878,15 +4878,31 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       <span className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">
                         Список к отправке на печать ({uploadedFiles.length})
                       </span>
-                      {collageEligibleFiles.length >= 2 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Дублируем зону загрузки сюда — она стоит наверху раздела, а
+                            этот список появляется ниже. На телефоне после загрузки
+                            первого фото клиент видит только список и не понимает,
+                            что можно прокрутить вверх, поэтому раньше выходил на
+                            Главную и заново открывал "Печать фото". Эта кнопка даёт
+                            выбрать ещё фото прямо тут. */}
                         <button
                           type="button"
-                          onClick={() => { setCollageSelectedIds([]); setShowCollageBuilder(true); }}
-                          className="px-3 py-1.5 rounded-xl bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-300 text-[12px] font-black flex items-center gap-1.5 cursor-pointer transition-colors"
+                          disabled={!isWorkingHours()}
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-3 py-1.5 rounded-xl bg-indigo-600/15 hover:bg-indigo-600/25 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-300 text-[12px] font-black flex items-center gap-1.5 cursor-pointer transition-colors"
                         >
-                          <Layers className="w-3.5 h-3.5" /> Собрать в коллаж А4
+                          <Upload className="w-3.5 h-3.5" /> Добавить ещё
                         </button>
-                      )}
+                        {collageEligibleFiles.length >= 2 && (
+                          <button
+                            type="button"
+                            onClick={() => { setCollageSelectedIds([]); setShowCollageBuilder(true); }}
+                            className="px-3 py-1.5 rounded-xl bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-300 text-[12px] font-black flex items-center gap-1.5 cursor-pointer transition-colors"
+                          >
+                            <Layers className="w-3.5 h-3.5" /> Собрать в коллаж А4
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-3 pr-1">
