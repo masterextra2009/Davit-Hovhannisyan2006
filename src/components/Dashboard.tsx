@@ -4530,10 +4530,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 {activeTab === 'services' && 'Наши услуги'}
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {activeTab === 'upload' && 'Загружайте любые форматы файлов и отправляйте нам'}
-                {activeTab === 'orders' && 'Выгрузка актов, проведение защищенных интернет-транзакций, отслеживание выполнения заказа'}
+                {activeTab === 'upload' && 'Загрузите файлы — мы распечатаем и сообщим, когда будет готово'}
+                {activeTab === 'orders' && 'Следите за статусом ваших заказов в реальном времени'}
                 {activeTab === 'chat' && 'Моментальная обратная связь, согласование правок, уведомление об изменениях'}
-                {activeTab === 'profile' && 'Управление учетными записями, очистка кеша, социальные связи'}
+                {activeTab === 'profile' && 'Ваш профиль, безопасность и привязанные аккаунты'}
                 {activeTab === 'contacts' && 'Мы всегда на связи — звоните или пишите'}
                 {activeTab === 'services' && 'Печать документов, фотографий, чертежей — всё на Северном шоссе, 18'}
               </p>
@@ -4695,7 +4695,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   ) : (
                     <form onSubmit={handleSendFeedback} className="flex flex-col sm:flex-row gap-2 mt-3">
                       <input
+                        id="feedback-text"
+                        name="feedback-text"
                         type="text"
+                        autoComplete="off"
                         value={feedbackText}
                         onChange={(e) => setFeedbackText(e.target.value)}
                         placeholder="Ваше пожелание или замечание..."
@@ -5582,7 +5585,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </button>
                   {uploadedFiles.length === 0 && !selectedService && (
                     <p className="text-center text-[12px] text-white/30 mt-2">
-                      ↑ Сначала загрузите файл на шаге 1
+                      Загрузите файл, чтобы оформить заказ
                     </p>
                   )}
                 </form>
@@ -5656,7 +5659,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   </div>
                   <h4 className="text-lg font-black text-slate-800 dark:text-white">У вас еще нет заказов</h4>
                   <p className="text-xs text-slate-500 mt-2 max-w-sm mx-auto">
-                    Загружайте ваши учебные файлы, рефераты, фотографии или архивы чертежей на первом шаге и отправляйте их администратору.
+                    Здесь появятся ваши заказы. Загрузите первый файл во вкладке «Загрузка и Заказ».
                   </p>
                 </div>
               ) : (
@@ -6301,7 +6304,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           <label htmlFor="edit-avatar-url" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Или укажите свою ссылку на изображение:</label>
                           <input
                             id="edit-avatar-url"
+                            name="avatar-url"
                             type="text"
+                            autoComplete="off"
                             value={editAvatarUrl}
                             onChange={(e) => setEditAvatarUrl(e.target.value)}
                             className="w-full bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -6315,8 +6320,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           <label htmlFor="edit-full-name" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Ваше Имя и Фамилия:</label>
                           <input
                             id="edit-full-name"
+                            name="full-name"
                             type="text"
                             required
+                            autoComplete="name"
                             value={editFullName}
                             onChange={(e) => setEditFullName(e.target.value)}
                             className="w-full bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
@@ -6328,7 +6335,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           <label htmlFor="edit-phone" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Контактный телефон:</label>
                           <input
                             id="edit-phone"
-                            type="text"
+                            name="phone"
+                            type="tel"
+                            autoComplete="tel"
                             value={editPhone}
                             onChange={(e) => setEditPhone(e.target.value)}
                             className="w-full bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-slate-850 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
@@ -6401,7 +6410,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           </div>
                         </div>
                         <h3 className="text-base font-black text-slate-800 dark:text-white mt-1">{user.fullName}</h3>
-                        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{user.role === 'admin' ? 'Администратор' : 'Клиент Копи-Центра'}</p>
+                        <p className="text-[11px] text-slate-400 font-bold tracking-wider">{user.role === 'admin' ? 'Администратор' : 'Клиент'}</p>
                         
                         {/* Interactive dynamic loyalty badge */}
                         <div className="mt-2.5 flex justify-center">
@@ -6579,7 +6588,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <div className="p-4 border border-rose-100 dark:border-rose-950/40 rounded-2xl bg-rose-50/50 dark:bg-rose-950/10 space-y-3">
                       <span className="text-[11px] uppercase font-bold text-rose-500 tracking-wider block">Удаление профиля согласно GDPR</span>
                       <p className="text-[11px] text-rose-700/80 dark:text-rose-400/80">
-                        Вы можете навсегда удалить все ваши учетные данные, загруженные файлы и историю из базы данных Копи-Центра.
+                        Удалить аккаунт и все данные навсегда. Отменить это действие нельзя.
                       </p>
                       <button
                         onClick={handleDeleteSelf}
@@ -9734,6 +9743,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   Опишите, что пошло не так, и приложите скриншот — так мы быстрее разберёмся.
                 </p>
                 <textarea
+                  id="bug-report-text"
+                  name="bug-report-text"
+                  autoComplete="off"
                   value={bugReportText}
                   onChange={(e) => setBugReportText(e.target.value)}
                   placeholder="Что случилось? (необязательно, если есть скриншот)"
@@ -9743,6 +9755,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 />
 
                 <input
+                  id="bug-report-file"
+                  name="bug-report-file"
                   ref={bugReportFileInputRef}
                   type="file"
                   accept="image/*"

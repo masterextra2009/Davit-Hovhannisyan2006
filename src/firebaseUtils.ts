@@ -292,6 +292,16 @@ export async function signInUserWithFirebase(email: string, password: string): P
   }
 }
 
+// Google-аккаунты без своей фотографии отдают через Firebase Auth не пустой
+// photoURL, а ссылку на общую заглушку (силуэт человека, унаследованный от
+// старого дефолтного аватара YouTube/Google+) — она содержит "default-user"
+// в пути. Если довериться такому photoURL напрямую, в шапке и профиле вместо
+// нормального фолбэка (инициалы на градиенте из UserAvatar) показывается
+// эта чужеродная иконка. Отсеиваем такие ссылки на входе.
+function isGooglePlaceholderAvatar(url: string): boolean {
+  return url.includes('default-user');
+}
+
 /**
  * Создаёт/обновляет профиль в Firestore на основе Google-аккаунта Firebase.
  */
@@ -313,8 +323,11 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
     if (isExplicitAdmin && userData.role !== 'admin') {
       userData.role = 'admin';
     }
-    if (fbUser.photoURL && userData.avatarUrl !== fbUser.photoURL) {
+    if (fbUser.photoURL && !isGooglePlaceholderAvatar(fbUser.photoURL) && userData.avatarUrl !== fbUser.photoURL) {
       userData.avatarUrl = fbUser.photoURL;
+    } else if (userData.avatarUrl && isGooglePlaceholderAvatar(userData.avatarUrl)) {
+      // Убираем заглушку, сохранённую до этого фикса.
+      userData.avatarUrl = undefined;
     }
     try {
       await setDoc(userDocRef, userData, { merge: true });
@@ -332,7 +345,7 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
     phone: '',
     role: isExplicitAdmin ? 'admin' : 'client',
     createdAt: new Date().toISOString(),
-    avatarUrl: fbUser.photoURL || undefined,
+    avatarUrl: (fbUser.photoURL && !isGooglePlaceholderAvatar(fbUser.photoURL)) ? fbUser.photoURL : undefined,
     isSocial: true,
     referralCode: generateReferralCode(fbUser.uid),
     ...(isExplicitAdmin ? {} : getWelcomePromoFields()),

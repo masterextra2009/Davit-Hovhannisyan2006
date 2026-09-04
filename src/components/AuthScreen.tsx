@@ -393,6 +393,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     </div>
                     <input
                       id="login-email"
+                      name="email"
                       type="email"
                       required
                       autoComplete="email"
@@ -421,6 +422,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     </div>
                     <input
                       id="login-password"
+                      name="password"
                       type={showLoginPassword ? 'text' : 'password'}
                       required
                       autoComplete="current-password"
@@ -443,8 +445,11 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
 
                 <label className="flex items-center gap-2 cursor-pointer select-none -ml-1 py-2 px-1">
                   <input
+                    id="login-remember"
+                    name="remember"
                     type="checkbox"
                     defaultChecked
+                    autoComplete="off"
                     className="w-4 h-4 accent-blue-600 cursor-pointer"
                   />
                   <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-300">Запомнить меня</span>
@@ -470,6 +475,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     </div>
                     <input
                       id="signup-fullname"
+                      name="fullname"
                       type="text"
                       required
                       autoComplete="name"
@@ -489,6 +495,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     </div>
                     <input
                       id="signup-phone"
+                      name="phone"
                       type="tel"
                       required
                       autoComplete="tel"
@@ -508,6 +515,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     </div>
                     <input
                       id="signup-email"
+                      name="email"
                       type="email"
                       required
                       autoComplete="email"
@@ -527,6 +535,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     </div>
                     <input
                       id="signup-password"
+                      name="password"
                       type={showSignupPassword ? 'text' : 'password'}
                       required
                       autoComplete="new-password"
@@ -555,7 +564,9 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     </div>
                     <input
                       id="signup-referral"
+                      name="referral-code"
                       type="text"
+                      autoComplete="off"
                       value={referralCodeInput}
                       onChange={e => setReferralCodeInput(e.target.value.toUpperCase())}
                       placeholder="Например: A1B2C3"
@@ -572,7 +583,10 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     была 14px — попасть в неё с телефона почти невозможно. */}
                 <label className="flex items-start gap-2.5 px-2 py-2 -mx-1 rounded-xl cursor-pointer select-none active:bg-white/10 transition-colors">
                   <input
+                    id="signup-agree-terms"
+                    name="agree-terms"
                     type="checkbox"
+                    autoComplete="off"
                     checked={agreedToTerms}
                     onChange={e => {
                       setAgreedToTerms(e.target.checked);
@@ -610,6 +624,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     </div>
                     <input
                       id="forgot-email"
+                      name="email"
                       type="email"
                       required
                       autoComplete="email"
