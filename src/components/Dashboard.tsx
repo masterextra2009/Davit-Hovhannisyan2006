@@ -6,7 +6,6 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { User, Order, ChatMessage, Notification, PrintFile, FileFormatGroup, PaymentStatus, OrderStatus, Service } from '../types';
 import { ThemeToggle } from './ThemeToggle';
-import { LiveClock } from './LiveClock';
 import { RatingWidget } from './RatingWidget';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
@@ -4557,7 +4556,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               </span>
             )}
 
-            <LiveClock />
             <ThemeToggle />
             <UserAvatar user={user} className="w-9 h-9 rounded-xl" />
           </div>
@@ -4572,8 +4570,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             рендерим содержимое (не просто прячем), тогда переходу неоткуда
             "выезжать" — на десктопе (navWidth >= 768) содержимое нужно всегда,
             там нет экрана "Главная". */}
-        <div className={`flex-1 p-4 md:p-8 space-y-6 max-w-6xl w-full mx-auto min-h-0 ${mobileHome ? 'hidden md:flex' : 'flex'} flex-col md:overflow-hidden`}>
+        <div className={`flex-1 p-4 md:p-8 space-y-6 xl:space-y-0 max-w-6xl xl:max-w-[1440px] w-full mx-auto min-h-0 ${mobileHome ? 'hidden md:flex' : 'flex'} flex-col xl:flex-row xl:items-start xl:gap-6 md:overflow-hidden`}>
           {(!mobileHome || navWidth >= 768) && (<>
+          {/* На широких экранах (xl, ≥1280px) контент был в узкой центральной
+              колонке, а справа простаивало ~40% ширины (см. FIXES.md, Задача 10).
+              Оборачиваем существующий контент в min-w-0-колонку и добавляем
+              справа компактный сайдбар с виджетами — на md/lg он никак не
+              включается (условие только xl:), на мобильном/планшете вёрстка
+              не меняется вообще. */}
+          <div className="min-w-0 flex-1 space-y-6">
           {user.promoCode && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
@@ -4618,7 +4623,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             </motion.div>
           )}
 
-          {user.isGuest ? (
+          {/* Раньше показывался на всех вкладках и занимал треть экрана
+              (см. FIXES.md, Задача 9) — теперь только там, где реально
+              уместен: на "Загрузке и Заказе" и в "Личном кабинете". */}
+          {(activeTab === 'upload' || activeTab === 'profile') && (
+            user.isGuest ? (
             <button
               type="button"
               onClick={() => setGuestUpsellReason('referral')}
@@ -4662,6 +4671,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 </div>
               </div>
             </div>
+            )
           )}
 
           {!feedbackDismissed && (
@@ -5558,6 +5568,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   <button
                     type="submit"
                     disabled={(uploadedFiles.length === 0 && !selectedService) || !isWorkingHours() || uploadedFiles.some(f => !f.url)}
+                    title={(uploadedFiles.length === 0 && !selectedService) ? 'Кнопка станет активной после загрузки файла' : undefined}
                     className={`w-full flex items-center justify-center gap-2 py-4 px-4 rounded-2xl font-black text-sm text-white transition-all ${
                       (uploadedFiles.length > 0 || selectedService) && isWorkingHours() && !uploadedFiles.some(f => !f.url)
                         ? 'bg-indigo-600 hover:bg-indigo-700 cursor-pointer'
@@ -6411,15 +6422,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         </div>
                         <h3 className="text-base font-black text-slate-800 dark:text-white mt-1">{user.fullName}</h3>
                         <p className="text-[11px] text-slate-400 font-bold tracking-wider">{user.role === 'admin' ? 'Администратор' : 'Клиент'}</p>
-                        
-                        {/* Interactive dynamic loyalty badge */}
-                        <div className="mt-2.5 flex justify-center">
-                          <span className={getClientTierForUser(user.id, database.orders).badgeClass}>
-                            {getClientTierForUser(user.id, database.orders).tierCode === 'vip' ? <Sparkles className="w-3 h-3 text-slate-950" /> :
-                             getClientTierForUser(user.id, database.orders).tierCode === 'loyal' ? <Trophy className="w-3.5 h-3.5 text-amber-650" /> : <Star className="w-3 h-3 text-indigo-100" />}
-                            {getClientTierForUser(user.id, database.orders).name}
-                          </span>
-                        </div>
                       </div>
 
                       {/* Dynamic Loyalty Goal Meter */}
@@ -7095,6 +7097,80 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </motion.div>
           )}
           </AnimatePresence>
+          </div>
+
+          {/* Desktop-сайдбар (только xl:, ≥1280px) — последние заказы, статус
+              чата и прогресс лояльности, чтобы справа не пустовало. Гость без
+              заказов и статуса лояльности видит только карточку чата — по
+              остальным просто нечего показывать, а не баг. */}
+          <aside className="hidden xl:flex flex-col gap-4 w-[320px] shrink-0 sticky top-8">
+              {userOrders.length > 0 && (
+                <div className="glass-panel glass-rim-card rounded-2xl p-4 space-y-3">
+                  <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400">Последние заказы</h4>
+                  <div className="space-y-2">
+                    {[...userOrders]
+                      .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())
+                      .slice(0, 3)
+                      .map(ord => (
+                        <button
+                          key={ord.id}
+                          type="button"
+                          onClick={() => setActiveTab('orders')}
+                          className="w-full flex items-center justify-between gap-2 text-left px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/40 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer"
+                        >
+                          <span className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate">#{ord.id.slice(0, 7)}</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${getStatusColor(ord.status)}`}>
+                            {getStatusLabel(ord.status)}
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('chat')}
+                className="glass-panel glass-rim-card rounded-2xl p-4 flex items-center justify-between gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors cursor-pointer"
+              >
+                <div>
+                  <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">Чат с оператором</h4>
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                    {unreadChatsCount > 0 ? `${unreadChatsCount} новых сообщений` : 'Все сообщения прочитаны'}
+                  </p>
+                </div>
+                {unreadChatsCount > 0 && (
+                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[11px] font-black flex items-center justify-center shrink-0">
+                    {unreadChatsCount}
+                  </span>
+                )}
+              </button>
+
+              {!user.isGuest && (() => {
+                const paidTotal = userOrders.reduce((acc, current) => acc + (current.paymentStatus === 'paid' ? current.totalCost : 0), 0);
+                const tier = getClientTierForUser(user.id, database.orders);
+                const nextGoal = paidTotal >= 5000 ? 50000 : 5000;
+                const progress = paidTotal >= 5000 ? ((paidTotal - 5000) / 45000) * 100 : (paidTotal / 5000) * 100;
+                return (
+                  <div className="glass-panel glass-rim-card rounded-2xl p-4 space-y-2">
+                    <div className="flex justify-between items-baseline text-[11px] font-bold">
+                      <span className="text-slate-400 uppercase tracking-widest">Статус лояльности</span>
+                      <span className="text-slate-500 font-black">{tier.name}</span>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          tier.tierCode === 'vip' ? 'bg-gradient-to-r from-amber-500 to-yellow-400' :
+                          tier.tierCode === 'loyal' ? 'bg-gradient-to-r from-indigo-500 to-amber-400' : 'bg-indigo-600'
+                        }`}
+                        style={{ width: `${Math.min(100, Math.max(8, progress))}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400">{paidTotal.toLocaleString('ru-RU')} ₽ / {nextGoal.toLocaleString('ru-RU')} ₽</p>
+                  </div>
+                );
+              })()}
+            </aside>
           </>)}
 
         </div>

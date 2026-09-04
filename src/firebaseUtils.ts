@@ -201,19 +201,34 @@ export async function registerUserWithFirebase(email: string, password: string,f
 
     const referralFields = isExplicitAdmin ? {} : await resolveReferralFields(referralCodeInput);
 
+    // При апгрейде гостя (wasAnonymous) uid тот же, а значит в Firestore уже
+    // может лежать документ гостевого профиля с настоящей датой первого
+    // визита — не затирать её текущим временем регистрации.
+    const userDocRef = doc(db, 'users', fbUser.uid);
+    let originalCreatedAt: string | undefined;
+    if (wasAnonymous) {
+      try {
+        const existingDoc = await getDoc(userDocRef);
+        if (existingDoc.exists()) {
+          originalCreatedAt = (existingDoc.data() as User).createdAt;
+        }
+      } catch (e) {
+        console.warn('Failed to read existing guest profile before upgrade:', e);
+      }
+    }
+
     const newUser: User = {
       id: fbUser.uid,
       email: trimmedEmail,
       fullName: fullName.trim(),
       phone: phone.trim(),
       role: isExplicitAdmin ? 'admin' : role,
-      createdAt: new Date().toISOString(),
+      createdAt: originalCreatedAt || new Date().toISOString(),
       referralCode: generateReferralCode(fbUser.uid),
       ...(isExplicitAdmin ? {} : (Object.keys(referralFields).length ? referralFields : getWelcomePromoFields())),
     };
 
     // Write profile document in Firestore
-    const userDocRef = doc(db, 'users', fbUser.uid);
     try {
       await setDoc(userDocRef, newUser);
     } catch (e) {
