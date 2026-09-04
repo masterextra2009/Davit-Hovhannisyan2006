@@ -1421,6 +1421,22 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // То же самое для плитки "Брошюровка" — следующий загруженный файл сразу
   // помечается форматом "binding" (выбор пружины — в отдельной модалке).
   const nextUploadIsBindingRef = useRef(false);
+  // Раньше флаг "следующая порция — фото" сбрасывался сразу после первой же
+  // порции файлов: человек заходил через плитку "Печать фото", загружал одно
+  // фото (модалка верно показывала выбор размера), потом добавлял второе —
+  // а флаг уже сброшен, и второе фото попадало в общую модалку "документы"
+  // (ч/б или цветной) вместо выбора размера. Теперь флаг живёт, пока клиент
+  // не очистит список загруженных файлов целиком (отправил заказ или убрал
+  // всё сам) — тогда следующая загрузка снова начинается в обычном режиме.
+  useEffect(() => {
+    if (uploadedFiles.length === 0) {
+      nextUploadIsPhotoRef.current = false;
+      nextUploadIsA3Ref.current = false;
+      nextUploadIsPolaroidRef.current = false;
+      nextUploadIsDocsRef.current = false;
+      nextUploadIsBindingRef.current = false;
+    }
+  }, [uploadedFiles.length]);
 
   // Патчим файл там, где он сейчас лежит — в pendingUploads или уже в uploadedFiles
   const patchFileState = (fileId: string, updates: Partial<PrintFile>) => {
@@ -2782,17 +2798,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     });
     const willZip = filesList.length > 2;
     const rawFilesForZip: File[] = [];
-    // Расходуем флаги ровно один раз — на эту порцию файлов, дальше снова обычный режим.
+    // Флаги больше не сбрасываются тут сразу после первой порции файлов — они
+    // живут, пока клиент не очистит весь список загрузок (см. useEffect выше
+    // на uploadedFiles.length), иначе второй и последующий файлы в той же
+    // сессии теряли режим "фото"/"А3"/"полароид"/"документы".
     const forcePhoto = nextUploadIsPhotoRef.current;
-    nextUploadIsPhotoRef.current = false;
     const forceA3 = nextUploadIsA3Ref.current;
-    nextUploadIsA3Ref.current = false;
     const forcePolaroid = nextUploadIsPolaroidRef.current;
-    nextUploadIsPolaroidRef.current = false;
     const simplifiedDocs = nextUploadIsDocsRef.current;
-    nextUploadIsDocsRef.current = false;
     const forceBinding = nextUploadIsBindingRef.current;
-    nextUploadIsBindingRef.current = false;
     for (let i = 0; i < filesList.length; i++) {
       const file = filesList[i];
       if (file.size > MAX_FILE_SIZE) {
@@ -4463,13 +4477,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     label: 'Документы и А3',
                     color: '#3b82f6',
                     onClick: () => { nextUploadIsDocsRef.current = true; setActiveTab('upload'); setMobileHome(false); },
-                  },
-                  {
-                    key: 'binding',
-                    icon: IconBookFilled,
-                    label: 'Переплёт и ламинация',
-                    color: '#10b981',
-                    onClick: () => { nextUploadIsBindingRef.current = true; setActiveTab('upload'); setMobileHome(false); },
                   },
                   {
                     key: 'catalog',
