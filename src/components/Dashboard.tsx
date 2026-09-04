@@ -61,7 +61,7 @@ import {
 import {
   IconPhotoFilled, IconFileTextFilled, IconBookFilled, IconTagFilled,
   IconClipboardListFilled, IconMessageCircleFilled, IconBellFilled, IconSettingsFilled,
-  IconHome2Filled,
+  IconHome2Filled, IconArtboardFilled,
 } from '@tabler/icons-react';
 // Плитка-иконка статуса заказа (карточка "Заказы" — жидкое стекло, см.
 // GlassTile выше) — тот же набор Tabler, тот же принцип, что у плиток
@@ -4474,9 +4474,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                   {
                     key: 'documents',
                     icon: IconFileTextFilled,
-                    label: 'Документы и А3',
+                    label: 'Документы',
                     color: '#3b82f6',
                     onClick: () => { nextUploadIsDocsRef.current = true; setActiveTab('upload'); setMobileHome(false); },
+                  },
+                  {
+                    key: 'a3',
+                    icon: IconArtboardFilled,
+                    label: 'А3',
+                    color: '#6366f1',
+                    onClick: () => { nextUploadIsA3Ref.current = true; setActiveTab('upload'); setMobileHome(false); },
                   },
                   {
                     key: 'catalog',
