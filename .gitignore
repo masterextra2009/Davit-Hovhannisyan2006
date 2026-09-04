@@ -10,3 +10,4 @@ coverage/
 sever18-backup-*.json
 scripts/.tmp-prerender-landing-bundle.cjs
 .worktrees/
+deploy/ftp_pass.txt

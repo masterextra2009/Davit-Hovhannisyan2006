@@ -2,7 +2,7 @@
 title Obnovlenie sever-18.ru
 color 0A
 
-set FTP_USER=mastesu6_7
+set FTP_USER=mastesu6
 set FTP_HOST=mastesu6.beget.tech
 set /p FTP_PASS=<"%~dp0ftp_pass.txt"
 
