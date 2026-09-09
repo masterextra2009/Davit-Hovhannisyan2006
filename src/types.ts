@@ -113,6 +113,10 @@ export interface Order {
   userId: string;
   userName: string;
   userEmail: string;
+  // Телефон клиента на момент заказа. Пишет мобильное приложение (там он
+  // берётся из карточки клиента), чтобы в админке можно было позвонить прямо
+  // из карточки заказа. У заказов с сайта и у старых заказов поля нет.
+  userPhone?: string;
   files: PrintFile[];
   orderDate: string;
   status: OrderStatus;

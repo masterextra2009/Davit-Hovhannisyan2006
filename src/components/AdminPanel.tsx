@@ -1880,6 +1880,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               </div>
                               <div className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">
                                 Клиент: <strong>{order.userName}</strong> &bull; {order.userEmail}
+                                {/* Телефон приходит вместе с заказом из мобильного приложения
+                                    (order.userPhone). У заказов с сайта и у старых заказов его
+                                    нет — тогда строка просто не показывается. */}
+                                {order.userPhone && (
+                                  <>
+                                    {' '}&bull;{' '}
+                                    <a
+                                      href={`tel:${order.userPhone.replace(/[^\d+]/g, '')}`}
+                                      className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                      {order.userPhone}
+                                    </a>
+                                  </>
+                                )}
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-2 items-center">
@@ -4301,7 +4315,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               <span className="text-white font-black text-sm">{order.id}</span>
                               <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 text-[11px] font-black">Выдан</span>
                             </div>
-                            <p className="text-white/60 text-xs mt-0.5">{order.userName} · {order.userEmail}</p>
+                            <p className="text-white/60 text-xs mt-0.5">
+                              {order.userName} · {order.userEmail}
+                              {order.userPhone && (
+                                <>
+                                  {' · '}
+                                  <a
+                                    href={`tel:${order.userPhone.replace(/[^\d+]/g, '')}`}
+                                    className="text-blue-300 hover:underline"
+                                  >
+                                    {order.userPhone}
+                                  </a>
+                                </>
+                              )}
+                            </p>
                             <p className="text-white/40 text-xs mt-1">
                               Выдан: {completedAt.toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })} в {completedAt.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'})}
                             </p>
