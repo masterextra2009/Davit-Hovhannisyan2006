@@ -907,9 +907,52 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     reader.readAsDataURL(file);
   };
 
+  // Сканер штрих-кодов подключается как клавиатура: он «печатает» номер заказа
+  // и жмёт Enter. Отличаем его от человека по скорости — между символами у
+  // сканера единицы миллисекунд, пальцами так не набрать. Клиент показывает
+  // штрих-код в приложении (экран заказа), админ сканирует — список сам
+  // фильтруется по этому заказу.
+  useEffect(() => {
+    let buffer = '';
+    let lastKeyAt = 0;
+
+    const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      // Админ печатает в поле — не вмешиваемся: это точно не сканер.
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      const now = Date.now();
+      if (now - lastKeyAt > 120) buffer = '';
+      lastKeyAt = now;
+
+      if (e.key === 'Enter') {
+        const code = buffer.trim().toUpperCase();
+        buffer = '';
+        if (!/^ORD-\d+$/.test(code)) return;
+        e.preventDefault();
+        setActiveTab('orders');
+        setStatusFilter('all');
+        setOrderSearchQuery(code);
+        setScannedOrderId(code);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      if (e.key.length === 1) buffer += e.key;
+    };
+
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
   // Filtering orders
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'printing' | 'ready' | 'printed' | 'unpaid' | 'rejected'>('all');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  // Номер заказа, только что пойманный сканером — показывается плашкой, чтобы
+  // было видно, что сработало именно сканирование, а не случайный фильтр.
+  const [scannedOrderId, setScannedOrderId] = useState<string | null>(null);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
 
   // Derived lists
@@ -1763,6 +1806,22 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           {activeTab === 'orders' && (
             <div className="space-y-6">
               
+              {/* Плашка о сканировании: сразу видно, какой заказ поймал сканер
+                  и как вернуться ко всем заказам. */}
+              {scannedOrderId && (
+                <div className="glass-panel p-3 rounded-2xl flex items-center justify-between gap-3">
+                  <p className="text-sm text-white">
+                    Отсканирован заказ <strong>{scannedOrderId}</strong>
+                  </p>
+                  <button
+                    onClick={() => { setScannedOrderId(null); setOrderSearchQuery(''); }}
+                    className="text-xs font-bold text-white/70 hover:text-white underline"
+                  >
+                    Показать все
+                  </button>
+                </div>
+              )}
+
               {/* Order Lists Filter and bulk actions bar */}
               <div className="glass-panel p-4 rounded-2xl space-y-3">
                 <div className="search-glow-wrap">
