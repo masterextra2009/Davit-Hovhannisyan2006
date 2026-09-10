@@ -270,8 +270,13 @@ async function analyzeColorFill(imageUrl: string): Promise<number> {
 }
 
 // Map fill % → price per page for color print on plain paper
-function colorFillPrice(pct: number) { return pct <= 20 ? 25 : pct <= 60 ? 40 : 65; }
-function colorFillLabel(pct: number) { return pct <= 20 ? 'Мелкий цвет' : pct <= 60 ? '~50% заливка' : '100% заливка'; }
+// Цена цветной страницы по измеренной заливке чернилами. Средний тариф
+// 40 ₽ убран по решению Давида (10.09.2026): в мобильном приложении
+// цветных тарифа два, и за один и тот же файл сайт и приложение должны
+// называть одну цену. Страницы с заливкой 20-60% теперь идут по 65 ₽ —
+// чернил на них уходит как на плотную заливку.
+function colorFillPrice(pct: number) { return pct <= 20 ? 25 : 65; }
+function colorFillLabel(pct: number) { return pct <= 20 ? 'Немного цвета' : 'Много цвета'; }
 
 // А3-прайс (цены от 2026-07-19): "Чертёж" — Ч/Б или Цвет на офисной бумаге,
 // цена зависит от плотности (80/200 г/м²); "Фото" — фотобумага 200г,
