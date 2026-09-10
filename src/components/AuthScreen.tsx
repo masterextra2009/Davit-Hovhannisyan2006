@@ -267,43 +267,6 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Simulate Social network logins (VK/Яндекс — pending real integration)
-  const triggerSocialAuth = async (provider: 'vk' | 'yandex') => {
-    resetMessages();
-    setSocialLoading(provider);
-
-    try {
-      const providerNames = { vk: 'ВКонтакте', yandex: 'Яндекс' };
-      const emailPrefix = provider === 'vk' ? 'vk_' : 'ya_';
-      const mockEmail = `${emailPrefix}user_${Math.floor(Math.random() * 9000 + 1000)}@${provider}.ru`;
-      
-      const names = [
-        'Дмитрий Ковалев',
-        'Мария Петрова',
-        'Александр Власов',
-        'Елена Соколова',
-        'Сергей Морозов'
-      ];
-      const randomName = names[Math.floor(Math.random() * names.length)];
-      const fullName = `${randomName} (${providerNames[provider]})`;
-      const phone = '+7 (999) ' + Math.floor(100+Math.random()*900) + '-' + Math.floor(10+Math.random()*90) + '-' + Math.floor(10+Math.random()*90);
-      const mockPassword = 'Social_Demo_Pass_123!';
-
-      // Register with real Firebase auth and save to firestore profile
-      const firebaseUser = await registerUserWithFirebase(mockEmail, mockPassword, fullName, phone, 'client');
-      
-      // Mark as social
-      firebaseUser.isSocial = true;
-
-      setSocialLoading(null);
-      onAuthSuccess(firebaseUser);
-    } catch (err: any) {
-      console.error('Social mock auth failed with Firebase:', err);
-      setErrorMsg('Не удалось зарегистрировать социальный демо-профиль в Firebase Authentication. Проверьте сеть.');
-      setSocialLoading(null);
-    }
-  };
-
   return (
     <div id="auth-screen-root" className="min-h-dvh flex flex-col justify-center items-center py-14 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden select-none" style={isDark ? AUTH_BG_DARK : AUTH_BG_LIGHT}>
 
