@@ -61,6 +61,17 @@ async function pushToUser(userId, title, body) {
 
   if (isRecentlyOnline(userData)) return;
 
+  // Один и тот же клиент может пользоваться и сайтом, и мобильным
+  // приложением — это два разных канала доставки, и жив может быть любой
+  // из них. Поэтому шлём в оба, какие есть, а не "или-или".
+  await Promise.all([
+    sendWebPush(userId, userData, title, body),
+    sendExpoPush(userId, userData, title, body),
+  ]);
+}
+
+// Браузерный канал (сайт): подписка лежит в users/{uid}.pushSubscription.
+async function sendWebPush(userId, userData, title, body) {
   const subscription = userData.pushSubscription;
   if (!subscription) return;
 
@@ -73,6 +84,45 @@ async function pushToUser(userId, title, body) {
     if (err.statusCode === 404 || err.statusCode === 410) {
       await db.collection('users').doc(userId).update({ pushSubscription: FieldValue.delete() });
     }
+  }
+}
+
+// Мобильный канал (приложение sever18-app): токен лежит в
+// users/{uid}.expoPushToken, его кладёт туда сам телефон при входе.
+// Отправка — обычный POST в Expo, ключей и секретов не требует.
+async function sendExpoPush(userId, userData, title, body) {
+  const token = userData.expoPushToken;
+  if (!token) return;
+
+  try {
+    const res = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify([{ to: token, title, body, sound: 'default' }]),
+    });
+    const json = await res.json();
+
+    // Expo может отклонить сам запрос, не дойдя до доставки (испорченный
+    // токен, неверный формат) — тогда вместо data приходит errors. Без
+    // этой записи в журнале функции не осталось бы вообще ничего.
+    if (json.errors) {
+      console.error('Expo push rejected request for user', userId, JSON.stringify(json.errors));
+      return;
+    }
+
+    const ticket = Array.isArray(json.data) ? json.data[0] : json.data;
+
+    // Приложение удалили или переустановили — старый адрес больше не
+    // существует. Чистим, чтобы не долбиться в него при каждом заказе
+    // (так же, как выше чистится протухшая браузерная подписка).
+    if (ticket && ticket.status === 'error') {
+      console.error('Expo push failed for user', userId, ticket.message);
+      if (ticket.details && ticket.details.error === 'DeviceNotRegistered') {
+        await db.collection('users').doc(userId).update({ expoPushToken: FieldValue.delete() });
+      }
+    }
+  } catch (err) {
+    console.error('Expo push request failed for user', userId, err);
   }
 }
 
