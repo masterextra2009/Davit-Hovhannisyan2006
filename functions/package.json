@@ -2,7 +2,7 @@
   "name": "functions",
   "description": "Cloud Functions for sever-18 — sends web push notifications on order status changes",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "index.js",
   "dependencies": {
