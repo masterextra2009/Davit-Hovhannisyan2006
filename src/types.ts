@@ -202,12 +202,30 @@ export interface Service {
   order: number;
 }
 
+// Новость или акция мастерской. Пишется здесь, в админке, и в ту же секунду
+// видна клиентам в мобильном приложении — текст лежит в базе, а не в коде,
+// поэтому новая акция не требует пересборки приложения.
+export interface Promo {
+  id: string;
+  title: string;
+  body: string;
+  imageUrl?: string;
+  /** Снята с показа галочкой. */
+  active: boolean;
+  /** Показывать с этого дня (ГГГГ-ММ-ДД). Пусто — сразу. */
+  from?: string;
+  /** Показывать по этот день включительно. Пусто — бессрочно. */
+  to?: string;
+  createdAt: string;
+}
+
 export interface DatabaseState {
   users: User[];
   orders: Order[];
   chatMessages: ChatMessage[];
   notifications: Notification[];
   services?: Service[];
+  promos?: Promo[];
   siteVisits?: number;
   siteVisitsHistory?: { date: string; count: number }[];
   feedback?: Feedback[];

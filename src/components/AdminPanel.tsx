@@ -5,7 +5,7 @@
 
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, Service, Feedback } from '../types';
+import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, Service, Feedback, Promo } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
 import { ServicesShowcaseDemo } from './ServicesShowcaseDemo';
@@ -105,6 +105,7 @@ interface AdminPanelProps {
     chatMessages: ChatMessage[];
     notifications: AppNotification[];
     services?: Service[];
+    promos?: Promo[];
     siteVisits?: number;
     siteVisitsHistory?: { date: string; count: number }[];
     feedback?: Feedback[];
@@ -119,7 +120,7 @@ interface AdminPanelProps {
 
 export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: AdminPanelProps) {
   // Navigation
-  const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services' | 'print-app'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services' | 'promos' | 'print-app'>('orders');
   // Вкладка "Обновления" видна только внутри программы "Фото-Сервер — Печать"
   // (там window.printerAPI прокинут через preload.js) — на обычном сайте в
   // браузере этого моста нет, поэтому вкладка там просто не показывается.
@@ -683,6 +684,37 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     } catch {
       alert('Ошибка загрузки иконки');
     }
+  };
+
+  // --- Новости и акции -------------------------------------------------
+  // Пишутся прямо в Firestore, как и услуги. Мобильное приложение слушает эту
+  // же коллекцию живой подпиской, поэтому новость появляется у клиентов в ту
+  // же секунду — без обновления приложения в магазине.
+  const [promoForm, setPromoForm] = useState({ title: '', body: '', imageUrl: '', to: '' });
+
+  const handleCreatePromo = () => {
+    const title = promoForm.title.trim();
+    if (!title) return;
+    const id = `promo_${Date.now()}`;
+    setDoc(doc(db, 'promos', id), {
+      id,
+      title,
+      body: promoForm.body.trim(),
+      ...(promoForm.imageUrl.trim() ? { imageUrl: promoForm.imageUrl.trim() } : {}),
+      ...(promoForm.to ? { to: promoForm.to } : {}),
+      active: true,
+      createdAt: new Date().toISOString(),
+    }).catch(console.error);
+    setPromoForm({ title: '', body: '', imageUrl: '', to: '' });
+  };
+
+  const handleTogglePromo = (id: string, active: boolean) => {
+    setDoc(doc(db, 'promos', id), { active }, { merge: true }).catch(console.error);
+  };
+
+  const handleDeletePromo = (id: string, title: string) => {
+    if (!window.confirm(`Удалить новость «${title}»?`)) return;
+    deleteDoc(doc(db, 'promos', id)).catch(console.error);
   };
 
   const handleCreateService = () => {
@@ -1676,6 +1708,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               <Printer className="w-4.5 h-4.5 text-white" />
             </div>
             <span className="hidden sm:inline">Услуги</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('promos')}
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
+              activeTab === 'promos'
+                ? 'nav-holo-active bg-white/10 text-white font-black'
+                : 'text-white/55 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <div className={`glass-icon-capsule glass-icon-orange w-9 h-9 shrink-0 ${activeTab === 'promos' ? 'glass-icon-active' : ''}`}>
+              <Send className="w-4.5 h-4.5 text-white" />
+            </div>
+            <span className="hidden sm:inline">Новости</span>
           </button>
 
           <button
@@ -4306,6 +4352,118 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ── НОВОСТИ И АКЦИИ ── */}
+          {/* Всё, что заведено здесь, видно клиентам в мобильном приложении на
+              Главной — в ту же секунду, без обновления приложения в магазине.
+              При добавлении новости всем, у кого стоит приложение, уходит
+              уведомление (функция notifyNewPromo на сервере). */}
+          {activeTab === 'promos' && (
+            <div className="p-5 space-y-5">
+              <div>
+                <h2 className="text-lg font-black text-white">Новости и акции</h2>
+                <p className="text-sm text-white/50 mt-1">
+                  Появляются у клиентов в приложении сразу после сохранения. Всем, у кого
+                  установлено приложение, уходит уведомление.
+                </p>
+              </div>
+
+              {/* Форма новой новости */}
+              <div className="glass-panel rounded-2xl p-4 space-y-3">
+                <input
+                  type="text"
+                  value={promoForm.title}
+                  onChange={e => setPromoForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="Заголовок — например «Скидка 20% на печать фото»"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30"
+                />
+                <textarea
+                  value={promoForm.body}
+                  onChange={e => setPromoForm(f => ({ ...f, body: e.target.value }))}
+                  placeholder="Текст: что за акция, до какого числа, что нужно сделать"
+                  rows={3}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30 resize-none"
+                />
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    value={promoForm.imageUrl}
+                    onChange={e => setPromoForm(f => ({ ...f, imageUrl: e.target.value }))}
+                    placeholder="Ссылка на картинку (необязательно)"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30"
+                  />
+                  <label className="flex items-center gap-2 text-xs text-white/50 shrink-0">
+                    Показывать по
+                    <input
+                      type="date"
+                      value={promoForm.to}
+                      onChange={e => setPromoForm(f => ({ ...f, to: e.target.value }))}
+                      className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+                    />
+                  </label>
+                </div>
+                {/* Срок не обязателен, но без него акция висит, пока её не снимут
+                    руками — а снять забывают. */}
+                <p className="text-[11px] text-white/40">
+                  Дату можно не ставить — тогда новость висит, пока не выключите её сами.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCreatePromo}
+                  disabled={!promoForm.title.trim()}
+                  className="btn-holo-glass w-full py-3 rounded-xl font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ color: '#1e293b' }}
+                >
+                  Опубликовать
+                </button>
+              </div>
+
+              {/* Уже заведённые */}
+              {(database.promos || []).length === 0 ? (
+                <p className="text-sm text-white/40">Новостей пока нет.</p>
+              ) : (
+                <div className="space-y-3">
+                  {(database.promos || []).map(promo => (
+                    <div key={promo.id} className="glass-panel rounded-2xl p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-sm">{promo.title}</p>
+                          {promo.body ? (
+                            <p className="text-xs text-white/55 mt-1 whitespace-pre-wrap">{promo.body}</p>
+                          ) : null}
+                          <p className="text-[11px] text-white/35 mt-2">
+                            {new Date(promo.createdAt).toLocaleDateString('ru-RU')}
+                            {promo.to ? ` · показывать по ${new Date(promo.to).toLocaleDateString('ru-RU')}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePromo(promo.id, !promo.active)}
+                            className={`text-[10px] font-bold px-2 py-1 rounded cursor-pointer transition ${
+                              promo.active
+                                ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                                : 'bg-white/10 text-white/50 hover:bg-white/20'
+                            }`}
+                          >
+                            {promo.active ? 'ПОКАЗЫВАЕТСЯ' : 'СКРЫТА'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePromo(promo.id, promo.title)}
+                            className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 p-1.5 rounded cursor-pointer transition"
+                            title="Удалить новость"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

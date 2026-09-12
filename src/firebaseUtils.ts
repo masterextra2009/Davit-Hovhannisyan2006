@@ -33,7 +33,7 @@ import {
   runTransaction
 } from './firebase';
 import type { User as FirebaseAuthUser } from 'firebase/auth';
-import { User, Order, ChatMessage, Notification, Service, Feedback, DatabaseState } from './types';
+import { User, Order, ChatMessage, Notification, Service, Feedback, Promo, DatabaseState } from './types';
 
 // Автоматический приветственный промокод для тех, кто регистрируется в
 // период акции 22.07.2026–02.08.2026 (обе даты включительно). После конца
@@ -865,6 +865,15 @@ export function subscribeToFirebaseCollections(
     onSync({ services: services.sort((a, b) => a.order - b.order) });
   }, 'services');
   unsubscribes.push(unsubServices);
+
+  // 5b. Новости и акции — их читают и клиенты в приложении, и админка.
+  // Правит только админ (см. firestore.rules).
+  const unsubPromos = resilientOnSnapshot(collection(db, 'promos'), (snap: any) => {
+    const promos: Promo[] = [];
+    snap.forEach((doc: any) => promos.push({ id: doc.id, ...(doc.data() as any) } as Promo));
+    onSync({ promos: promos.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')) });
+  }, 'promos');
+  unsubscribes.push(unsubPromos);
 
   // 6. Listen to client Feedback (admin only — clients can create but not read)
   if (isAdminUser) {

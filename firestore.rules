@@ -81,6 +81,14 @@ service cloud.firestore {
     // мог задним числом вырасти (например, из-за гонки между асинхронной
     // распаковкой zip-архива и моментом оплаты), а paymentStatus='paid' с
     // предыдущей, меньшей суммы так и оставался висеть на новой, большей.
+    // Новости и акции: читает любой вошедший (их показывает мобильное
+    // приложение на Главной), пишет только админ. Клиент не должен иметь
+    // возможности завести себе акцию.
+    match /promos/{promoId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
     match /orders/{orderId} {
       allow create: if isSignedIn() && (
         isAdmin() ||

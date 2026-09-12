@@ -158,3 +158,80 @@ exports.notifyNewChatMessage = onDocumentCreated(
     }
   }
 );
+
+// Новая новость или акция — уведомляем всех клиентов, у кого стоит
+// приложение.
+//
+// Почему на сервере, а не из админки: браузер Давида не должен рассылать
+// сотни уведомлений — вкладку закроют на середине, и половина клиентов
+// ничего не получит. Здесь рассылка идёт, как только запись реально попала
+// в базу.
+//
+// Шлём только тем, у кого есть адрес доставки (expoPushToken), то есть
+// только владельцам приложения. Админам не шлём — они это и завели.
+// Скрытую новость (active: false) не рассылаем: её завели «на потом».
+exports.notifyNewPromo = onDocumentCreated(
+  { document: 'promos/{promoId}', database: FIRESTORE_DATABASE_ID, secrets: [vapidPrivateKey] },
+  async (event) => {
+    const promo = event.data && event.data.data();
+    if (!promo || promo.active === false) return;
+
+    const title = promo.title || 'Новость Фото-Север';
+    const body = (promo.body || '').slice(0, 140) || 'Загляните в приложение';
+
+    const usersSnap = await db.collection('users').get();
+
+    // Отправляем пачками: Expo принимает до 100 адресов за раз, а по одному
+    // на каждого клиента это сотни запросов подряд.
+    const targets = usersSnap.docs.filter(
+      (d) => d.data().expoPushToken && d.data().role !== 'admin'
+    );
+    if (targets.length === 0) return;
+
+    for (let i = 0; i < targets.length; i += 100) {
+      const batch = targets.slice(i, i + 100);
+      try {
+        const res = await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(
+            batch.map((d) => ({
+              to: d.data().expoPushToken,
+              title,
+              body,
+              sound: 'default',
+              data: { type: 'promo', promoId: event.params.promoId },
+            }))
+          ),
+        });
+        const json = await res.json();
+        if (json.errors) {
+          console.error('Expo push rejected promo batch', JSON.stringify(json.errors));
+          continue;
+        }
+
+        // Протухшие адреса чистим — иначе будем долбиться в них при каждой
+        // новости. Это те же правила, что и в sendExpoPush выше.
+        const tickets = Array.isArray(json.data) ? json.data : [];
+        await Promise.all(
+          tickets.map(async (ticket, k) => {
+            if (
+              ticket &&
+              ticket.status === 'error' &&
+              ticket.details &&
+              ticket.details.error === 'DeviceNotRegistered'
+            ) {
+              await db.collection('users').doc(batch[k].id).update({
+                expoPushToken: FieldValue.delete(),
+              });
+            }
+          })
+        );
+      } catch (err) {
+        console.error('Expo push request failed for promo batch', err);
+      }
+    }
+
+    console.log('Promo push sent to', targets.length, 'clients:', title);
+  }
+);
