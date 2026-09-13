@@ -78,6 +78,21 @@ ErrorDocument 404 /404.html
   Header always set Permissions-Policy "camera=(self), microphone=(), geolocation=()"
 </IfModule>
 
+# Тип файла для .mjs — ОБЯЗАТЕЛЬНО вместе с nosniff выше.
+#
+# Beget отдаёт .mjs как text/plain (проверено: Content-Type: text/plain на
+# /assets/pdf.worker.min-*.mjs). Пока заголовка nosniff не было, браузер
+# догадывался о типе сам и всё равно выполнял файл как скрипт. Заголовок
+# ровно это и запрещает — и обработчик PDF (pdfjs-dist/build/pdf.worker.min.mjs,
+# подключается в Dashboard.tsx при разборе PDF) перестал запускаться:
+# клиент, загружающий документ, получал ошибку.
+#
+# Это регрессия от добавления nosniff, а не отдельная проблема: правильный
+# ответ — не убирать защиту, а назвать серверу настоящий тип файла.
+<IfModule mod_mime.c>
+  AddType text/javascript .mjs
+</IfModule>
+
 # Карты исходников (.map) больше не попадают в сборку (см.
 # scripts/strip-sourcemaps.mjs), но на сервере могли остаться файлы от
 # прошлых выкладок — выкладка по SFTP старое не удаляет. Это запасной
