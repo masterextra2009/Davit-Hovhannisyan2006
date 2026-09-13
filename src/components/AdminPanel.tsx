@@ -1984,7 +1984,16 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 <span className="text-[11px] text-slate-400">{formatDateTime(order.orderDate)}</span>
                               </div>
                               <div className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">
-                                Клиент: <strong>{order.userName}</strong> &bull; {order.userEmail}
+                                Клиент: <strong>{order.userName}</strong>
+                                {/* Точку-разделитель рисуем только когда почта есть:
+                                    у гостя её не спрашивают, и «имя •» с висящей
+                                    точкой в конце читалось как обрезанная строка. */}
+                                {order.userEmail ? <> &bull; {order.userEmail}</> : null}
+                                {order.isGuestOrder && (
+                                  <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider align-middle">
+                                    Гость
+                                  </span>
+                                )}
                                 {/* Телефон приходит вместе с заказом из мобильного приложения
                                     (order.userPhone). У заказов с сайта и у старых заказов его
                                     нет — тогда строка просто не показывается. */}
