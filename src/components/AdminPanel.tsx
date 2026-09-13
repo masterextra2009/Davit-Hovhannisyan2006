@@ -823,7 +823,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
   const handleCreatePromo = () => {
     const title = promoForm.title.trim();
-    if (!title) return;
+    // Достаточно чего-то одного: подписи ИЛИ файла. Новость из одной афиши —
+    // обычное дело, требовать к ней ещё и заголовок незачем.
+    if (!title && !promoForm.imageUrl) return;
     const id = `promo_${Date.now()}`;
     setDoc(doc(db, 'promos', id), {
       id,
@@ -4674,7 +4676,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <button
                   type="button"
                   onClick={handleCreatePromo}
-                  disabled={!promoForm.title.trim()}
+                  disabled={!promoForm.title.trim() && !promoForm.imageUrl}
                   className="btn-holo-glass w-full py-3 rounded-xl font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ color: '#1e293b' }}
                 >
@@ -4704,7 +4706,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           />
                         )}
                         <div className="min-w-0 flex-1">
-                          <p className="font-bold text-white text-sm">{promo.title}</p>
+                          <p className="font-bold text-white text-sm">
+                            {promo.title || (
+                              /* Без этого строка списка выглядела бы пустой, и
+                                 новость-картинку нельзя было бы отличить от сбоя. */
+                              <span className="text-white/40 font-medium italic">Без подписи — только {promo.mediaType === 'video' ? 'видео' : 'фото'}</span>
+                            )}
+                          </p>
                           {promo.body ? (
                             <p className="text-xs text-white/55 mt-1 whitespace-pre-wrap">{promo.body}</p>
                           ) : null}
