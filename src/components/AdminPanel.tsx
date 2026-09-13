@@ -1653,7 +1653,39 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const totalFormatCounts = Object.values(fileFormatGroupsStats).reduce((a, b) => a + b, 0);
 
   // Active Chats listing
-  const chatSessions = clientsOnly.map(c => {
+  //
+  // Собеседники — это НЕ только те, у кого роль «клиент».
+  // Раньше список строился из clientsOnly, и переписка была видна лишь у
+  // пользователей с role === 'client'. Сообщение от кого угодно другого
+  // (например, от самого администратора, пишущего из мобильного приложения)
+  // ложилось в базу, поднимало уведомление — и не показывалось в панели
+  // вообще. Выглядело как «чат сломан»: оповещение есть, сообщения нет.
+  //
+  // Теперь берём объединение: все клиенты плюс любой, от кого есть хоть одно
+  // сообщение. Молчаливые клиенты остаются в списке (с ними можно начать
+  // разговор первым), а написавший не пропадает, какая бы у него ни была роль.
+  const chatWriterIds = new Set(database.chatMessages.map(m => m.userId));
+  const extraChatUsers = database.users.filter(
+    u => u.role !== 'client' && chatWriterIds.has(u.id)
+  );
+  // Сообщение от того, чьей карточки в базе нет вовсе (удалённый аккаунт,
+  // сбой при регистрации), тоже не должно исчезать: без заглушки оно осталось
+  // бы невидимым, а человек ждал бы ответа.
+  const knownUserIds = new Set(database.users.map(u => u.id));
+  const orphanChatUsers = [...chatWriterIds]
+    .filter(id => id && !knownUserIds.has(id))
+    .map(id => ({
+      id,
+      fullName: 'Без профиля',
+      email: '',
+      phone: '',
+      role: 'client',
+      createdAt: new Date().toISOString(),
+    } as User));
+
+  const chatParticipants = [...clientsOnly, ...extraChatUsers, ...orphanChatUsers];
+
+  const chatSessions = chatParticipants.map(c => {
     const userMsgs = database.chatMessages.filter(m => m.userId === c.id);
     const lastMsg = userMsgs.length > 0 ? userMsgs[userMsgs.length - 1] : null;
     const unreadCount = userMsgs.filter(m => m.senderRole === 'client' && !m.readByAdmin).length;
@@ -2455,7 +2487,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           {activeTab === 'chat' && (
             <div className={`grok-chat-app ${activeChatUserId ? 'chat-open' : ''} ${showClientInfoPanel && activeChatClient ? 'profile-open' : ''}`}>
               <aside className="grok-sidebar grok-glass">
-                <div className="grok-sidebar-header">Чаты ({clientsOnly.length})</div>
+                <div className="grok-sidebar-header">Чаты ({chatSessions.length})</div>
                 <div className="px-3 pb-2">
                   <input
                     type="text"
