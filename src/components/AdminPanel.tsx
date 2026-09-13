@@ -4714,16 +4714,32 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
+                          {/* Раньше это была одна кнопка с надписью «ПОКАЗЫВАЕТСЯ» /
+                              «СКРЫТА» — то есть на кнопке было написано текущее
+                              состояние, а не то, что произойдёт при нажатии.
+                              Читалось наоборот: «СКРЫТА» выглядело как команда
+                              «скрыть», и было непонятно, видит клиент новость или
+                              нет. Теперь состояние и действие разделены: слева
+                              неподвижная отметка состояния, справа кнопка с
+                              глаголом — что будет, если нажать. */}
+                          <span
+                            className={`text-[10px] font-bold px-2 py-1 rounded ${
+                              promo.active
+                                ? 'bg-emerald-500/20 text-emerald-300'
+                                : 'bg-white/10 text-white/40'
+                            }`}
+                          >
+                            {promo.active ? '● ВИДНА КЛИЕНТАМ' : '○ НЕ ВИДНА'}
+                          </span>
                           <button
                             type="button"
                             onClick={() => handleTogglePromo(promo.id, !promo.active)}
-                            className={`text-[10px] font-bold px-2 py-1 rounded cursor-pointer transition ${
-                              promo.active
-                                ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
-                                : 'bg-white/10 text-white/50 hover:bg-white/20'
-                            }`}
+                            title={promo.active
+                              ? 'Убрать новость из приложения'
+                              : 'Показать новость клиентам'}
+                            className="text-[10px] font-bold px-2 py-1 rounded cursor-pointer transition bg-white/10 hover:bg-white/25 text-white/80"
                           >
-                            {promo.active ? 'ПОКАЗЫВАЕТСЯ' : 'СКРЫТА'}
+                            {promo.active ? 'Скрыть' : 'Показать'}
                           </button>
                           <button
                             type="button"
