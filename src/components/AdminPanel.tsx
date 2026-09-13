@@ -690,7 +690,112 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   // Пишутся прямо в Firestore, как и услуги. Мобильное приложение слушает эту
   // же коллекцию живой подпиской, поэтому новость появляется у клиентов в ту
   // же секунду — без обновления приложения в магазине.
-  const [promoForm, setPromoForm] = useState({ title: '', body: '', imageUrl: '', to: '' });
+  const [promoForm, setPromoForm] = useState<{
+    title: string; body: string; imageUrl: string; to: string;
+    mediaType: 'image' | 'video' | ''; mediaWidth: number; mediaHeight: number;
+  }>({ title: '', body: '', imageUrl: '', to: '', mediaType: '', mediaWidth: 0, mediaHeight: 0 });
+  const [promoUploading, setPromoUploading] = useState(false);
+  const [promoUploadError, setPromoUploadError] = useState('');
+
+  // Длинная сторона фото после уменьшения. 1600 с запасом покрывает экран
+  // любого телефона, но весит сотни килобайт вместо нескольких мегабайт —
+  // ленту новостей листают по мобильному интернету.
+  const MAX_PROMO_PHOTO_SIDE = 1600;
+  // Видео не пережимаем (в браузере это долго и тянет лишние библиотеки),
+  // поэтому просто не пускаем тяжёлые: сервер берёт до 50 МБ, но клиент с
+  // таким роликом в ленте будет ждать полминуты.
+  const MAX_PROMO_VIDEO_BYTES = 25 * 1024 * 1024;
+
+  const readImageFile = (file: File) => new Promise<HTMLImageElement>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Не удалось открыть это изображение')); };
+    img.src = url;
+  });
+
+  const readVideoSize = (file: File) => new Promise<{ w: number; h: number }>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve({ w: v.videoWidth, h: v.videoHeight }); };
+    v.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Не удалось открыть это видео')); };
+    v.src = url;
+  });
+
+  /**
+   * Кладёт фото или видео новости на сервер и запоминает его настоящие размеры.
+   *
+   * Идём через api/upload.php, а не через service-upload.php (которым грузятся
+   * картинки услуг): тот принимает только JPG/PNG/WEBP и не больше 5 МБ — ни
+   * видео, ни снимок с современного телефона в него не проходят. upload.php —
+   * тот же обработчик, через который клиенты шлют файлы заказа: берёт всё,
+   * кроме исполняемых файлов, до 50 МБ, и отдаёт прямую ссылку. Менять
+   * что-либо на сервере ради новостей не понадобилось.
+   */
+  const handlePromoMediaUpload = async (file: File) => {
+    const isVideo = file.type.startsWith('video/');
+    const isImage = file.type.startsWith('image/');
+    if (!isVideo && !isImage) {
+      setPromoUploadError('Нужен файл с фотографией или видео');
+      return;
+    }
+    setPromoUploadError('');
+    setPromoUploading(true);
+    try {
+      let toSend: File = file;
+      let width = 0;
+      let height = 0;
+
+      if (isImage) {
+        const img = await readImageFile(file);
+        // Уменьшаем только если снимок крупнее нужного: растягивать маленькое
+        // фото до 1600 бессмысленно — станет мыльным и при этом тяжелее.
+        const scale = Math.min(1, MAX_PROMO_PHOTO_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+        width = Math.round(img.naturalWidth * scale);
+        height = Math.round(img.naturalHeight * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Браузер не дал обработать изображение');
+        ctx.drawImage(img, 0, 0, width, height);
+        const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', 0.85));
+        if (!blob) throw new Error('Не удалось подготовить фото');
+        toSend = new File([blob], file.name.replace(/[.][^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+      } else {
+        if (file.size > MAX_PROMO_VIDEO_BYTES) {
+          throw new Error('Видео весит ' + Math.round(file.size / 1024 / 1024) + ' МБ — это много для ленты. Возьмите ролик покороче, до 25 МБ');
+        }
+        const size = await readVideoSize(file);
+        width = size.w;
+        height = size.h;
+      }
+
+      const formData = new FormData();
+      formData.append('file', toSend);
+      formData.append('userId', adminUser.id);
+      const res = await fetch('https://sever-18.ru/api/upload.php', { method: 'POST', body: formData });
+      // upload.php объясняет отказ по-русски в теле ответа — читаем его,
+      // а не показываем голый номер ошибки.
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error || ('сервер ответил кодом ' + res.status));
+      }
+
+      setPromoForm(f => ({
+        ...f,
+        imageUrl: data.url,
+        mediaType: isVideo ? 'video' : 'image',
+        mediaWidth: width,
+        mediaHeight: height,
+      }));
+    } catch (e: any) {
+      setPromoUploadError(e?.message || 'Не удалось загрузить файл');
+    } finally {
+      setPromoUploading(false);
+    }
+  };
 
   const handleCreatePromo = () => {
     const title = promoForm.title.trim();
@@ -701,11 +806,18 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       title,
       body: promoForm.body.trim(),
       ...(promoForm.imageUrl.trim() ? { imageUrl: promoForm.imageUrl.trim() } : {}),
+      ...(promoForm.mediaType ? { mediaType: promoForm.mediaType } : {}),
+      // Размеры пишем только парой: по одному числу пропорцию не восстановить,
+      // и приложение тогда молча вернётся к жёсткой полосе с обрезкой.
+      ...(promoForm.mediaWidth && promoForm.mediaHeight
+        ? { mediaWidth: promoForm.mediaWidth, mediaHeight: promoForm.mediaHeight }
+        : {}),
       ...(promoForm.to ? { to: promoForm.to } : {}),
       active: true,
       createdAt: new Date().toISOString(),
     }).catch(console.error);
-    setPromoForm({ title: '', body: '', imageUrl: '', to: '' });
+    setPromoForm({ title: '', body: '', imageUrl: '', to: '', mediaType: '', mediaWidth: 0, mediaHeight: 0 });
+    setPromoUploadError('');
   };
 
   const handleTogglePromo = (id: string, active: boolean) => {
@@ -4395,15 +4507,77 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   rows={3}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30 resize-none"
                 />
+                {/* Фото или видео выбирается файлом. Раньше тут было поле для
+                    ссылки — то есть картинку полагалось сначала где-то выложить
+                    самому, чего в копи-центре никто делать не станет.
+
+                    Превью показываем в НАСТОЯЩИХ пропорциях файла (aspectRatio из
+                    замеренных размеров) — ровно так же, как их покажет телефон.
+                    Смысл именно в этом: что видно здесь, то увидит и клиент. */}
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    type="text"
-                    value={promoForm.imageUrl}
-                    onChange={e => setPromoForm(f => ({ ...f, imageUrl: e.target.value }))}
-                    placeholder="Ссылка на картинку (необязательно)"
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30"
-                  />
-                  <label className="flex items-center gap-2 text-xs text-white/50 shrink-0">
+                  <div className="flex-1 flex flex-col gap-2">
+                    {promoForm.imageUrl ? (
+                      <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black/30">
+                        {promoForm.mediaType === 'video' ? (
+                          <video
+                            src={promoForm.imageUrl}
+                            controls
+                            playsInline
+                            className="w-full block"
+                            style={promoForm.mediaWidth && promoForm.mediaHeight
+                              ? { aspectRatio: `${promoForm.mediaWidth} / ${promoForm.mediaHeight}` }
+                              : undefined}
+                          />
+                        ) : (
+                          <img
+                            src={promoForm.imageUrl}
+                            alt="Как новость увидит клиент"
+                            className="w-full block"
+                            style={promoForm.mediaWidth && promoForm.mediaHeight
+                              ? { aspectRatio: `${promoForm.mediaWidth} / ${promoForm.mediaHeight}` }
+                              : undefined}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setPromoForm(f => ({ ...f, imageUrl: '', mediaType: '', mediaWidth: 0, mediaHeight: 0 }))}
+                          className="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-black/70 hover:bg-black/90 text-white text-[11px] font-bold cursor-pointer"
+                        >
+                          Убрать
+                        </button>
+                        {promoForm.mediaWidth > 0 && (
+                          <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/70 text-white/80 text-[10px] font-mono">
+                            {promoForm.mediaWidth}×{promoForm.mediaHeight}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <label className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border border-dashed text-sm font-bold transition-colors ${
+                        promoUploading
+                          ? 'border-white/10 text-white/30 cursor-wait'
+                          : 'border-white/20 text-white/70 hover:border-white/40 hover:text-white cursor-pointer'
+                      }`}>
+                        {promoUploading ? 'Загружаем…' : '📎 Выбрать фото или видео'}
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          disabled={promoUploading}
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            // Сбрасываем значение, иначе повторный выбор того же
+                            // файла после ошибки не вызовет onChange.
+                            e.target.value = '';
+                            if (file) handlePromoMediaUpload(file);
+                          }}
+                        />
+                      </label>
+                    )}
+                    {promoUploadError && (
+                      <p className="text-[11.5px] text-rose-300">{promoUploadError}</p>
+                    )}
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-white/50 shrink-0 self-start">
                     Показывать по
                     <input
                       type="date"
