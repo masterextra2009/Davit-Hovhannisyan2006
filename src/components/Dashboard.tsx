@@ -5362,6 +5362,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           value={guestPhone}
                           onChange={e => setGuestPhone(e.target.value)}
                           placeholder="+7 (999) 999-99-99"
+                          /* телефон для заказа — браузер подставит сохранённый */
+                          autoComplete="tel"
                           className="w-full px-3.5 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white text-xs placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/30"
                         />
                       </div>
@@ -6640,6 +6642,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             value={guestRegEmail}
                             onChange={e => setGuestRegEmail(e.target.value)}
                             placeholder="Электронная почта"
+                          autoComplete="email"
                             className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                           />
                           <input
@@ -6649,6 +6652,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             value={guestRegPassword}
                             onChange={e => setGuestRegPassword(e.target.value)}
                             placeholder="Пароль (минимум 6 символов)"
+                          /* новый пароль, а не вход: подсказка current-password заставила бы менеджер паролей предлагать старый */
+                          autoComplete="new-password"
                             className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                           />
                           {guestRegError && <p className="text-[11px] text-rose-500 font-bold">{guestRegError}</p>}
