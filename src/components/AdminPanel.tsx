@@ -24,6 +24,7 @@ import {
 } from '../utils';
 import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase } from '../firebaseUtils';
 import { db, doc, setDoc, deleteDoc, getDoc } from '../firebase';
+import { PromoCardPreview } from './PromoCardPreview';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import JSZip from 'jszip';
@@ -4517,39 +4518,27 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex-1 flex flex-col gap-2">
                     {promoForm.imageUrl ? (
-                      <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black/30">
-                        {promoForm.mediaType === 'video' ? (
-                          <video
-                            src={promoForm.imageUrl}
-                            controls
-                            playsInline
-                            className="w-full block"
-                            style={promoForm.mediaWidth && promoForm.mediaHeight
-                              ? { aspectRatio: `${promoForm.mediaWidth} / ${promoForm.mediaHeight}` }
-                              : undefined}
-                          />
-                        ) : (
-                          <img
-                            src={promoForm.imageUrl}
-                            alt="Как новость увидит клиент"
-                            className="w-full block"
-                            style={promoForm.mediaWidth && promoForm.mediaHeight
-                              ? { aspectRatio: `${promoForm.mediaWidth} / ${promoForm.mediaHeight}` }
-                              : undefined}
-                          />
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setPromoForm(f => ({ ...f, imageUrl: '', mediaType: '', mediaWidth: 0, mediaHeight: 0 }))}
-                          className="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-black/70 hover:bg-black/90 text-white text-[11px] font-bold cursor-pointer"
-                        >
-                          Убрать
-                        </button>
+                      /* Сам файл показывается ниже, в карточке «Как увидит клиент» —
+                         здесь только служебная строка. Рисовать картинку дважды
+                         незачем, а главное — важно видеть её именно в карточке,
+                         вместе с текстом, а не отдельной плашкой. */
+                      <div className="flex items-center gap-2 flex-wrap px-3 py-2.5 rounded-xl border border-white/10 bg-white/5">
+                        <span className="text-sm text-white/70">
+                          {promoForm.mediaType === 'video' ? '🎬 Видео' : '🖼 Фото'}
+                        </span>
                         {promoForm.mediaWidth > 0 && (
-                          <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/70 text-white/80 text-[10px] font-mono">
+                          <span className="text-[11px] font-mono text-white/35">
                             {promoForm.mediaWidth}×{promoForm.mediaHeight}
                           </span>
                         )}
+                        <span className="flex-1" />
+                        <button
+                          type="button"
+                          onClick={() => setPromoForm(f => ({ ...f, imageUrl: '', mediaType: '', mediaWidth: 0, mediaHeight: 0 }))}
+                          className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold cursor-pointer"
+                        >
+                          Убрать
+                        </button>
                       </div>
                     ) : (
                       <label className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border border-dashed text-sm font-bold transition-colors ${
@@ -4592,6 +4581,30 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <p className="text-[11px] text-white/40">
                   Дату можно не ставить — тогда новость висит, пока не выключите её сами.
                 </p>
+
+                {/* Как новость увидит клиент.
+                    Новости показывает только мобильное приложение — на сайте их
+                    нет ни на одной странице. Без этого блока выложенную новость
+                    нельзя было увидеть вообще нигде: оставалось ставить наугад.
+                    Карточка повторяет вёрстку приложения, включая правило для
+                    слишком вертикальных снимков. */}
+                {(promoForm.title.trim() || promoForm.imageUrl) && (
+                  <div className="flex flex-col gap-2 pt-1">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-white/35">
+                      Как увидит клиент
+                    </span>
+                    <PromoCardPreview
+                      promo={{
+                        title: promoForm.title,
+                        body: promoForm.body,
+                        imageUrl: promoForm.imageUrl || undefined,
+                        mediaType: promoForm.mediaType || undefined,
+                        mediaWidth: promoForm.mediaWidth,
+                        mediaHeight: promoForm.mediaHeight,
+                      }}
+                    />
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={handleCreatePromo}
@@ -4611,7 +4624,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   {(database.promos || []).map(promo => (
                     <div key={promo.id} className="glass-panel rounded-2xl p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
+                        {/* Миниатюра той же карточки — чтобы проверить уже
+                            выложенную новость, не открывая телефон. */}
+                        {promo.imageUrl && (
+                          <PromoCardPreview
+                            promo={{
+                              imageUrl: promo.imageUrl,
+                              mediaType: promo.mediaType,
+                              mediaWidth: promo.mediaWidth,
+                              mediaHeight: promo.mediaHeight,
+                            }}
+                            width={104}
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
                           <p className="font-bold text-white text-sm">{promo.title}</p>
                           {promo.body ? (
                             <p className="text-xs text-white/55 mt-1 whitespace-pre-wrap">{promo.body}</p>
