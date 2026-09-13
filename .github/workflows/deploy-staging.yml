@@ -21,7 +21,13 @@ jobs:
           npm ci
           npm install @tailwindcss/oxide-linux-x64-gnu --no-save
       - name: Build
+        # Относительные пути к файлам — копия лежит в подпапке /proverka/,
+        # где абсолютный '/assets/...' указывает в корень сайта и промахивается
+        # мимо собственных файлов копии. Боевая сборка эту переменную не
+        # видит и собирается с абсолютными путями, как и раньше.
         run: npm run build
+        env:
+          BUILD_BASE: './'
       - name: Prepend the password block to the real production .htaccess
         # Склеиваем, а не подменяем: раньше deploy/staging.htaccess был ручной
         # копией боевого public/.htaccess, и при первой же правке боевого файла
