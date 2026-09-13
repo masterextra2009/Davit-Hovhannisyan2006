@@ -3287,6 +3287,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       userId: getLiveUserId(),
       userName: user.isGuest ? guestFullName.trim() : user.fullName,
       userEmail: user.email,
+      // wasGuestAtOrder захвачен в начале handlePlaceOrder — ДО того, как этот
+      // же вызов поставит пользователю isGuest: false. Пишем только когда true:
+      // у обычных заказов поля просто не будет, старые заказы не трогаем.
+      ...(wasGuestAtOrder ? { isGuestOrder: true } : {}),
       files: uploadedFiles,
       orderDate: new Date().toISOString(),
       status: 'pending',
