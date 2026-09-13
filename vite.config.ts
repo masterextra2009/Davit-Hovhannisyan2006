@@ -28,7 +28,7 @@ export default defineConfig(() => {
       // sourcemaps/, чтобы они не уезжали на сервер: при sourcemap: true файл
       // index-*.js.map лежал на sever-18.ru в открытом доступе (4 МБ), и по нему
       // любой желающий восстанавливал исходный код сайта целиком.
-      sourcemap: 'hidden',
+      sourcemap: 'hidden' as const,
     },
     // esbuild по умолчанию оставляет /** @license */-блоки из зависимостей
     // прямо в минифицированном коде (React и др. дублируют один и тот же

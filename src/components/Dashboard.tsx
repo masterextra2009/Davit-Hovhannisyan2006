@@ -2730,6 +2730,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   const uploadFileToFirebaseStorage = async (file: File, fileId: string) => {
     try {
+      // Без идентификатора сервер всё равно откажет ("Не указан идентификатор
+      // пользователя", код 400), но клиент увидел бы только голый номер ошибки
+      // и не понял бы, что делать. Пустой id тут — не мелочь: он означает, что
+      // анонимный вход не состоялся (так бывает на iPhone/Safari, где Firebase
+      // не может открыть своё служебное хранилище), и лечится входом в аккаунт.
+      if (!user.id) {
+        throw new Error('не удалось определить ваш аккаунт — войдите в кабинет заново и повторите загрузку');
+      }
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('userId', user.id);
@@ -2744,7 +2753,20 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       );
 
       if (!response.ok) {
-        throw new Error('Сервер вернул ошибку: ' + response.status);
+        // Сервер объясняет отказ по-русски в теле ответа ({success:false,
+        // error:"..."} — см. api/upload.php): "Файл загружен частично",
+        // "Файл превышает upload_max_filesize", "Не указан идентификатор
+        // пользователя" и т.д. Раньше мы выбрасывали это объяснение не читая и
+        // показывали клиенту голое "Сервер вернул ошибку: 400" — по такому
+        // сообщению нельзя ни понять причину, ни подсказать, что делать.
+        let serverMessage = '';
+        try {
+          const errData = await response.json();
+          serverMessage = typeof errData?.error === 'string' ? errData.error : '';
+        } catch {
+          // Тело не JSON (например, страница ошибки сервера) — тогда остаётся код.
+        }
+        throw new Error(serverMessage || ('сервер ответил кодом ' + response.status));
       }
 
       const data = await response.json();
