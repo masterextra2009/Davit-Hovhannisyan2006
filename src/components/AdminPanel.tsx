@@ -1135,9 +1135,25 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   // Список клиентов теперь открывается по умолчанию (без автовыбора первого чата) —
   // это нужно для режима "как в Telegram": назад = список, а не мгновенный переход в чат.
 
-  // Read message handler - mark client chats as read by admin
+  // Пометка «прочитано» ставится, только когда переписка ДЕЙСТВИТЕЛЬНО открыта
+  // на экране: выбран собеседник, найдена его карточка и включена вкладка чата.
+  //
+  // Раньше хватало одного activeChatUserId. Из-за этого сообщения пометились
+  // прочитанными в тот момент, когда панель диалога вообще ничего не показала
+  // (собеседник не находился — см. activeChatClient ниже): значок непрочитанных
+  // погас, а сообщение так и осталось непрочитанным человеком. Хуже
+  // обыкновенной пропажи: система уверена, что всё в порядке.
   useEffect(() => {
-    if (activeChatUserId) {
+    // Собеседник ищется тут же, а не берётся из activeChatClient: тот
+    // объявлен ниже по файлу, а условие нужно именно здесь. Проверка та же —
+    // человек есть среди участников переписки.
+    const chatIsOpen =
+      activeTab === 'chat' &&
+      !!activeChatUserId &&
+      (database.users.some(u => u.id === activeChatUserId) ||
+        database.chatMessages.some(m => m.userId === activeChatUserId));
+
+    if (chatIsOpen) {
       const unreadFromActive = database.chatMessages.filter(
         c => c.userId === activeChatUserId && c.senderRole === 'client' && !c.readByAdmin
       );
@@ -1151,7 +1167,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         onUpdateDatabase({ chatMessages: updatedChats });
       }
     }
-  }, [activeChatUserId, database.chatMessages.length]);
+  }, [activeChatUserId, activeTab, database.users.length, database.chatMessages.length]);
 
   // Scroll chat operator window — instant (not smooth) so it opens already at
   // the latest message instead of visibly scrolling down to find it. A delayed
