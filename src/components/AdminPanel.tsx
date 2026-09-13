@@ -1620,13 +1620,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     m => m.senderRole === 'client' && getLocalDateKey(new Date(m.timestamp)) === getLocalDateKey()
   );
   const todayUniqueChatClients = new Set(todayClientMessages.map(m => m.userId)).size;
-  // Считаем непрочитанные только у реально существующих клиентов — иначе
-  // сообщение от когда-то удалённого/переименованного пользователя (userId,
-  // которого больше нет в clientsOnly) продолжает светить бейджиком "1" на
-  // вкладке "Чат-Приемная" навсегда, хотя открыть и прочитать его негде —
-  // такого клиента физически нет в списке чатов.
-  const clientIdSet = new Set(clientsOnly.map(c => c.id));
-  const unreadChatCount = database.chatMessages.filter(m => m.senderRole === 'client' && !m.readByAdmin && clientIdSet.has(m.userId)).length;
+  // Непрочитанные считаем по ВСЕМ сообщениям.
+  //
+  // Раньше здесь стоял фильтр по списку клиентов, и поставлен он был не зря:
+  // сообщение от удалённого пользователя светило бы бейджиком «1» вечно, ведь
+  // открыть и прочитать его было негде — такого человека не было в списке
+  // чатов. Фильтр лечил не причину, а симптом: сообщение оставалось
+  // недоступным, просто переставало о себе напоминать.
+  //
+  // Теперь причина устранена — в список чатов попадает любой, от кого есть
+  // сообщение, включая удалённых (заглушка «Без профиля») и пользователей с
+  // другой ролью. Значит непрочитанное снова можно открыть и прочитать, и
+  // прятать его больше незачем. А с фильтром сообщение от администратора,
+  // писавшего из мобильного приложения, не поднимало бейджик вовсе.
+  const unreadChatCount = database.chatMessages.filter(m => m.senderRole === 'client' && !m.readByAdmin).length;
   const chatHistory7d = useMemo(() => buildLast7Days(
     database.chatMessages.filter(m => m.senderRole === 'client'),
     m => m.timestamp
@@ -1713,7 +1720,12 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     : chatSessions;
 
   const activeTalkingChat = database.chatMessages.filter(c => c.userId === activeChatUserId);
-  const activeChatClient = clientsOnly.find(u => u.id === activeChatUserId);
+  // Ищем среди всех участников переписки, а не только среди клиентов.
+  // Вся панель диалога нарисована под условием activeChatUserId &&
+  // activeChatClient: если собеседник не нашёлся, открытая переписка
+  // оказывалась пустой. Именно так и выглядела поломка — в списке человек
+  // есть, нажимаешь, а сообщений нет.
+  const activeChatClient = chatParticipants.find(u => u.id === activeChatUserId);
 
   return (
     <div id="admin-dashboard-root" className="liquid-glass-bg h-dvh overflow-hidden text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative">
