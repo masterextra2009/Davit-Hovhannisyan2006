@@ -694,7 +694,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const [promoForm, setPromoForm] = useState<{
     title: string; body: string; imageUrl: string; to: string;
     mediaType: 'image' | 'video' | ''; mediaWidth: number; mediaHeight: number;
-  }>({ title: '', body: '', imageUrl: '', to: '', mediaType: '', mediaWidth: 0, mediaHeight: 0 });
+    linkUrl: string;
+  }>({ title: '', body: '', imageUrl: '', to: '', mediaType: '', mediaWidth: 0, mediaHeight: 0, linkUrl: '' });
   const [promoUploading, setPromoUploading] = useState(false);
   const [promoUploadError, setPromoUploadError] = useState('');
 
@@ -798,6 +799,28 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     }
   };
 
+  /**
+   * Приводит ссылку к виду, пригодному для открытия на телефоне, или возвращает
+   * пустую строку, если открывать нечего.
+   *
+   * Без схемы («sever-18.ru/akcii») дописываем https:// — люди набирают адрес
+   * именно так, а телефон без схемы ссылку не откроет. Всё, кроме http и https,
+   * отбрасываем: схемы вроде javascript: или intent: в ссылке, которую жмут на
+   * чужом телефоне, — не то, что стоит пропускать из поля ввода.
+   */
+  const normalizePromoLink = (raw: string): string => {
+    const value = raw.trim();
+    if (!value) return '';
+    const withScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value) ? value : `https://${value}`;
+    try {
+      const url = new URL(withScheme);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
+      return url.toString();
+    } catch {
+      return '';
+    }
+  };
+
   const handleCreatePromo = () => {
     const title = promoForm.title.trim();
     if (!title) return;
@@ -814,10 +837,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         ? { mediaWidth: promoForm.mediaWidth, mediaHeight: promoForm.mediaHeight }
         : {}),
       ...(promoForm.to ? { to: promoForm.to } : {}),
+      // Ссылку записываем только годную. Пустую и кривую не пишем вовсе:
+      // нажимаемая карточка, ведущая в никуда, хуже ненажимаемой.
+      ...(normalizePromoLink(promoForm.linkUrl) ? { linkUrl: normalizePromoLink(promoForm.linkUrl) } : {}),
       active: true,
       createdAt: new Date().toISOString(),
     }).catch(console.error);
-    setPromoForm({ title: '', body: '', imageUrl: '', to: '', mediaType: '', mediaWidth: 0, mediaHeight: 0 });
+    setPromoForm({ title: '', body: '', imageUrl: '', to: '', mediaType: '', mediaWidth: 0, mediaHeight: 0, linkUrl: '' });
     setPromoUploadError('');
   };
 
@@ -4565,6 +4591,24 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     {promoUploadError && (
                       <p className="text-[11.5px] text-rose-300">{promoUploadError}</p>
                     )}
+                    {/* Рекомендованный размер прямо тут, у кнопки — чтобы не
+                        держать его в голове и не искать в переписке. Полоса под
+                        фото в приложении имеет пропорции 16:7, поэтому файл
+                        1600×700 ложится в неё край в край. */}
+                    <p className="text-[11px] text-white/40">
+                      Лучший размер — <span className="font-mono text-white/60">1600 × 700</span> точек.
+                      Другой тоже подойдёт: фото впишется целиком, но по бокам останутся поля.
+                      Видео — те же пропорции, до 25 МБ.
+                    </p>
+                    {promoForm.mediaWidth > 0 && Math.abs(promoForm.mediaWidth / promoForm.mediaHeight - 16 / 7) > 0.25 && (
+                      /* Мягкое предупреждение, а не запрет: файл рабочий, просто
+                         ляжет с полями. Молчать нельзя — иначе Давид увидит поля
+                         только на телефоне клиента и не поймёт, почему так. */
+                      <p className="text-[11px] text-amber-300/80">
+                        Это фото другой формы ({promoForm.mediaWidth}×{promoForm.mediaHeight}) — в полосе
+                        по бокам будут поля. Ничего не обрежется.
+                      </p>
+                    )}
                   </div>
                   <label className="flex items-center gap-2 text-xs text-white/50 shrink-0 self-start">
                     Показывать по
@@ -4581,6 +4625,27 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <p className="text-[11px] text-white/40">
                   Дату можно не ставить — тогда новость висит, пока не выключите её сами.
                 </p>
+
+                {/* Ссылка: по нажатию на карточку клиент попадёт по этому адресу.
+                    Пустое поле — карточка просто не нажимается. */}
+                <input
+                  type="text"
+                  value={promoForm.linkUrl}
+                  onChange={e => setPromoForm(f => ({ ...f, linkUrl: e.target.value }))}
+                  placeholder="Ссылка при нажатии — например sever-18.ru (необязательно)"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30"
+                />
+                {promoForm.linkUrl.trim() && (
+                  normalizePromoLink(promoForm.linkUrl) ? (
+                    <p className="text-[11px] text-white/40">
+                      Откроется: <span className="font-mono text-white/60">{normalizePromoLink(promoForm.linkUrl)}</span>
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-rose-300">
+                      Такую ссылку телефон не откроет. Нужен обычный адрес сайта, например sever-18.ru
+                    </p>
+                  )
+                )}
 
                 {/* Как новость увидит клиент.
                     Новости показывает только мобильное приложение — на сайте их
@@ -4601,6 +4666,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         mediaType: promoForm.mediaType || undefined,
                         mediaWidth: promoForm.mediaWidth,
                         mediaHeight: promoForm.mediaHeight,
+                        linkUrl: normalizePromoLink(promoForm.linkUrl) || undefined,
                       }}
                     />
                   </div>

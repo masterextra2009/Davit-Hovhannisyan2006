@@ -15,18 +15,20 @@ import React from 'react';
  * приложения (PromoStrip.tsx в проекте sever18-app) — те же скругления,
  * отступы, размеры и та же формула пропорций.
  *
- * ВАЖНО: формула ниже должна совпадать с resolveMedia в PromoStrip.tsx.
- * Проекты разные, общего кода у них нет, поэтому правку придётся вносить в
- * двух местах — иначе превью начнёт врать, а это хуже, чем его отсутствие.
+ * ВАЖНО: BAND_RATIO ниже обязан совпадать с BAND_RATIO в PromoStrip.tsx, а
+ * вписывание (contain) — с resizeMode там же. Проекты разные, общего кода у
+ * них нет, поэтому правку придётся вносить в двух местах — иначе превью
+ * начнёт врать, а это хуже, чем его отсутствие.
  */
 
-// Самая «узкая» пропорция, которую разрешаем карточке. Ширина к высоте 0.62:
-// высота не более чем в полтора с небольшим раза больше ширины. Иначе
-// вертикальный снимок с телефона (9:16) занял бы почти весь экран.
-const MIN_RATIO = 0.62;
-
-// Для новостей, заведённых до того, как админка начала замерять размеры файла.
-const FALLBACK_RATIO = 16 / 9;
+// Пропорции полосы под фото — те же 16:7, что и в приложении. Отсюда же берётся
+// рекомендация «1600×700» рядом с выбором файла: снимок такого размера ложится
+// в полосу край в край, без полей.
+//
+// Сначала карточка подстраивалась под пропорции самого снимка — и вертикальное
+// фото занимало пол-экрана телефона, отодвигая плитки заказа под нижний край.
+// Полоса фиксированной формы это решает, а от обрезки спасает вписывание.
+const BAND_RATIO = 16 / 7;
 
 export type PreviewPromo = {
   title?: string;
@@ -35,22 +37,17 @@ export type PreviewPromo = {
   mediaType?: 'image' | 'video' | '';
   mediaWidth?: number;
   mediaHeight?: number;
+  linkUrl?: string;
 };
 
-export function resolvePromoMedia(promo: PreviewPromo): { ratio: number; fit: 'cover' | 'contain' } {
-  const w = promo.mediaWidth;
-  const h = promo.mediaHeight;
-  if (!w || !h || w <= 0 || h <= 0) {
-    return { ratio: FALLBACK_RATIO, fit: 'contain' };
-  }
-  const natural = w / h;
-  if (natural < MIN_RATIO) {
-    // Коробка уже не повторяет форму файла, поэтому только вписывание:
-    // обрезка тут превратила бы ограничение высоты в ту же самую потерю краёв.
-    return { ratio: MIN_RATIO, fit: 'contain' };
-  }
-  return { ratio: natural, fit: 'cover' };
-}
+/**
+ * Полоса всегда одной формы, файл всегда вписывается целиком.
+ *
+ * 'contain', а не 'cover' — принципиально: обрезать нельзя, с этого всё и
+ * началось. Снимок не 16:7 покажется с полями по бокам, но верх и низ
+ * останутся на месте. Файл ровно 1600×700 заполняет полосу без полей.
+ */
+export const PROMO_BAND_RATIO = BAND_RATIO;
 
 /**
  * @param width ширина карточки в пикселях. Размеры шрифтов и отступы
@@ -58,7 +55,6 @@ export function resolvePromoMedia(promo: PreviewPromo): { ratio: number; fit: 'c
  *   уменьшенная копия большой, а не как та же карточка с гигантским текстом.
  */
 export function PromoCardPreview({ promo, width = 260 }: { promo: PreviewPromo; width?: number }) {
-  const plan = resolvePromoMedia(promo);
   // 260 — «натуральная величина», при которой размеры совпадают с телефонными.
   const k = width / 260;
   const px = (n: number) => `${Math.round(n * k * 10) / 10}px`;
@@ -77,30 +73,30 @@ export function PromoCardPreview({ promo, width = 260 }: { promo: PreviewPromo; 
             muted
             playsInline
             preload="metadata"
-            style={{ aspectRatio: `${plan.ratio}`, objectFit: plan.fit }}
+            style={{ aspectRatio: `${BAND_RATIO}`, objectFit: 'contain' }}
             className="w-full block bg-[#e7e9ee]"
           />
         ) : (
           <img
             src={promo.imageUrl}
             alt=""
-            style={{ aspectRatio: `${plan.ratio}`, objectFit: plan.fit }}
+            style={{ aspectRatio: `${BAND_RATIO}`, objectFit: 'contain' }}
             className="w-full block bg-[#e7e9ee]"
           />
         )
       ) : null}
 
       {hasText && (
-        <div style={{ padding: px(14), gap: px(4) }} className="flex flex-col">
+        <div style={{ padding: px(12), gap: px(2) }} className="flex flex-col">
           <span
-            style={{ fontSize: px(11), letterSpacing: px(1.1) }}
+            style={{ fontSize: px(10.5), letterSpacing: px(1) }}
             className="font-extrabold text-[#f0621f]"
           >
             АКЦИЯ
           </span>
           {promo.title ? (
             <p
-              style={{ fontSize: px(16.5), lineHeight: px(22) }}
+              style={{ fontSize: px(15), lineHeight: px(19) }}
               className="font-bold text-[#16202e] m-0 line-clamp-2"
             >
               {promo.title}
@@ -108,11 +104,18 @@ export function PromoCardPreview({ promo, width = 260 }: { promo: PreviewPromo; 
           ) : null}
           {promo.body ? (
             <p
-              style={{ fontSize: px(14), lineHeight: px(20) }}
-              className="text-[#55657c] m-0 line-clamp-3 whitespace-pre-wrap"
+              style={{ fontSize: px(12.5), lineHeight: px(17) }}
+              className="text-[#55657c] m-0 line-clamp-2 whitespace-pre-wrap"
             >
               {promo.body}
             </p>
+          ) : null}
+          {promo.linkUrl ? (
+            /* Та же подпись, что и в приложении: без неё клиент не догадается,
+               что карточку можно нажать. */
+            <span style={{ fontSize: px(12), marginTop: px(2) }} className="font-bold text-[#f0621f]">
+              Подробнее →
+            </span>
           ) : null}
         </div>
       )}
