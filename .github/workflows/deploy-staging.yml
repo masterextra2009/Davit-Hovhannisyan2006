@@ -1,0 +1,70 @@
+# Выкладка проверочной копии сайта.
+#
+# Раньше этот конвейер лил на test.sever-18.ru — домен, которого не
+# существует (DNS его не знает), поэтому каждый push в staging уходил в
+# никуда. Настоящая проверочная копия живёт в подпапке боевого сайта:
+# sever-18.ru/proverka/ — она закрыта паролем и работает.
+name: Deploy Staging to Beget
+on:
+  push:
+    branches: [staging]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install @tailwindcss/oxide-linux-x64-gnu --no-save
+      - name: Build
+        # Относительные пути к файлам — копия лежит в подпапке /proverka/,
+        # где абсолютный '/assets/...' указывает в корень сайта и промахивается
+        # мимо собственных файлов копии. Боевая сборка эту переменную не
+        # видит и собирается с абсолютными путями, как и раньше.
+        run: npm run build
+        env:
+          BUILD_BASE: './'
+      - name: Prepend the password block to the real production .htaccess
+        # Склеиваем, а не подменяем: раньше deploy/staging.htaccess был ручной
+        # копией боевого public/.htaccess, и при первой же правке боевого файла
+        # копия отставала — проверочная копия проверяла бы не то, что стоит на
+        # бою. Теперь берётся настоящий собранный dist/.htaccess, а сверху
+        # добавляется только блок пароля.
+        run: |
+          cat deploy/staging-auth.htaccess dist/.htaccess > dist/.htaccess.new
+          mv dist/.htaccess.new dist/.htaccess
+      # .htpasswd намеренно НЕ заливается. На сервере в proverka/ уже лежит
+      # рабочий .htpasswd, и совпадает ли его пароль с deploy/.htpasswd —
+      # неизвестно: хеши $apr1$ солёные (соли 56osXL6f и wMS/o0dk), поэтому
+      # они различаются даже при одинаковом пароле, и сравнение хешей тут
+      # ничего не доказывает. Заливка в лучшем случае не изменит ничего, в
+      # худшем — молча сменит владельцу пароль от проверочной копии на тот,
+      # которого он не знает. Рабочий пароль трогать незачем.
+      - name: Deploy via SFTP (password)
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          username: mastesu6
+          server: ${{ secrets.FTP_HOST }}
+          port: 22
+          password: ${{ secrets.FTP_PASSWORD }}
+          local_path: './dist/*'
+          remote_path: 'sever-18.ru/public_html/proverka'
+          sftpArgs: '-o ConnectTimeout=30'
+      - name: Deploy dotfiles via SFTP (password)
+        # './dist/*' раскрывается самим sftp-клиентом (внутри действия выше),
+        # а его glob, как и обычный shell, никогда не находит файлы,
+        # начинающиеся с точки — .htaccess молча пропускался бы при каждой
+        # выкладке. У явного пути без wildcard такого glob'а нет.
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          username: mastesu6
+          server: ${{ secrets.FTP_HOST }}
+          port: 22
+          password: ${{ secrets.FTP_PASSWORD }}
+          local_path: './dist/.htaccess'
+          remote_path: 'sever-18.ru/public_html/proverka'
+          sftpArgs: '-o ConnectTimeout=30'

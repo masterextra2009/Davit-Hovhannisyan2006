@@ -5,7 +5,7 @@
 
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, Service, Feedback } from '../types';
+import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, Service, Feedback, Promo } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
 import { ServicesShowcaseDemo } from './ServicesShowcaseDemo';
@@ -24,6 +24,7 @@ import {
 } from '../utils';
 import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase } from '../firebaseUtils';
 import { db, doc, setDoc, deleteDoc, getDoc } from '../firebase';
+import { PromoCardPreview } from './PromoCardPreview';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import JSZip from 'jszip';
@@ -105,6 +106,7 @@ interface AdminPanelProps {
     chatMessages: ChatMessage[];
     notifications: AppNotification[];
     services?: Service[];
+    promos?: Promo[];
     siteVisits?: number;
     siteVisitsHistory?: { date: string; count: number }[];
     feedback?: Feedback[];
@@ -119,7 +121,7 @@ interface AdminPanelProps {
 
 export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: AdminPanelProps) {
   // Navigation
-  const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services' | 'print-app'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services' | 'promos' | 'print-app'>('orders');
   // Вкладка "Обновления" видна только внутри программы "Фото-Сервер — Печать"
   // (там window.printerAPI прокинут через preload.js) — на обычном сайте в
   // браузере этого моста нет, поэтому вкладка там просто не показывается.
@@ -685,6 +687,175 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     }
   };
 
+  // --- Новости и акции -------------------------------------------------
+  // Пишутся прямо в Firestore, как и услуги. Мобильное приложение слушает эту
+  // же коллекцию живой подпиской, поэтому новость появляется у клиентов в ту
+  // же секунду — без обновления приложения в магазине.
+  const [promoForm, setPromoForm] = useState<{
+    title: string; body: string; imageUrl: string; to: string;
+    mediaType: 'image' | 'video' | ''; mediaWidth: number; mediaHeight: number;
+    linkUrl: string;
+  }>({ title: '', body: '', imageUrl: '', to: '', mediaType: '', mediaWidth: 0, mediaHeight: 0, linkUrl: '' });
+  const [promoUploading, setPromoUploading] = useState(false);
+  const [promoUploadError, setPromoUploadError] = useState('');
+
+  // Длинная сторона фото после уменьшения. 1600 с запасом покрывает экран
+  // любого телефона, но весит сотни килобайт вместо нескольких мегабайт —
+  // ленту новостей листают по мобильному интернету.
+  const MAX_PROMO_PHOTO_SIDE = 1600;
+  // Видео не пережимаем (в браузере это долго и тянет лишние библиотеки),
+  // поэтому просто не пускаем тяжёлые: сервер берёт до 50 МБ, но клиент с
+  // таким роликом в ленте будет ждать полминуты.
+  const MAX_PROMO_VIDEO_BYTES = 25 * 1024 * 1024;
+
+  const readImageFile = (file: File) => new Promise<HTMLImageElement>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Не удалось открыть это изображение')); };
+    img.src = url;
+  });
+
+  const readVideoSize = (file: File) => new Promise<{ w: number; h: number }>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve({ w: v.videoWidth, h: v.videoHeight }); };
+    v.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Не удалось открыть это видео')); };
+    v.src = url;
+  });
+
+  /**
+   * Кладёт фото или видео новости на сервер и запоминает его настоящие размеры.
+   *
+   * Идём через api/upload.php, а не через service-upload.php (которым грузятся
+   * картинки услуг): тот принимает только JPG/PNG/WEBP и не больше 5 МБ — ни
+   * видео, ни снимок с современного телефона в него не проходят. upload.php —
+   * тот же обработчик, через который клиенты шлют файлы заказа: берёт всё,
+   * кроме исполняемых файлов, до 50 МБ, и отдаёт прямую ссылку. Менять
+   * что-либо на сервере ради новостей не понадобилось.
+   */
+  const handlePromoMediaUpload = async (file: File) => {
+    const isVideo = file.type.startsWith('video/');
+    const isImage = file.type.startsWith('image/');
+    if (!isVideo && !isImage) {
+      setPromoUploadError('Нужен файл с фотографией или видео');
+      return;
+    }
+    setPromoUploadError('');
+    setPromoUploading(true);
+    try {
+      let toSend: File = file;
+      let width = 0;
+      let height = 0;
+
+      if (isImage) {
+        const img = await readImageFile(file);
+        // Уменьшаем только если снимок крупнее нужного: растягивать маленькое
+        // фото до 1600 бессмысленно — станет мыльным и при этом тяжелее.
+        const scale = Math.min(1, MAX_PROMO_PHOTO_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+        width = Math.round(img.naturalWidth * scale);
+        height = Math.round(img.naturalHeight * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Браузер не дал обработать изображение');
+        ctx.drawImage(img, 0, 0, width, height);
+        const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', 0.85));
+        if (!blob) throw new Error('Не удалось подготовить фото');
+        toSend = new File([blob], file.name.replace(/[.][^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+      } else {
+        if (file.size > MAX_PROMO_VIDEO_BYTES) {
+          throw new Error('Видео весит ' + Math.round(file.size / 1024 / 1024) + ' МБ — это много для ленты. Возьмите ролик покороче, до 25 МБ');
+        }
+        const size = await readVideoSize(file);
+        width = size.w;
+        height = size.h;
+      }
+
+      const formData = new FormData();
+      formData.append('file', toSend);
+      formData.append('userId', adminUser.id);
+      const res = await fetch('https://sever-18.ru/api/upload.php', { method: 'POST', body: formData });
+      // upload.php объясняет отказ по-русски в теле ответа — читаем его,
+      // а не показываем голый номер ошибки.
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error || ('сервер ответил кодом ' + res.status));
+      }
+
+      setPromoForm(f => ({
+        ...f,
+        imageUrl: data.url,
+        mediaType: isVideo ? 'video' : 'image',
+        mediaWidth: width,
+        mediaHeight: height,
+      }));
+    } catch (e: any) {
+      setPromoUploadError(e?.message || 'Не удалось загрузить файл');
+    } finally {
+      setPromoUploading(false);
+    }
+  };
+
+  /**
+   * Приводит ссылку к виду, пригодному для открытия на телефоне, или возвращает
+   * пустую строку, если открывать нечего.
+   *
+   * Без схемы («sever-18.ru/akcii») дописываем https:// — люди набирают адрес
+   * именно так, а телефон без схемы ссылку не откроет. Всё, кроме http и https,
+   * отбрасываем: схемы вроде javascript: или intent: в ссылке, которую жмут на
+   * чужом телефоне, — не то, что стоит пропускать из поля ввода.
+   */
+  const normalizePromoLink = (raw: string): string => {
+    const value = raw.trim();
+    if (!value) return '';
+    const withScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value) ? value : `https://${value}`;
+    try {
+      const url = new URL(withScheme);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
+      return url.toString();
+    } catch {
+      return '';
+    }
+  };
+
+  const handleCreatePromo = () => {
+    const title = promoForm.title.trim();
+    if (!title) return;
+    const id = `promo_${Date.now()}`;
+    setDoc(doc(db, 'promos', id), {
+      id,
+      title,
+      body: promoForm.body.trim(),
+      ...(promoForm.imageUrl.trim() ? { imageUrl: promoForm.imageUrl.trim() } : {}),
+      ...(promoForm.mediaType ? { mediaType: promoForm.mediaType } : {}),
+      // Размеры пишем только парой: по одному числу пропорцию не восстановить,
+      // и приложение тогда молча вернётся к жёсткой полосе с обрезкой.
+      ...(promoForm.mediaWidth && promoForm.mediaHeight
+        ? { mediaWidth: promoForm.mediaWidth, mediaHeight: promoForm.mediaHeight }
+        : {}),
+      ...(promoForm.to ? { to: promoForm.to } : {}),
+      // Ссылку записываем только годную. Пустую и кривую не пишем вовсе:
+      // нажимаемая карточка, ведущая в никуда, хуже ненажимаемой.
+      ...(normalizePromoLink(promoForm.linkUrl) ? { linkUrl: normalizePromoLink(promoForm.linkUrl) } : {}),
+      active: true,
+      createdAt: new Date().toISOString(),
+    }).catch(console.error);
+    setPromoForm({ title: '', body: '', imageUrl: '', to: '', mediaType: '', mediaWidth: 0, mediaHeight: 0, linkUrl: '' });
+    setPromoUploadError('');
+  };
+
+  const handleTogglePromo = (id: string, active: boolean) => {
+    setDoc(doc(db, 'promos', id), { active }, { merge: true }).catch(console.error);
+  };
+
+  const handleDeletePromo = (id: string, title: string) => {
+    if (!window.confirm(`Удалить новость «${title}»?`)) return;
+    deleteDoc(doc(db, 'promos', id)).catch(console.error);
+  };
+
   const handleCreateService = () => {
     const newId = `svc_${Date.now()}`;
     const newService = {
@@ -907,9 +1078,52 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     reader.readAsDataURL(file);
   };
 
+  // Сканер штрих-кодов подключается как клавиатура: он «печатает» номер заказа
+  // и жмёт Enter. Отличаем его от человека по скорости — между символами у
+  // сканера единицы миллисекунд, пальцами так не набрать. Клиент показывает
+  // штрих-код в приложении (экран заказа), админ сканирует — список сам
+  // фильтруется по этому заказу.
+  useEffect(() => {
+    let buffer = '';
+    let lastKeyAt = 0;
+
+    const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      // Админ печатает в поле — не вмешиваемся: это точно не сканер.
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      const now = Date.now();
+      if (now - lastKeyAt > 120) buffer = '';
+      lastKeyAt = now;
+
+      if (e.key === 'Enter') {
+        const code = buffer.trim().toUpperCase();
+        buffer = '';
+        if (!/^ORD-\d+$/.test(code)) return;
+        e.preventDefault();
+        setActiveTab('orders');
+        setStatusFilter('all');
+        setOrderSearchQuery(code);
+        setScannedOrderId(code);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      if (e.key.length === 1) buffer += e.key;
+    };
+
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
   // Filtering orders
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'printing' | 'ready' | 'printed' | 'unpaid' | 'rejected'>('all');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  // Номер заказа, только что пойманный сканером — показывается плашкой, чтобы
+  // было видно, что сработало именно сканирование, а не случайный фильтр.
+  const [scannedOrderId, setScannedOrderId] = useState<string | null>(null);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
 
   // Derived lists
@@ -1636,6 +1850,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           </button>
 
           <button
+            onClick={() => setActiveTab('promos')}
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
+              activeTab === 'promos'
+                ? 'nav-holo-active bg-white/10 text-white font-black'
+                : 'text-white/55 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <div className={`glass-icon-capsule glass-icon-orange w-9 h-9 shrink-0 ${activeTab === 'promos' ? 'glass-icon-active' : ''}`}>
+              <Send className="w-4.5 h-4.5 text-white" />
+            </div>
+            <span className="hidden sm:inline">Новости</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('settings')}
             className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
               activeTab === 'settings' 
@@ -1763,6 +1991,22 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           {activeTab === 'orders' && (
             <div className="space-y-6">
               
+              {/* Плашка о сканировании: сразу видно, какой заказ поймал сканер
+                  и как вернуться ко всем заказам. */}
+              {scannedOrderId && (
+                <div className="glass-panel p-3 rounded-2xl flex items-center justify-between gap-3">
+                  <p className="text-sm text-white">
+                    Отсканирован заказ <strong>{scannedOrderId}</strong>
+                  </p>
+                  <button
+                    onClick={() => { setScannedOrderId(null); setOrderSearchQuery(''); }}
+                    className="text-xs font-bold text-white/70 hover:text-white underline"
+                  >
+                    Показать все
+                  </button>
+                </div>
+              )}
+
               {/* Order Lists Filter and bulk actions bar */}
               <div className="glass-panel p-4 rounded-2xl space-y-3">
                 <div className="search-glow-wrap">
@@ -1888,6 +2132,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                   <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider align-middle">
                                     Гость
                                   </span>
+                                )}
+                                {/* Телефон приходит вместе с заказом из мобильного приложения
+                                    (order.userPhone). У заказов с сайта и у старых заказов его
+                                    нет — тогда строка просто не показывается. */}
+                                {order.userPhone && (
+                                  <>
+                                    {' '}&bull;{' '}
+                                    <a
+                                      href={`tel:${order.userPhone.replace(/[^\d+]/g, '')}`}
+                                      className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                      {order.userPhone}
+                                    </a>
+                                  </>
                                 )}
                               </div>
                             </div>
@@ -4245,6 +4503,261 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             </div>
           )}
 
+          {/* ── НОВОСТИ И АКЦИИ ── */}
+          {/* Всё, что заведено здесь, видно клиентам в мобильном приложении на
+              Главной — в ту же секунду, без обновления приложения в магазине.
+              При добавлении новости всем, у кого стоит приложение, уходит
+              уведомление (функция notifyNewPromo на сервере). */}
+          {activeTab === 'promos' && (
+            <div className="p-5 space-y-5">
+              <div>
+                <h2 className="text-lg font-black text-white">Новости и акции</h2>
+                <p className="text-sm text-white/50 mt-1">
+                  Появляются у клиентов в приложении сразу после сохранения. Всем, у кого
+                  установлено приложение, уходит уведомление.
+                </p>
+              </div>
+
+              {/* Форма новой новости */}
+              <div className="glass-panel rounded-2xl p-4 space-y-3">
+                <input
+                  type="text"
+                  value={promoForm.title}
+                  onChange={e => setPromoForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="Заголовок — например «Скидка 20% на печать фото»"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30"
+                />
+                <textarea
+                  value={promoForm.body}
+                  onChange={e => setPromoForm(f => ({ ...f, body: e.target.value }))}
+                  placeholder="Текст: что за акция, до какого числа, что нужно сделать"
+                  rows={3}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30 resize-none"
+                />
+                {/* Фото или видео выбирается файлом. Раньше тут было поле для
+                    ссылки — то есть картинку полагалось сначала где-то выложить
+                    самому, чего в копи-центре никто делать не станет.
+
+                    Превью показываем в НАСТОЯЩИХ пропорциях файла (aspectRatio из
+                    замеренных размеров) — ровно так же, как их покажет телефон.
+                    Смысл именно в этом: что видно здесь, то увидит и клиент. */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1 flex flex-col gap-2">
+                    {promoForm.imageUrl ? (
+                      /* Сам файл показывается ниже, в карточке «Как увидит клиент» —
+                         здесь только служебная строка. Рисовать картинку дважды
+                         незачем, а главное — важно видеть её именно в карточке,
+                         вместе с текстом, а не отдельной плашкой. */
+                      <div className="flex items-center gap-2 flex-wrap px-3 py-2.5 rounded-xl border border-white/10 bg-white/5">
+                        <span className="text-sm text-white/70">
+                          {promoForm.mediaType === 'video' ? '🎬 Видео' : '🖼 Фото'}
+                        </span>
+                        {promoForm.mediaWidth > 0 && (
+                          <span className="text-[11px] font-mono text-white/35">
+                            {promoForm.mediaWidth}×{promoForm.mediaHeight}
+                          </span>
+                        )}
+                        <span className="flex-1" />
+                        <button
+                          type="button"
+                          onClick={() => setPromoForm(f => ({ ...f, imageUrl: '', mediaType: '', mediaWidth: 0, mediaHeight: 0 }))}
+                          className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold cursor-pointer"
+                        >
+                          Убрать
+                        </button>
+                      </div>
+                    ) : (
+                      <label className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border border-dashed text-sm font-bold transition-colors ${
+                        promoUploading
+                          ? 'border-white/10 text-white/30 cursor-wait'
+                          : 'border-white/20 text-white/70 hover:border-white/40 hover:text-white cursor-pointer'
+                      }`}>
+                        {promoUploading ? 'Загружаем…' : '📎 Выбрать фото или видео'}
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          disabled={promoUploading}
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            // Сбрасываем значение, иначе повторный выбор того же
+                            // файла после ошибки не вызовет onChange.
+                            e.target.value = '';
+                            if (file) handlePromoMediaUpload(file);
+                          }}
+                        />
+                      </label>
+                    )}
+                    {promoUploadError && (
+                      <p className="text-[11.5px] text-rose-300">{promoUploadError}</p>
+                    )}
+                    {/* Рекомендованный размер прямо тут, у кнопки — чтобы не
+                        держать его в голове и не искать в переписке. Полоса под
+                        фото в приложении имеет пропорции 16:7, поэтому файл
+                        1600×700 ложится в неё край в край. */}
+                    <p className="text-[11px] text-white/40">
+                      Лучший размер — <span className="font-mono text-white/60">1600 × 700</span> точек.
+                      Другой тоже подойдёт: фото впишется целиком, но по бокам останутся поля.
+                      Видео — те же пропорции, до 25 МБ.
+                    </p>
+                    {promoForm.mediaWidth > 0 && Math.abs(promoForm.mediaWidth / promoForm.mediaHeight - 16 / 7) > 0.25 && (
+                      /* Мягкое предупреждение, а не запрет: файл рабочий, просто
+                         ляжет с полями. Молчать нельзя — иначе Давид увидит поля
+                         только на телефоне клиента и не поймёт, почему так. */
+                      <p className="text-[11px] text-amber-300/80">
+                        Это фото другой формы ({promoForm.mediaWidth}×{promoForm.mediaHeight}) — в полосе
+                        по бокам будут поля. Ничего не обрежется.
+                      </p>
+                    )}
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-white/50 shrink-0 self-start">
+                    Показывать по
+                    <input
+                      type="date"
+                      value={promoForm.to}
+                      onChange={e => setPromoForm(f => ({ ...f, to: e.target.value }))}
+                      className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+                    />
+                  </label>
+                </div>
+                {/* Срок не обязателен, но без него акция висит, пока её не снимут
+                    руками — а снять забывают. */}
+                <p className="text-[11px] text-white/40">
+                  Дату можно не ставить — тогда новость висит, пока не выключите её сами.
+                </p>
+
+                {/* Ссылка: по нажатию на карточку клиент попадёт по этому адресу.
+                    Пустое поле — карточка просто не нажимается. */}
+                <input
+                  type="text"
+                  value={promoForm.linkUrl}
+                  onChange={e => setPromoForm(f => ({ ...f, linkUrl: e.target.value }))}
+                  placeholder="Ссылка при нажатии — например sever-18.ru (необязательно)"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30"
+                />
+                {promoForm.linkUrl.trim() && (
+                  normalizePromoLink(promoForm.linkUrl) ? (
+                    <p className="text-[11px] text-white/40">
+                      Откроется: <span className="font-mono text-white/60">{normalizePromoLink(promoForm.linkUrl)}</span>
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-rose-300">
+                      Такую ссылку телефон не откроет. Нужен обычный адрес сайта, например sever-18.ru
+                    </p>
+                  )
+                )}
+
+                {/* Как новость увидит клиент.
+                    Новости показывает только мобильное приложение — на сайте их
+                    нет ни на одной странице. Без этого блока выложенную новость
+                    нельзя было увидеть вообще нигде: оставалось ставить наугад.
+                    Карточка повторяет вёрстку приложения, включая правило для
+                    слишком вертикальных снимков. */}
+                {(promoForm.title.trim() || promoForm.imageUrl) && (
+                  <div className="flex flex-col gap-2 pt-1">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-white/35">
+                      Как увидит клиент
+                    </span>
+                    <PromoCardPreview
+                      promo={{
+                        title: promoForm.title,
+                        body: promoForm.body,
+                        imageUrl: promoForm.imageUrl || undefined,
+                        mediaType: promoForm.mediaType || undefined,
+                        mediaWidth: promoForm.mediaWidth,
+                        mediaHeight: promoForm.mediaHeight,
+                        linkUrl: normalizePromoLink(promoForm.linkUrl) || undefined,
+                      }}
+                    />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={handleCreatePromo}
+                  disabled={!promoForm.title.trim()}
+                  className="btn-holo-glass w-full py-3 rounded-xl font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ color: '#1e293b' }}
+                >
+                  Опубликовать
+                </button>
+              </div>
+
+              {/* Уже заведённые */}
+              {(database.promos || []).length === 0 ? (
+                <p className="text-sm text-white/40">Новостей пока нет.</p>
+              ) : (
+                <div className="space-y-3">
+                  {(database.promos || []).map(promo => (
+                    <div key={promo.id} className="glass-panel rounded-2xl p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        {/* Миниатюра той же карточки — чтобы проверить уже
+                            выложенную новость, не открывая телефон. */}
+                        {promo.imageUrl && (
+                          <PromoCardPreview
+                            promo={{
+                              imageUrl: promo.imageUrl,
+                              mediaType: promo.mediaType,
+                              mediaWidth: promo.mediaWidth,
+                              mediaHeight: promo.mediaHeight,
+                            }}
+                            width={104}
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-white text-sm">{promo.title}</p>
+                          {promo.body ? (
+                            <p className="text-xs text-white/55 mt-1 whitespace-pre-wrap">{promo.body}</p>
+                          ) : null}
+                          <p className="text-[11px] text-white/35 mt-2">
+                            {new Date(promo.createdAt).toLocaleDateString('ru-RU')}
+                            {promo.to ? ` · показывать по ${new Date(promo.to).toLocaleDateString('ru-RU')}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {/* Раньше это была одна кнопка с надписью «ПОКАЗЫВАЕТСЯ» /
+                              «СКРЫТА» — то есть на кнопке было написано текущее
+                              состояние, а не то, что произойдёт при нажатии.
+                              Читалось наоборот: «СКРЫТА» выглядело как команда
+                              «скрыть», и было непонятно, видит клиент новость или
+                              нет. Теперь состояние и действие разделены: слева
+                              неподвижная отметка состояния, справа кнопка с
+                              глаголом — что будет, если нажать. */}
+                          <span
+                            className={`text-[10px] font-bold px-2 py-1 rounded ${
+                              promo.active
+                                ? 'bg-emerald-500/20 text-emerald-300'
+                                : 'bg-white/10 text-white/40'
+                            }`}
+                          >
+                            {promo.active ? '● ВИДНА КЛИЕНТАМ' : '○ НЕ ВИДНА'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePromo(promo.id, !promo.active)}
+                            title={promo.active
+                              ? 'Убрать новость из приложения'
+                              : 'Показать новость клиентам'}
+                            className="text-[10px] font-bold px-2 py-1 rounded cursor-pointer transition bg-white/10 hover:bg-white/25 text-white/80"
+                          >
+                            {promo.active ? 'Скрыть' : 'Показать'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePromo(promo.id, promo.title)}
+                            className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 p-1.5 rounded cursor-pointer transition"
+                            title="Удалить новость"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── ARCHIVE TAB ── */}
           {activeTab === 'archive' && (
             <div className="p-5 space-y-4">
@@ -4310,7 +4823,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               <span className="text-white font-black text-sm">{order.id}</span>
                               <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 text-[11px] font-black">Выдан</span>
                             </div>
-                            <p className="text-white/60 text-xs mt-0.5">{order.userName} · {order.userEmail}</p>
+                            <p className="text-white/60 text-xs mt-0.5">
+                              {order.userName} · {order.userEmail}
+                              {order.userPhone && (
+                                <>
+                                  {' · '}
+                                  <a
+                                    href={`tel:${order.userPhone.replace(/[^\d+]/g, '')}`}
+                                    className="text-blue-300 hover:underline"
+                                  >
+                                    {order.userPhone}
+                                  </a>
+                                </>
+                              )}
+                            </p>
                             <p className="text-white/40 text-xs mt-1">
                               Выдан: {completedAt.toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })} в {completedAt.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'})}
                             </p>

@@ -33,7 +33,7 @@ import {
   runTransaction
 } from './firebase';
 import type { User as FirebaseAuthUser } from 'firebase/auth';
-import { User, Order, ChatMessage, Notification, Service, Feedback, DatabaseState } from './types';
+import { User, Order, ChatMessage, Notification, Service, Feedback, Promo, DatabaseState } from './types';
 
 // Автоматический приветственный промокод для тех, кто регистрируется в
 // период акции 22.07.2026–02.08.2026 (обе даты включительно). После конца
@@ -201,19 +201,34 @@ export async function registerUserWithFirebase(email: string, password: string,f
 
     const referralFields = isExplicitAdmin ? {} : await resolveReferralFields(referralCodeInput);
 
+    // При апгрейде гостя (wasAnonymous) uid тот же, а значит в Firestore уже
+    // может лежать документ гостевого профиля с настоящей датой первого
+    // визита — не затирать её текущим временем регистрации.
+    const userDocRef = doc(db, 'users', fbUser.uid);
+    let originalCreatedAt: string | undefined;
+    if (wasAnonymous) {
+      try {
+        const existingDoc = await getDoc(userDocRef);
+        if (existingDoc.exists()) {
+          originalCreatedAt = (existingDoc.data() as User).createdAt;
+        }
+      } catch (e) {
+        console.warn('Failed to read existing guest profile before upgrade:', e);
+      }
+    }
+
     const newUser: User = {
       id: fbUser.uid,
       email: trimmedEmail,
       fullName: fullName.trim(),
       phone: phone.trim(),
       role: isExplicitAdmin ? 'admin' : role,
-      createdAt: new Date().toISOString(),
+      createdAt: originalCreatedAt || new Date().toISOString(),
       referralCode: generateReferralCode(fbUser.uid),
       ...(isExplicitAdmin ? {} : (Object.keys(referralFields).length ? referralFields : getWelcomePromoFields())),
     };
 
     // Write profile document in Firestore
-    const userDocRef = doc(db, 'users', fbUser.uid);
     try {
       await setDoc(userDocRef, newUser);
     } catch (e) {
@@ -292,6 +307,16 @@ export async function signInUserWithFirebase(email: string, password: string): P
   }
 }
 
+// Google-аккаунты без своей фотографии отдают через Firebase Auth не пустой
+// photoURL, а ссылку на общую заглушку (силуэт человека, унаследованный от
+// старого дефолтного аватара YouTube/Google+) — она содержит "default-user"
+// в пути. Если довериться такому photoURL напрямую, в шапке и профиле вместо
+// нормального фолбэка (инициалы на градиенте из UserAvatar) показывается
+// эта чужеродная иконка. Отсеиваем такие ссылки на входе.
+function isGooglePlaceholderAvatar(url: string): boolean {
+  return url.includes('default-user');
+}
+
 /**
  * Создаёт/обновляет профиль в Firestore на основе Google-аккаунта Firebase.
  */
@@ -313,8 +338,11 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
     if (isExplicitAdmin && userData.role !== 'admin') {
       userData.role = 'admin';
     }
-    if (fbUser.photoURL && userData.avatarUrl !== fbUser.photoURL) {
+    if (fbUser.photoURL && !isGooglePlaceholderAvatar(fbUser.photoURL) && userData.avatarUrl !== fbUser.photoURL) {
       userData.avatarUrl = fbUser.photoURL;
+    } else if (userData.avatarUrl && isGooglePlaceholderAvatar(userData.avatarUrl)) {
+      // Убираем заглушку, сохранённую до этого фикса.
+      userData.avatarUrl = undefined;
     }
     try {
       await setDoc(userDocRef, userData, { merge: true });
@@ -332,7 +360,7 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
     phone: '',
     role: isExplicitAdmin ? 'admin' : 'client',
     createdAt: new Date().toISOString(),
-    avatarUrl: fbUser.photoURL || undefined,
+    avatarUrl: (fbUser.photoURL && !isGooglePlaceholderAvatar(fbUser.photoURL)) ? fbUser.photoURL : undefined,
     isSocial: true,
     referralCode: generateReferralCode(fbUser.uid),
     ...(isExplicitAdmin ? {} : getWelcomePromoFields()),
@@ -837,6 +865,15 @@ export function subscribeToFirebaseCollections(
     onSync({ services: services.sort((a, b) => a.order - b.order) });
   }, 'services');
   unsubscribes.push(unsubServices);
+
+  // 5b. Новости и акции — их читают и клиенты в приложении, и админка.
+  // Правит только админ (см. firestore.rules).
+  const unsubPromos = resilientOnSnapshot(collection(db, 'promos'), (snap: any) => {
+    const promos: Promo[] = [];
+    snap.forEach((doc: any) => promos.push({ id: doc.id, ...(doc.data() as any) } as Promo));
+    onSync({ promos: promos.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')) });
+  }, 'promos');
+  unsubscribes.push(unsubPromos);
 
   // 6. Listen to client Feedback (admin only — clients can create but not read)
   if (isAdminUser) {

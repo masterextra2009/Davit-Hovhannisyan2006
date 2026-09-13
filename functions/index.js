@@ -16,23 +16,6 @@ const VAPID_PUBLIC_KEY = 'BAWT1sZ2a1ES2-anphGlydEvZNAA4xM6ty-g-_I9um9VWexVqAlbNZ
 const ONLINE_FRESHNESS_MS = 2 * 60 * 1000;
 
 const vapidPrivateKey = defineSecret('VAPID_PRIVATE_KEY');
-// Бот для уведомлений админу в Telegram (тот же, что уже используется для
-// заказов/оплаты — telegram_admin_notify.php на хостинге). Отдельно от бота
-// входа (@photosever_bot).
-const telegramAdminBotToken = defineSecret('TELEGRAM_ADMIN_BOT_TOKEN');
-const TELEGRAM_ADMIN_CHAT_ID = '1182317072';
-
-async function sendTelegramAdminMessage(text) {
-  try {
-    await fetch(`https://api.telegram.org/bot${telegramAdminBotToken.value()}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: TELEGRAM_ADMIN_CHAT_ID, text, parse_mode: 'HTML', disable_web_page_preview: true }),
-    });
-  } catch (err) {
-    console.error('Telegram admin notify failed:', err);
-  }
-}
 
 const app = initializeApp();
 const db = getFirestore(app, FIRESTORE_DATABASE_ID);
@@ -61,6 +44,17 @@ async function pushToUser(userId, title, body) {
 
   if (isRecentlyOnline(userData)) return;
 
+  // Один и тот же клиент может пользоваться и сайтом, и мобильным
+  // приложением — это два разных канала доставки, и жив может быть любой
+  // из них. Поэтому шлём в оба, какие есть, а не "или-или".
+  await Promise.all([
+    sendWebPush(userId, userData, title, body),
+    sendExpoPush(userId, userData, title, body),
+  ]);
+}
+
+// Браузерный канал (сайт): подписка лежит в users/{uid}.pushSubscription.
+async function sendWebPush(userId, userData, title, body) {
   const subscription = userData.pushSubscription;
   if (!subscription) return;
 
@@ -73,6 +67,45 @@ async function pushToUser(userId, title, body) {
     if (err.statusCode === 404 || err.statusCode === 410) {
       await db.collection('users').doc(userId).update({ pushSubscription: FieldValue.delete() });
     }
+  }
+}
+
+// Мобильный канал (приложение sever18-app): токен лежит в
+// users/{uid}.expoPushToken, его кладёт туда сам телефон при входе.
+// Отправка — обычный POST в Expo, ключей и секретов не требует.
+async function sendExpoPush(userId, userData, title, body) {
+  const token = userData.expoPushToken;
+  if (!token) return;
+
+  try {
+    const res = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify([{ to: token, title, body, sound: 'default' }]),
+    });
+    const json = await res.json();
+
+    // Expo может отклонить сам запрос, не дойдя до доставки (испорченный
+    // токен, неверный формат) — тогда вместо data приходит errors. Без
+    // этой записи в журнале функции не осталось бы вообще ничего.
+    if (json.errors) {
+      console.error('Expo push rejected request for user', userId, JSON.stringify(json.errors));
+      return;
+    }
+
+    const ticket = Array.isArray(json.data) ? json.data[0] : json.data;
+
+    // Приложение удалили или переустановили — старый адрес больше не
+    // существует. Чистим, чтобы не долбиться в него при каждом заказе
+    // (так же, как выше чистится протухшая браузерная подписка).
+    if (ticket && ticket.status === 'error') {
+      console.error('Expo push failed for user', userId, ticket.message);
+      if (ticket.details && ticket.details.error === 'DeviceNotRegistered') {
+        await db.collection('users').doc(userId).update({ expoPushToken: FieldValue.delete() });
+      }
+    }
+  } catch (err) {
+    console.error('Expo push request failed for user', userId, err);
   }
 }
 
@@ -101,7 +134,7 @@ exports.notifyOrderStatusChange = onDocumentUpdated(
 );
 
 exports.notifyNewChatMessage = onDocumentCreated(
-  { document: 'chatMessages/{messageId}', database: FIRESTORE_DATABASE_ID, secrets: [vapidPrivateKey, telegramAdminBotToken] },
+  { document: 'chatMessages/{messageId}', database: FIRESTORE_DATABASE_ID, secrets: [vapidPrivateKey] },
   async (event) => {
     const msg = event.data.data();
     if (!msg) return;
@@ -109,23 +142,96 @@ exports.notifyNewChatMessage = onDocumentCreated(
     const preview = (msg.message || '').replace(/^\[STICKER\]:.*/, '🖼 Стикер').slice(0, 120);
 
     if (msg.senderRole === 'client') {
-      // Сообщение от клиента — уведомляем всех админов (push в браузер +
-      // Telegram). Раньше в Telegram слал сам браузер клиента сразу после
-      // отправки — если его вкладку сворачивали/усыпляли (особенно на
-      // iPhone), запрос на уведомление зависал вместе с ней, и уведомление
-      // приходило с опозданием в десятки минут (вместе с самим сообщением,
-      // которое Firestore держит в очереди на отправку до возврата вкладки
-      // в foreground). Здесь, на сервере, уведомление уходит сразу же, как
-      // только сообщение реально долетело до базы — независимо от того,
-      // что происходит с вкладкой отправителя дальше.
+      // Сообщение от клиента — уведомляем всех админов push'ем. Здесь, на
+      // сервере, уведомление уходит сразу же, как только сообщение реально
+      // долетело до базы — независимо от того, что дальше происходит с
+      // вкладкой отправителя (раньше слал сам браузер клиента, и если его
+      // вкладку сворачивали, особенно на iPhone, уведомление приходило с
+      // опозданием в десятки минут).
       const adminsSnap = await db.collection('users').where('role', '==', 'admin').get();
-      await Promise.all([
-        ...adminsSnap.docs.map((d) => pushToUser(d.id, `Новое сообщение от ${msg.senderName || 'клиента'}`, preview)),
-        sendTelegramAdminMessage(`💬 <b>Новое сообщение от ${msg.senderName || 'клиента'}</b>\n\n${preview}`),
-      ]);
+      await Promise.all(
+        adminsSnap.docs.map((d) => pushToUser(d.id, `Новое сообщение от ${msg.senderName || 'клиента'}`, preview))
+      );
     } else {
       // Сообщение от админа — уведомляем клиента, которому принадлежит чат
       await pushToUser(msg.userId, 'Ответ от Фото-Север', preview);
     }
+  }
+);
+
+// Новая новость или акция — уведомляем всех клиентов, у кого стоит
+// приложение.
+//
+// Почему на сервере, а не из админки: браузер Давида не должен рассылать
+// сотни уведомлений — вкладку закроют на середине, и половина клиентов
+// ничего не получит. Здесь рассылка идёт, как только запись реально попала
+// в базу.
+//
+// Шлём только тем, у кого есть адрес доставки (expoPushToken), то есть
+// только владельцам приложения. Админам не шлём — они это и завели.
+// Скрытую новость (active: false) не рассылаем: её завели «на потом».
+exports.notifyNewPromo = onDocumentCreated(
+  { document: 'promos/{promoId}', database: FIRESTORE_DATABASE_ID, secrets: [vapidPrivateKey] },
+  async (event) => {
+    const promo = event.data && event.data.data();
+    if (!promo || promo.active === false) return;
+
+    const title = promo.title || 'Новость Фото-Север';
+    const body = (promo.body || '').slice(0, 140) || 'Загляните в приложение';
+
+    const usersSnap = await db.collection('users').get();
+
+    // Отправляем пачками: Expo принимает до 100 адресов за раз, а по одному
+    // на каждого клиента это сотни запросов подряд.
+    const targets = usersSnap.docs.filter(
+      (d) => d.data().expoPushToken && d.data().role !== 'admin'
+    );
+    if (targets.length === 0) return;
+
+    for (let i = 0; i < targets.length; i += 100) {
+      const batch = targets.slice(i, i + 100);
+      try {
+        const res = await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(
+            batch.map((d) => ({
+              to: d.data().expoPushToken,
+              title,
+              body,
+              sound: 'default',
+              data: { type: 'promo', promoId: event.params.promoId },
+            }))
+          ),
+        });
+        const json = await res.json();
+        if (json.errors) {
+          console.error('Expo push rejected promo batch', JSON.stringify(json.errors));
+          continue;
+        }
+
+        // Протухшие адреса чистим — иначе будем долбиться в них при каждой
+        // новости. Это те же правила, что и в sendExpoPush выше.
+        const tickets = Array.isArray(json.data) ? json.data : [];
+        await Promise.all(
+          tickets.map(async (ticket, k) => {
+            if (
+              ticket &&
+              ticket.status === 'error' &&
+              ticket.details &&
+              ticket.details.error === 'DeviceNotRegistered'
+            ) {
+              await db.collection('users').doc(batch[k].id).update({
+                expoPushToken: FieldValue.delete(),
+              });
+            }
+          })
+        );
+      } catch (err) {
+        console.error('Expo push request failed for promo batch', err);
+      }
+    }
+
+    console.log('Promo push sent to', targets.length, 'clients:', title);
   }
 );

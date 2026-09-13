@@ -11,6 +11,7 @@ import {
   playNotificationSound, showBrowserNotification
 } from './utils';
 import { LandingPage } from './components/LandingPage';
+import { SplashScreen } from './components/SplashScreen';
 
 // Кабинет клиента и админ-панель — самый тяжёлый код приложения, но нужен
 // только после входа. Ленивая загрузка держит их вне общего бандла, чтобы
@@ -46,6 +47,10 @@ import {
 const MAINTENANCE_MODE = false;
 
 export default function App() {
+  // Заставка при открытии приложения (буквы "Фото-Север" достраиваются одна за
+  // другой) — чисто косметический оверлей поверх обычной загрузки, не
+  // задерживает реальный рендер контента под собой.
+  const [showSplash, setShowSplash] = useState(true);
   // Маркетинговая главная страница — показывается гостям до формы входа
   const [showLanding, setShowLanding] = useState(true);
 
@@ -312,17 +317,22 @@ export default function App() {
   // просто поставь MAINTENANCE_MODE обратно в false.
   if (MAINTENANCE_MODE) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-[#02050f] text-white text-center p-6">
-        <div>
-          <FileText className="w-10 h-10 text-indigo-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-black mb-3">Ведутся технические работы</h1>
-          <p className="text-white/70">Спасибо за понимание — скоро вернёмся.</p>
+      <>
+        {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+        <div className="min-h-dvh flex items-center justify-center bg-[#02050f] text-white text-center p-6">
+          <div>
+            <FileText className="w-10 h-10 text-indigo-400 mx-auto mb-4" />
+            <h1 className="text-2xl font-black mb-3">Ведутся технические работы</h1>
+            <p className="text-white/70">Спасибо за понимание — скоро вернёмся.</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
+    <>
+    {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
     <div id="print-shop-root-container" className="font-sans antialiased text-slate-800 dark:text-slate-100">
       <div className="min-h-dvh">
         {paymentReturnOrderId ? (
@@ -382,5 +392,6 @@ export default function App() {
         )}
       </div>
     </div>
+    </>
   );
 }
