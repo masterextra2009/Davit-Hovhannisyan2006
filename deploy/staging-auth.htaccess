@@ -1,16 +1,16 @@
 # Только блок пароля для тестового сайта. Всё остальное (переход на https,
 # защитные заголовки, 404, share-target) берётся из боевого public/.htaccess:
 # .github/workflows/deploy-staging.yml склеивает этот кусок с собранным
-# dist/.htaccess.
+# dist/.htaccess и кладёт результат в sever-18.ru/proverka/.
 #
 # Раньше здесь лежала полная копия боевого .htaccess, и копию приходилось
 # править вручную при каждом изменении оригинала — при первом же изменении
 # они разошлись бы, и тестовый сайт проверял бы не то, что стоит на бою.
 
 AuthType Basic
-AuthName "Фото-Север — тестовый сайт"
+AuthName "Photo-Sever - proverochnaya kopiya"
 # Путь к файлу паролей у Beget вида /home/<буква>/<логин>/... — с коротким
 # вариантом /home/mastesu6/... Apache отвечает 500 (проверено на
 # проверочной копии sever-18.ru/proverka/, где лежит тот же комментарий).
-AuthUserFile /home/m/mastesu6/test.sever-18.ru/public_html/.htpasswd
+AuthUserFile /home/m/mastesu6/sever-18.ru/public_html/proverka/.htpasswd
 Require valid-user
