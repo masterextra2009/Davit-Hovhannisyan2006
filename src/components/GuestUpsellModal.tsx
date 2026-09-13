@@ -115,6 +115,7 @@ export function GuestUpsellModal({ reason, user, onClose, onSuccess }: GuestUpse
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="Электронная почта"
+                          autoComplete="email"
               className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
             />
             <input
@@ -124,6 +125,7 @@ export function GuestUpsellModal({ reason, user, onClose, onSuccess }: GuestUpse
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="Пароль (минимум 6 символов)"
+                          autoComplete="new-password"
               className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
             />
             {error && <p className="text-[11px] text-rose-500 font-bold">{error}</p>}

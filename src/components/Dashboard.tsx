@@ -86,6 +86,7 @@ import {
   formatServicePrice, sortServicesByGroup
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
+import { PromoTicket } from './PromoTicket';
 import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode, registerUserWithFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -5361,6 +5362,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           value={guestPhone}
                           onChange={e => setGuestPhone(e.target.value)}
                           placeholder="+7 (999) 999-99-99"
+                          /* телефон для заказа — браузер подставит сохранённый */
+                          autoComplete="tel"
                           className="w-full px-3.5 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white text-xs placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/30"
                         />
                       </div>
@@ -5372,6 +5375,27 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <label htmlFor="promo-code" className="block text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">
                       Промокод
                     </label>
+
+                    {/* Личный промокод — билетом, как в приложении.
+                        Поле ввода ниже остаётся: кроме личного кода есть общие
+                        (STUDENT15 и прочие), их по-прежнему набирают руками.
+                        А свой собственный переписывать больше не надо — это и
+                        была главная причина, по которой скидкой не пользовались. */}
+                    {user.promoCode && user.promoDiscount ? (
+                      <div className="mb-3">
+                        <PromoTicket
+                          code={user.promoCode}
+                          discount={user.promoDiscount}
+                          expiresAt={user.promoExpiresAt}
+                          applied={appliedPromo === user.promoCode}
+                          onApply={c => {
+                            setPromoCode(c);
+                            setAppliedPromo(c);
+                            setPromoError(null);
+                          }}
+                        />
+                      </div>
+                    ) : null}
                     <div className="flex gap-2">
                       <input
                         id="promo-code"
@@ -6618,6 +6642,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             value={guestRegEmail}
                             onChange={e => setGuestRegEmail(e.target.value)}
                             placeholder="Электронная почта"
+                          autoComplete="email"
                             className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                           />
                           <input
@@ -6627,6 +6652,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             value={guestRegPassword}
                             onChange={e => setGuestRegPassword(e.target.value)}
                             placeholder="Пароль (минимум 6 символов)"
+                          /* новый пароль, а не вход: подсказка current-password заставила бы менеджер паролей предлагать старый */
+                          autoComplete="new-password"
                             className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                           />
                           {guestRegError && <p className="text-[11px] text-rose-500 font-bold">{guestRegError}</p>}

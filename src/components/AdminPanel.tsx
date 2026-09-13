@@ -823,7 +823,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
   const handleCreatePromo = () => {
     const title = promoForm.title.trim();
-    if (!title) return;
+    // Достаточно чего-то одного: подписи ИЛИ файла. Новость из одной афиши —
+    // обычное дело, требовать к ней ещё и заголовок незачем.
+    if (!title && !promoForm.imageUrl) return;
     const id = `promo_${Date.now()}`;
     setDoc(doc(db, 'promos', id), {
       id,
@@ -1133,9 +1135,25 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   // Список клиентов теперь открывается по умолчанию (без автовыбора первого чата) —
   // это нужно для режима "как в Telegram": назад = список, а не мгновенный переход в чат.
 
-  // Read message handler - mark client chats as read by admin
+  // Пометка «прочитано» ставится, только когда переписка ДЕЙСТВИТЕЛЬНО открыта
+  // на экране: выбран собеседник, найдена его карточка и включена вкладка чата.
+  //
+  // Раньше хватало одного activeChatUserId. Из-за этого сообщения пометились
+  // прочитанными в тот момент, когда панель диалога вообще ничего не показала
+  // (собеседник не находился — см. activeChatClient ниже): значок непрочитанных
+  // погас, а сообщение так и осталось непрочитанным человеком. Хуже
+  // обыкновенной пропажи: система уверена, что всё в порядке.
   useEffect(() => {
-    if (activeChatUserId) {
+    // Собеседник ищется тут же, а не берётся из activeChatClient: тот
+    // объявлен ниже по файлу, а условие нужно именно здесь. Проверка та же —
+    // человек есть среди участников переписки.
+    const chatIsOpen =
+      activeTab === 'chat' &&
+      !!activeChatUserId &&
+      (database.users.some(u => u.id === activeChatUserId) ||
+        database.chatMessages.some(m => m.userId === activeChatUserId));
+
+    if (chatIsOpen) {
       const unreadFromActive = database.chatMessages.filter(
         c => c.userId === activeChatUserId && c.senderRole === 'client' && !c.readByAdmin
       );
@@ -1149,7 +1167,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         onUpdateDatabase({ chatMessages: updatedChats });
       }
     }
-  }, [activeChatUserId, database.chatMessages.length]);
+  }, [activeChatUserId, activeTab, database.users.length, database.chatMessages.length]);
 
   // Scroll chat operator window — instant (not smooth) so it opens already at
   // the latest message instead of visibly scrolling down to find it. A delayed
@@ -1618,13 +1636,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     m => m.senderRole === 'client' && getLocalDateKey(new Date(m.timestamp)) === getLocalDateKey()
   );
   const todayUniqueChatClients = new Set(todayClientMessages.map(m => m.userId)).size;
-  // Считаем непрочитанные только у реально существующих клиентов — иначе
-  // сообщение от когда-то удалённого/переименованного пользователя (userId,
-  // которого больше нет в clientsOnly) продолжает светить бейджиком "1" на
-  // вкладке "Чат-Приемная" навсегда, хотя открыть и прочитать его негде —
-  // такого клиента физически нет в списке чатов.
-  const clientIdSet = new Set(clientsOnly.map(c => c.id));
-  const unreadChatCount = database.chatMessages.filter(m => m.senderRole === 'client' && !m.readByAdmin && clientIdSet.has(m.userId)).length;
+  // Непрочитанные считаем по ВСЕМ сообщениям.
+  //
+  // Раньше здесь стоял фильтр по списку клиентов, и поставлен он был не зря:
+  // сообщение от удалённого пользователя светило бы бейджиком «1» вечно, ведь
+  // открыть и прочитать его было негде — такого человека не было в списке
+  // чатов. Фильтр лечил не причину, а симптом: сообщение оставалось
+  // недоступным, просто переставало о себе напоминать.
+  //
+  // Теперь причина устранена — в список чатов попадает любой, от кого есть
+  // сообщение, включая удалённых (заглушка «Без профиля») и пользователей с
+  // другой ролью. Значит непрочитанное снова можно открыть и прочитать, и
+  // прятать его больше незачем. А с фильтром сообщение от администратора,
+  // писавшего из мобильного приложения, не поднимало бейджик вовсе.
+  const unreadChatCount = database.chatMessages.filter(m => m.senderRole === 'client' && !m.readByAdmin).length;
   const chatHistory7d = useMemo(() => buildLast7Days(
     database.chatMessages.filter(m => m.senderRole === 'client'),
     m => m.timestamp
@@ -1651,7 +1676,39 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const totalFormatCounts = Object.values(fileFormatGroupsStats).reduce((a, b) => a + b, 0);
 
   // Active Chats listing
-  const chatSessions = clientsOnly.map(c => {
+  //
+  // Собеседники — это НЕ только те, у кого роль «клиент».
+  // Раньше список строился из clientsOnly, и переписка была видна лишь у
+  // пользователей с role === 'client'. Сообщение от кого угодно другого
+  // (например, от самого администратора, пишущего из мобильного приложения)
+  // ложилось в базу, поднимало уведомление — и не показывалось в панели
+  // вообще. Выглядело как «чат сломан»: оповещение есть, сообщения нет.
+  //
+  // Теперь берём объединение: все клиенты плюс любой, от кого есть хоть одно
+  // сообщение. Молчаливые клиенты остаются в списке (с ними можно начать
+  // разговор первым), а написавший не пропадает, какая бы у него ни была роль.
+  const chatWriterIds = new Set(database.chatMessages.map(m => m.userId));
+  const extraChatUsers = database.users.filter(
+    u => u.role !== 'client' && chatWriterIds.has(u.id)
+  );
+  // Сообщение от того, чьей карточки в базе нет вовсе (удалённый аккаунт,
+  // сбой при регистрации), тоже не должно исчезать: без заглушки оно осталось
+  // бы невидимым, а человек ждал бы ответа.
+  const knownUserIds = new Set(database.users.map(u => u.id));
+  const orphanChatUsers = [...chatWriterIds]
+    .filter(id => id && !knownUserIds.has(id))
+    .map(id => ({
+      id,
+      fullName: 'Без профиля',
+      email: '',
+      phone: '',
+      role: 'client',
+      createdAt: new Date().toISOString(),
+    } as User));
+
+  const chatParticipants = [...clientsOnly, ...extraChatUsers, ...orphanChatUsers];
+
+  const chatSessions = chatParticipants.map(c => {
     const userMsgs = database.chatMessages.filter(m => m.userId === c.id);
     const lastMsg = userMsgs.length > 0 ? userMsgs[userMsgs.length - 1] : null;
     const unreadCount = userMsgs.filter(m => m.senderRole === 'client' && !m.readByAdmin).length;
@@ -1679,7 +1736,12 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     : chatSessions;
 
   const activeTalkingChat = database.chatMessages.filter(c => c.userId === activeChatUserId);
-  const activeChatClient = clientsOnly.find(u => u.id === activeChatUserId);
+  // Ищем среди всех участников переписки, а не только среди клиентов.
+  // Вся панель диалога нарисована под условием activeChatUserId &&
+  // activeChatClient: если собеседник не нашёлся, открытая переписка
+  // оказывалась пустой. Именно так и выглядела поломка — в списке человек
+  // есть, нажимаешь, а сообщений нет.
+  const activeChatClient = chatParticipants.find(u => u.id === activeChatUserId);
 
   return (
     <div id="admin-dashboard-root" className="liquid-glass-bg h-dvh overflow-hidden text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300 relative">
@@ -2019,6 +2081,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         value={orderSearchQuery}
                         onChange={(e) => setOrderSearchQuery(e.target.value)}
                         placeholder="Поиск по номеру заказа, имени клиента или email..."
+                          autoComplete="off"
                         aria-label="Поиск по заказам"
                         className="w-full bg-transparent pl-10 pr-9 py-2.5 text-sm text-white placeholder:text-white/40 rounded-full focus:outline-none focus:ring-2 focus:ring-white/40 transition-all"
                       />
@@ -2453,13 +2516,14 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           {activeTab === 'chat' && (
             <div className={`grok-chat-app ${activeChatUserId ? 'chat-open' : ''} ${showClientInfoPanel && activeChatClient ? 'profile-open' : ''}`}>
               <aside className="grok-sidebar grok-glass">
-                <div className="grok-sidebar-header">Чаты ({clientsOnly.length})</div>
+                <div className="grok-sidebar-header">Чаты ({chatSessions.length})</div>
                 <div className="px-3 pb-2">
                   <input
                     type="text"
                     value={chatSearchQuery}
                     onChange={(e) => setChatSearchQuery(e.target.value)}
                     placeholder="Поиск по имени, email или телефону"
+                          autoComplete="off"
                     className="w-full text-xs rounded-lg px-3 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 outline-none focus:border-orange-400"
                   />
                 </div>
@@ -2767,6 +2831,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           value={clientSearchQuery}
                           onChange={(e) => setClientSearchQuery(e.target.value)}
                           placeholder="Поиск по имени, email или телефону..."
+                          autoComplete="off"
                           aria-label="Поиск по клиентам"
                           className="w-full bg-transparent pl-10 pr-9 py-2 text-xs text-white placeholder:text-white/40 rounded-full focus:outline-none focus:ring-2 focus:ring-white/40 transition-all"
                         />
@@ -3746,6 +3811,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <label htmlFor="admin-full-name" className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">ФИО Администратора</label>
                       <input
                         id="admin-full-name"
+                          autoComplete="name"
                         type="text"
                         value={adminFullName}
                         onChange={e => setAdminFullName(e.target.value)}
@@ -4674,7 +4740,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 <button
                   type="button"
                   onClick={handleCreatePromo}
-                  disabled={!promoForm.title.trim()}
+                  disabled={!promoForm.title.trim() && !promoForm.imageUrl}
                   className="btn-holo-glass w-full py-3 rounded-xl font-black text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ color: '#1e293b' }}
                 >
@@ -4704,7 +4770,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           />
                         )}
                         <div className="min-w-0 flex-1">
-                          <p className="font-bold text-white text-sm">{promo.title}</p>
+                          <p className="font-bold text-white text-sm">
+                            {promo.title || (
+                              /* Без этого строка списка выглядела бы пустой, и
+                                 новость-картинку нельзя было бы отличить от сбоя. */
+                              <span className="text-white/40 font-medium italic">Без подписи — только {promo.mediaType === 'video' ? 'видео' : 'фото'}</span>
+                            )}
+                          </p>
                           {promo.body ? (
                             <p className="text-xs text-white/55 mt-1 whitespace-pre-wrap">{promo.body}</p>
                           ) : null}
@@ -4773,6 +4845,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   value={archiveSearch}
                   onChange={e => setArchiveSearch(e.target.value)}
                   placeholder="Поиск по сумме, имени, email или дате..."
+                  autoComplete="off"
                   className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>

@@ -59,7 +59,9 @@ export function PromoCardPreview({ promo, width = 260 }: { promo: PreviewPromo; 
   const k = width / 260;
   const px = (n: number) => `${Math.round(n * k * 10) / 10}px`;
 
-  const hasText = Boolean(promo.title || promo.body);
+  // Нижнюю часть рисуем по тому же правилу, что и приложение: есть подпись
+  // или ссылка — рисуем, нет ничего — карточка остаётся просто картинкой.
+  const hasText = Boolean(promo.title || promo.body || promo.linkUrl);
 
   return (
     <div
