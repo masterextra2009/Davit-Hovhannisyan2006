@@ -5475,39 +5475,61 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={(uploadedFiles.length === 0 && !selectedService) || !isWorkingHours() || uploadedFiles.some(f => !f.url)}
-                    className={`w-full flex items-center justify-center gap-2 py-4 px-4 rounded-2xl font-black text-sm text-white transition-all ${
-                      (uploadedFiles.length > 0 || selectedService) && isWorkingHours() && !uploadedFiles.some(f => !f.url)
-                        ? 'bg-indigo-600 hover:bg-indigo-700 cursor-pointer'
-                        : 'bg-white/10 text-white/30 cursor-not-allowed'
-                    }`}
-                  >
-                    <FileCheck className="w-5 h-5" />
-                    {!isWorkingHours()
-                      ? 'Оформление временно недоступно'
-                      : uploadedFiles.some(f => !f.url)
-                        ? 'Загрузка файлов...'
-                        : 'Оформить и оплатить онлайн'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => handlePlaceOrder(e, true)}
-                    disabled={(uploadedFiles.length === 0 && !selectedService) || !isWorkingHours() || uploadedFiles.some(f => !f.url)}
-                    className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-bold text-xs mt-2 transition-all ${
-                      (uploadedFiles.length > 0 || selectedService) && isWorkingHours() && !uploadedFiles.some(f => !f.url)
-                        ? 'bg-white/8 hover:bg-white/15 text-white cursor-pointer border border-white/15'
-                        : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'
-                    }`}
-                  >
-                    💵 Оплата при получении
-                  </button>
-                  {uploadedFiles.length === 0 && !selectedService && (
+                  {/* Два РАВНОПРАВНЫХ способа оплаты.
+                      Раньше «при получении» была бледной мелкой кнопкой под яркой
+                      синей. Клиенты её попросту не замечали, жали единственную
+                      заметную, попадали на ЮKassa и там передумывали — а заказ к
+                      этому моменту уже записан в базу (так и надо: сервер сверяет
+                      по нему сумму платежа, см. handlePlaceOrder) и оставался
+                      висеть неоплаченным. Теперь оба способа выглядят одинаково
+                      весомо, и у каждого подписано, когда именно платить.
+
+                      Цвет текста задан на самой кнопке, а подпись приглушена через
+                      opacity — так выключенному состоянию не нужно повторять
+                      условие отдельно для каждой строки. */}
+                  <div className="flex flex-col gap-2.5">
+                    <button
+                      type="submit"
+                      disabled={(uploadedFiles.length === 0 && !selectedService) || !isWorkingHours() || uploadedFiles.some(f => !f.url)}
+                      className={`w-full flex flex-col items-start gap-0.5 text-left py-3.5 px-4 rounded-2xl border transition-all ${
+                        (uploadedFiles.length > 0 || selectedService) && isWorkingHours() && !uploadedFiles.some(f => !f.url)
+                          ? 'bg-indigo-600/25 border-indigo-400/50 hover:bg-indigo-600/40 text-white cursor-pointer'
+                          : 'bg-white/5 border-white/5 text-white/25 cursor-not-allowed'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 font-black text-[13.5px]">💳 Оплатить онлайн</span>
+                      <span className="text-[11.5px] font-medium opacity-60">Картой или СБП прямо сейчас</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handlePlaceOrder(e, true)}
+                      disabled={(uploadedFiles.length === 0 && !selectedService) || !isWorkingHours() || uploadedFiles.some(f => !f.url)}
+                      className={`w-full flex flex-col items-start gap-0.5 text-left py-3.5 px-4 rounded-2xl border transition-all ${
+                        (uploadedFiles.length > 0 || selectedService) && isWorkingHours() && !uploadedFiles.some(f => !f.url)
+                          ? 'bg-white/[0.06] border-white/15 hover:bg-white/15 text-white cursor-pointer'
+                          : 'bg-white/5 border-white/5 text-white/25 cursor-not-allowed'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 font-black text-[13.5px]">💵 Оплатить при получении</span>
+                      <span className="text-[11.5px] font-medium opacity-60">Наличными или картой в филиале</span>
+                    </button>
+                  </div>
+                  {/* Причина, по которой кнопки выключены — одной строкой под обеими.
+                      Раньше она подменяла надпись на главной кнопке; теперь кнопок
+                      две, и подменять текст в обеих было бы шумно. */}
+                  {!isWorkingHours() ? (
+                    <p className="text-center text-[12px] text-white/30 mt-2">
+                      Оформление временно недоступно — попробуйте в рабочие часы
+                    </p>
+                  ) : uploadedFiles.some(f => !f.url) ? (
+                    <p className="text-center text-[12px] text-white/30 mt-2">
+                      Файлы ещё загружаются…
+                    </p>
+                  ) : (uploadedFiles.length === 0 && !selectedService) ? (
                     <p className="text-center text-[12px] text-white/30 mt-2">
                       ↑ Сначала загрузите файл на шаге 1
                     </p>
-                  )}
+                  ) : null}
                 </form>
               </div>
 
