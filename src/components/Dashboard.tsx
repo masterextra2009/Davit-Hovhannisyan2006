@@ -86,6 +86,7 @@ import {
   formatServicePrice, sortServicesByGroup
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
+import { PromoTicket } from './PromoTicket';
 import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode, registerUserWithFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -5372,6 +5373,27 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <label htmlFor="promo-code" className="block text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">
                       Промокод
                     </label>
+
+                    {/* Личный промокод — билетом, как в приложении.
+                        Поле ввода ниже остаётся: кроме личного кода есть общие
+                        (STUDENT15 и прочие), их по-прежнему набирают руками.
+                        А свой собственный переписывать больше не надо — это и
+                        была главная причина, по которой скидкой не пользовались. */}
+                    {user.promoCode && user.promoDiscount ? (
+                      <div className="mb-3">
+                        <PromoTicket
+                          code={user.promoCode}
+                          discount={user.promoDiscount}
+                          expiresAt={user.promoExpiresAt}
+                          applied={appliedPromo === user.promoCode}
+                          onApply={c => {
+                            setPromoCode(c);
+                            setAppliedPromo(c);
+                            setPromoError(null);
+                          }}
+                        />
+                      </div>
+                    ) : null}
                     <div className="flex gap-2">
                       <input
                         id="promo-code"
