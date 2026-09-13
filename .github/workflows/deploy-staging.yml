@@ -18,7 +18,8 @@ jobs:
         run: npm run build
       - name: Swap in the password-protected .htaccess for staging
         run: |
-          cp deploy/staging.htaccess dist/.htaccess
+          cat deploy/staging-auth.htaccess dist/.htaccess > dist/.htaccess.new
+          mv dist/.htaccess.new dist/.htaccess
           cp deploy/.htpasswd dist/.htpasswd
       - name: Deploy via SFTP (password)
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
