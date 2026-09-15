@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { isVoice } from './utils/chatVoice';
 import { User, DatabaseState } from './types';
 import {
   getInitialDatabase, saveDatabase,
@@ -157,7 +158,7 @@ export default function App() {
               const finalM = foreignMsgs[foreignMsgs.length - 1];
               showBrowserNotification(
                 `Новое сообщение от ${finalM.senderName}`,
-                finalM.message.startsWith('[IMAGE]:') ? '📷 Отправлено изображение' : finalM.message
+                finalM.message.startsWith('[IMAGE]:') ? '📷 Отправлено изображение' : isVoice(finalM.message) ? '🎤 Голосовое сообщение' : finalM.message
               );
             }
           }

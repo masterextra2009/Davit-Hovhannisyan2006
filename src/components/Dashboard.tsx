@@ -86,6 +86,7 @@ import {
   formatServicePrice, sortServicesByGroup
 } from '../utils';
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
+import { isVoice, parseVoice, formatVoiceLength } from '../utils/chatVoice';
 import { PromoTicket } from './PromoTicket';
 import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode, registerUserWithFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -6255,7 +6256,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                   : 'bg-blue-600 text-white border-transparent rounded-br-md'
                               }`}
                             >
-                              {msg.message.startsWith('[IMAGE]:') ? (
+                              {isVoice(msg.message) ? (
+                                <div className="space-y-1 my-0.5">
+                                  <audio controls preload="none" src={parseVoice(msg.message).src} style={{ maxWidth: 240, display: 'block' }} />
+                                  <span className="text-[10px] opacity-70 inline-flex items-center gap-0.5">🎤 {formatVoiceLength(parseVoice(msg.message).seconds)} · {timeStr}{readTicks}</span>
+                                </div>
+                              ) : msg.message.startsWith('[IMAGE]:') ? (
                                 <div className="space-y-1 my-0.5">
                                   <div className="relative">
                                     <img

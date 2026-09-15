@@ -24,6 +24,7 @@ import {
 } from '../utils';
 import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase } from '../firebaseUtils';
 import { db, doc, setDoc, deleteDoc, getDoc } from '../firebase';
+import { isVoice, parseVoice, formatVoiceLength } from '../utils/chatVoice';
 import { PromoCardPreview } from './PromoCardPreview';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
@@ -1372,6 +1373,19 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   };
 
   // Send admin chat response
+  // «Администратор печатает…» в мобильном приложении клиента. Пока в поле
+  // ответа идёт набор, раз в 2,5 секунды ставим отметку времени в профиль
+  // клиента (users/{id}.adminTypingAt); приложение показывает надпись, пока
+  // отметке меньше 6 секунд. Правила Firestore админу это уже разрешают.
+  const lastTypingSignalRef = useRef(0);
+  const signalTyping = () => {
+    if (!activeChatUserId) return;
+    const now = Date.now();
+    if (now - lastTypingSignalRef.current < 2500) return;
+    lastTypingSignalRef.current = now;
+    setDoc(doc(db, 'users', activeChatUserId), { adminTypingAt: new Date(now).toISOString() }, { merge: true }).catch(() => {});
+  };
+
   const handleAdminSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!adminChatInput.trim() || !activeChatUserId) return;
@@ -1404,6 +1418,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         })
       }).catch(() => {});
     }
+
+    // Ответ ушёл — «печатает» у клиента гаснет сразу, не дожидаясь 6 секунд.
+    lastTypingSignalRef.current = 0;
+    setDoc(doc(db, 'users', activeChatUserId), { adminTypingAt: '' }, { merge: true }).catch(() => {});
 
     setAdminChatInput('');
   };
@@ -2533,7 +2551,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   ) : filteredChatSessions.map(session => {
                     const isSelected = session.client.id === activeChatUserId;
                     const preview = session.lastMsg
-                      ? (session.lastMsg.message.startsWith('[IMAGE]:') ? '📷 Фото' : session.lastMsg.message.startsWith('[STICKER]:') ? '✨ Стикер' : session.lastMsg.message)
+                      ? (session.lastMsg.message.startsWith('[IMAGE]:') ? '📷 Фото' : isVoice(session.lastMsg.message) ? '🎤 Голосовое' : session.lastMsg.message.startsWith('[STICKER]:') ? '✨ Стикер' : session.lastMsg.message)
                       : 'Нет сообщений';
                     return (
                       <div
@@ -2634,6 +2652,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                       />
                                       <span className="text-[11px] opacity-70 block italic">Защищено водяным знаком &bull; ПРИМЕР</span>
                                     </div>
+                                  ) : isVoice(msg.message) ? (
+                                    <div className="space-y-1 text-left">
+                                      <span className="text-[11px] opacity-70 block">🎤 Голосовое · {formatVoiceLength(parseVoice(msg.message).seconds)}</span>
+                                      <audio controls preload="none" src={parseVoice(msg.message).src} style={{ maxWidth: 260, display: 'block' }} />
+                                    </div>
                                   ) : msg.message}
                                 </div>
                                 )}
@@ -2697,7 +2720,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <input
                         type="text"
                         value={adminChatInput}
-                        onChange={e => setAdminChatInput(e.target.value)}
+                        onChange={e => { setAdminChatInput(e.target.value); signalTyping(); }}
                         placeholder="Напишите ответ клиенту (файлы приняты, печатаю...)"
                         aria-label="Ответ клиенту"
                         className="grok-composer-input"
