@@ -31,10 +31,11 @@ const A3_CHERTYOZH = ['bw' => ['80' => 70, '200' => 100], 'color' => ['80' => 10
  */
 const BUNDLE_MIN_PER_FILE = 20;
 /**
- * Общие промокоды, как на сайте. FIRSTFREE (20%) и COPYMAX (50%) убраны
- * 16.09.2026 по решению Давида: их было видно в коде сайта любому.
+ * Общих промокодов нет: 16.09.2026 Давид убрал все (PROMO10, STUDENT15,
+ * WELCOME5, FIRSTFREE, COPYMAX) — «даю только я лично». Скидку даёт только
+ * личный код клиента из админки. Появится общий код — вписать сюда.
  */
-const FIXED_PROMO_CODES = ['PROMO10' => 10, 'STUDENT15' => 15, 'WELCOME5' => 5];
+const FIXED_PROMO_CODES = [];
 
 function binding_fee_per_copy(string $binding, int $pages): int
 {
