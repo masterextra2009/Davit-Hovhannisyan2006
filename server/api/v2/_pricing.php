@@ -30,8 +30,11 @@ const A3_CHERTYOZH = ['bw' => ['80' => 70, '200' => 100], 'color' => ['80' => 10
  * дешёвой печати — архив стоить не может ни при каких настройках.
  */
 const BUNDLE_MIN_PER_FILE = 20;
-/** Общие промокоды, как на сайте. */
-const FIXED_PROMO_CODES = ['PROMO10' => 10, 'STUDENT15' => 15, 'WELCOME5' => 5, 'FIRSTFREE' => 20, 'COPYMAX' => 50];
+/**
+ * Общие промокоды, как на сайте. FIRSTFREE (20%) и COPYMAX (50%) убраны
+ * 16.09.2026 по решению Давида: их было видно в коде сайта любому.
+ */
+const FIXED_PROMO_CODES = ['PROMO10' => 10, 'STUDENT15' => 15, 'WELCOME5' => 5];
 
 function binding_fee_per_copy(string $binding, int $pages): int
 {
