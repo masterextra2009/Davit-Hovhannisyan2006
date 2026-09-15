@@ -1777,8 +1777,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       typed === 'PROMO10' ||
       typed === 'STUDENT15' ||
       typed === 'WELCOME5' ||
-      typed === 'FIRSTFREE' ||
-      typed === 'COPYMAX' ||
       (user.promoCode && typed === user.promoCode.trim().toUpperCase())
     ) {
       return typed;
@@ -1792,14 +1790,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     if (code === 'PROMO10') return 10;
     if (code === 'STUDENT15') return 15;
     if (code === 'WELCOME5') return 5;
-    if (code === 'FIRSTFREE') return 20;
-    if (code === 'COPYMAX') return 50;
+    // FIRSTFREE (20%), COPYMAX (50%) и «любой GIFT<число>» убраны 16.09.2026
+    // по решению Давида: коды видны в коде сайта, а GIFT-правило давало
+    // кому угодно скидку, равную введённому числу (GIFT100 — бесплатно).
+    // Подарочный код работает только как персональный код клиента.
     if (user.promoCode && code === user.promoCode.trim().toUpperCase()) {
       return user.promoDiscount || 0;
-    }
-    const match = code.match(/^GIFT(\d+)$/);
-    if (match) {
-      return parseInt(match[1], 10);
     }
     return 0;
   };
@@ -3671,10 +3667,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       code === 'PROMO10' || 
       code === 'STUDENT15' || 
       code === 'WELCOME5' ||
-      code === 'FIRSTFREE' ||
-      code === 'COPYMAX' ||
-      (user.promoCode && code === user.promoCode.trim().toUpperCase()) ||
-      code.match(/^GIFT\d+$/)
+      (user.promoCode && code === user.promoCode.trim().toUpperCase())
     ) {
       setAppliedPromo(code);
       setPromoError(null);
