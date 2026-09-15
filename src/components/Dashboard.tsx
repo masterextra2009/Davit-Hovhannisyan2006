@@ -6274,7 +6274,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                       {timeStr}{readTicks}
                                     </span>
                                   </div>
-                                  <span className="text-[10px] opacity-70 block italic">Защищено водяным знаком &bull; ПРИМЕР</span>
+                                  {isAdmin && <span className="text-[10px] opacity-70 block italic">Защищено водяным знаком &bull; ПРИМЕР</span>}
                                 </div>
                               ) : (
                                 <>

@@ -2636,7 +2636,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                         src={msg.message.substring(8)}
                                         loading="lazy"
                                         className="rounded-xl max-w-[200px] sm:max-w-xs cursor-pointer hover:opacity-90"
-                                        alt="Пример готового продукта"
+                                        alt={isAdmin ? "Пример готового продукта" : "Фото от клиента"}
                                         onClick={() => {
                                           const imgWin = window.open('', '_blank');
                                           if (imgWin) {
@@ -2650,7 +2650,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                           }
                                         }}
                                       />
-                                      <span className="text-[11px] opacity-70 block italic">Защищено водяным знаком &bull; ПРИМЕР</span>
+                                      {isAdmin && <span className="text-[11px] opacity-70 block italic">Защищено водяным знаком &bull; ПРИМЕР</span>}
                                     </div>
                                   ) : isVoice(msg.message) ? (
                                     <div className="space-y-1 text-left">
