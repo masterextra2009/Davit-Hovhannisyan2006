@@ -21,6 +21,7 @@ declare(strict_types=1);
 // при создании ставит сервер, а не присланные данные.
 
 require __DIR__ . '/_bootstrap.php';
+require __DIR__ . '/_pricing.php';
 
 const ORDER_STATUSES = ['pending', 'approved', 'printing', 'ready', 'printed'];
 const PAYMENT_STATUSES = ['unpaid', 'paid', 'failed'];
@@ -32,7 +33,7 @@ const MAX_FILES_JSON = 2000000;
 const FILE_KEYS = [
     'id', 'name', 'size', 'type', 'uploadedAt', 'simplifiedDocsMode', 'formatGroup', 'pageCount',
     'url', 'previewUrl', 'paperType', 'format', 'printColor', 'fileCopies', 'photoSize', 'photoBorder',
-    'a3Kind', 'a3PaperWeight', 'a3PhotoFinish', 'bindingKind', 'colorFillPercent',
+    'a3Kind', 'a3PaperWeight', 'a3PhotoFinish', 'bindingKind', 'colorFillPercent', 'colorTier',
     'imagePixelWidth', 'imagePixelHeight', 'collageCount', 'collagePaper', 'bundleFixedPrice', 'bundleFileCount',
 ];
 /** Файлы новых заказов клиентов — только с сервера мастерской (152-ФЗ: данные в РФ). */
@@ -130,12 +131,26 @@ function create(array $user)
     if (!$files && $serviceId === null) {
         fail('В заказе нет файлов');
     }
-    $total = money($o['totalCost'] ?? null);
-    if ($total === null) {
-        fail('Неверная сумма заказа');
-    }
+    // Сумму считает сервер (_pricing.php) — присланную не берём. Неизвестный
+    // или истёкший промокод просто не даёт скидки и в заказ не пишется.
     $promo = str_or_null($o['promoCode'] ?? null, 64);
     $promo = $promo === null ? null : mb_strtoupper($promo);
+    $discount = promo_percent($promo, $user);
+    if ($discount === 0) {
+        $promo = null;
+    }
+    $serviceExtra = 0;
+    if ($serviceId !== null) {
+        $servicePrice = service_price($serviceId);
+        if ($servicePrice === null) {
+            fail('Эта услуга сейчас недоступна — обновите страницу', 409);
+        }
+        $serviceExtra = $servicePrice;
+    }
+    $binding = str_or_null($o['binding'] ?? null, 32);
+    $totalRub = order_price($files, $binding, $discount, $serviceExtra);
+    $total = number_format($totalRub, 2, '.', '');
+    $claimed = money($o['totalCost'] ?? null);
 
     $row = [
         'id' => $id,
@@ -157,9 +172,9 @@ function create(array $user)
         'photo_size' => str_or_null($o['photoSize'] ?? null, 32),
         'print_color' => str_or_null($o['printColor'] ?? null, 16),
         'copies' => int_in($o['copies'] ?? 1, 1, 100000) ?? 1,
-        'binding' => str_or_null($o['binding'] ?? null, 32),
+        'binding' => $binding,
         'promo_code' => $promo,
-        'promo_discount' => $promo === null ? null : int_in($o['promoDiscount'] ?? null, 0, 100),
+        'promo_discount' => $promo === null ? null : $discount,
         'service_id' => $serviceId,
     ];
 
@@ -180,7 +195,24 @@ function create(array $user)
         }
         throw $e;
     }
-    respond(['ok' => true, 'order' => order_public(load_order($id, $user, false))], 201);
+    respond([
+        'ok' => true,
+        'order' => order_public(load_order($id, $user, false)),
+        // Сайт или приложение показали клиенту другую сумму — пусть покажут эту.
+        'priceChanged' => $claimed !== null && $claimed !== $total,
+    ], 201);
+}
+
+/** Цена услуги из витрины в рублях (первое число в строке цены) или null, если услуги нет. */
+function service_price(string $id): ?int
+{
+    $st = db()->prepare('SELECT price FROM services WHERE id = ? AND is_active = 1');
+    $st->execute([$id]);
+    $price = $st->fetchColumn();
+    if ($price === false || !preg_match('/\d[\d\s]*/u', (string) $price, $m)) {
+        return null;
+    }
+    return (int) preg_replace('/\s+/u', '', $m[0]);
 }
 
 /**

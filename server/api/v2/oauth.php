@@ -18,6 +18,7 @@ declare(strict_types=1);
 // Telegram — в api/config.php, в код не копируются.
 
 require __DIR__ . '/_bootstrap.php';
+require __DIR__ . '/_telegram.php';
 
 const OAUTH_REDIRECT = 'https://sever-18.ru/api/v2/oauth.php';
 const SITE_ORIGIN = 'https://sever-18.ru';
@@ -452,21 +453,6 @@ function provider_config(string $provider): ?array
         return null;
     }
     return $cfg;
-}
-
-function telegram_bot_token(): string
-{
-    static $token = null;
-    if ($token === null) {
-        $file = SITE_DIR . '/api/config.php';
-        if (!defined('TELEGRAM_BOT_TOKEN') && is_readable($file)) {
-            ob_start();
-            require_once $file;
-            ob_end_clean();
-        }
-        $token = defined('TELEGRAM_BOT_TOKEN') ? (string) TELEGRAM_BOT_TOKEN : (string) getenv('TELEGRAM_BOT_TOKEN');
-    }
-    return $token;
 }
 
 /** Забирает одноразовую метку входа (после этого она больше не действует). */
