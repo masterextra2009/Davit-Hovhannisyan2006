@@ -1,0 +1,45 @@
+# Ошибки PHP — только в журнал сервера, не на экран: иначе посетитель видит
+# пути на хостинге и куски кода.
+php_flag display_errors off
+Options -Indexes
+php_value upload_max_filesize 50M
+php_value post_max_size 55M
+php_value max_execution_time 300
+php_value memory_limit 128M
+<IfModule mod_headers.c>
+      Header always set X-Content-Type-Options "nosniff"
+      Header always set X-Frame-Options "SAMEORIGIN"
+      Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+      Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  </IfModule>
+
+# Служебные файлы с данными (привязки Telegram, коды, счётчики) и настройки
+# читают только скрипты на сервере. Из интернета по ссылке — закрыто
+# (152-ФЗ: привязка Telegram к клиенту — персональные данные).
+<IfModule mod_authz_core.c>
+  <FilesMatch "\.(json|log|txt|sql|bak|ini)$">
+    Require all denied
+  </FilesMatch>
+  <Files "config.php">
+    Require all denied
+  </Files>
+</IfModule>
+<IfModule !mod_authz_core.c>
+  <FilesMatch "\.(json|log|txt|sql|bak|ini)$">
+    Order allow,deny
+    Deny from all
+  </FilesMatch>
+  <Files "config.php">
+    Order allow,deny
+    Deny from all
+  </Files>
+</IfModule>
+
+# Кэширование статичных файлов сборки на год — их имена содержат хэш
+# (например index-D45QSluR.js), поэтому при каждом новом деплое имя меняется
+# и браузер сам скачает свежий файл, а старый спокойно долежит в кэше.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
