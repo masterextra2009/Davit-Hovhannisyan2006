@@ -450,14 +450,12 @@ export function calculateOrderCost(
 
   // Promo discount calculations
   let discountPercent = 0;
-  if (promoCode) {
-    const cleanCode = promoCode.trim().toUpperCase();
-    if (cleanCode === 'PROMO10') discountPercent = 10;
-    else if (cleanCode === 'STUDENT15') discountPercent = 15;
-    // FIRSTFREE, COPYMAX и «любой GIFT<число>» убраны 16.09.2026 (их мог ввести
-    // кто угодно). Скидка уже оформленного заказа по такому коду не теряется:
-    // она сохранена в самом заказе и приходит сюда как customDiscountPercent.
-    else if (customDiscountPercent) discountPercent = customDiscountPercent;
+  // Общих промокодов (PROMO10, STUDENT15, FIRSTFREE, COPYMAX, «любой GIFT<число>»)
+  // с 16.09.2026 нет — скидку даёт только личный код клиента. Скидка уже
+  // оформленного заказа не теряется: она сохранена в самом заказе и приходит
+  // сюда как customDiscountPercent.
+  if (promoCode && customDiscountPercent) {
+    discountPercent = customDiscountPercent;
   }
 
   if (discountPercent > 0) {

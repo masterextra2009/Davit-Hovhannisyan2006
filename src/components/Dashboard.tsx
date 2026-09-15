@@ -1773,12 +1773,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const getActivePromo = () => {
     if (appliedPromo) return appliedPromo;
     const typed = promoCode.trim().toUpperCase();
-    if (
-      typed === 'PROMO10' ||
-      typed === 'STUDENT15' ||
-      typed === 'WELCOME5' ||
-      (user.promoCode && typed === user.promoCode.trim().toUpperCase())
-    ) {
+    if (user.promoCode && typed === user.promoCode.trim().toUpperCase()) {
       return typed;
     }
     return null;
@@ -1787,13 +1782,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const getActiveDiscountPercent = (activePromoCode: string | null) => {
     if (!activePromoCode) return 0;
     const code = activePromoCode.trim().toUpperCase();
-    if (code === 'PROMO10') return 10;
-    if (code === 'STUDENT15') return 15;
-    if (code === 'WELCOME5') return 5;
-    // FIRSTFREE (20%), COPYMAX (50%) и «любой GIFT<число>» убраны 16.09.2026
-    // по решению Давида: коды видны в коде сайта, а GIFT-правило давало
-    // кому угодно скидку, равную введённому числу (GIFT100 — бесплатно).
-    // Подарочный код работает только как персональный код клиента.
+    // Скидку даёт только личный промокод, выданный клиенту в админке.
+    // Общие коды (PROMO10, STUDENT15, WELCOME5, FIRSTFREE, COPYMAX) и
+    // «любой GIFT<число>» убраны 16.09.2026 по решению Давида («даю только я
+    // лично»): коды были видны в коде сайта, а GIFT-правило давало кому
+    // угодно скидку, равную введённому числу (GIFT100 — бесплатно).
     if (user.promoCode && code === user.promoCode.trim().toUpperCase()) {
       return user.promoDiscount || 0;
     }
@@ -3663,12 +3656,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const handleApplyPromo = () => {
     const code = promoCode.trim().toUpperCase();
     if (!code) return;
-    if (
-      code === 'PROMO10' || 
-      code === 'STUDENT15' || 
-      code === 'WELCOME5' ||
-      (user.promoCode && code === user.promoCode.trim().toUpperCase())
-    ) {
+    if (user.promoCode && code === user.promoCode.trim().toUpperCase()) {
       setAppliedPromo(code);
       setPromoError(null);
       playPlaceOrderSound();
@@ -5370,11 +5358,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       Промокод
                     </label>
 
-                    {/* Личный промокод — билетом, как в приложении.
-                        Поле ввода ниже остаётся: кроме личного кода есть общие
-                        (STUDENT15 и прочие), их по-прежнему набирают руками.
-                        А свой собственный переписывать больше не надо — это и
-                        была главная причина, по которой скидкой не пользовались. */}
+                    {/* Личный промокод — билетом, как в приложении: свой код
+                        переписывать не надо — это и была главная причина, по
+                        которой скидкой не пользовались. Поле ввода ниже остаётся
+                        для кода, который Давид продиктовал лично. Общих кодов
+                        с 16.09.2026 нет. */}
                     {user.promoCode && user.promoDiscount ? (
                       <div className="mb-3">
                         <PromoTicket
