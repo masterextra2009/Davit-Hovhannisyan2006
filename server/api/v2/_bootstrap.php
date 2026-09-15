@@ -3,7 +3,8 @@ declare(strict_types=1);
 
 // Общая часть нового сервера Фото-Севера (api/v2) — переезд данных из Google
 // Firebase в РФ (152-ФЗ, ст. 18 ч. 5). База MySQL mastesu6_sever на хостинге
-// Beget; настройки с паролем лежат вне сайта: ~/private/sever18-db.php.
+// Beget; настройки с паролем лежат выше public_html:
+// ~/sever-18.ru/.sever18-private/sever18-db.php.
 //
 // Подключается первой строкой в каждом файле api/v2.
 
@@ -168,6 +169,10 @@ function create_session(string $userId, string $device): string
 function bearer_token(): string
 {
     $h = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+    // Apache на Beget не кладёт Authorization в $_SERVER — берём из заголовков.
+    if ($h === '' && function_exists('getallheaders')) {
+        $h = array_change_key_case(getallheaders(), CASE_LOWER)['authorization'] ?? '';
+    }
     return preg_match('/^Bearer\s+([a-f0-9]{64})$/i', $h, $m) ? strtolower($m[1]) : '';
 }
 
