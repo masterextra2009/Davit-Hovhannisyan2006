@@ -7,6 +7,8 @@ declare(strict_types=1);
 //   POST login     {email, password, source}
 //   POST logout    (Authorization: Bearer <token>)
 //   GET  me        (Authorization: Bearer <token>)
+//   POST guest     {source}  — «Загрузить файл» без регистрации
+//   POST delete-account       — клиент удаляет свой аккаунт (152-ФЗ, ст. 14)
 //
 // Старые клиенты входят со своими паролями: пока пароль ещё не перенесён
 // (password_hash пуст), он один раз сверяется с Firebase и сохраняется у нас
@@ -46,6 +48,13 @@ switch ($action) {
     case 'me':
         require_method('GET');
         respond(['ok' => true, 'user' => user_public(require_user())]);
+    case 'guest':
+        require_method('POST');
+        limit_attempts();
+        guest();
+    case 'delete-account':
+        require_method('POST');
+        delete_account();
     default:
         fail('Неизвестное действие', 404);
 }
@@ -212,4 +221,81 @@ function firebase_check_password(string $email, string $password): ?array
     }
     $data = json_decode($raw, true);
     return is_array($data) && !empty($data['localId']) ? $data : null;
+}
+
+/**
+ * Гостевой вход: человек нажал «Загрузить файл» на главной и не хочет пока
+ * заводить аккаунт. Пароля нет — заказ держится на самом пропуске, поэтому
+ * гость живёт только в этом браузере. Почту и имя он укажет при оформлении.
+ */
+function guest()
+{
+    $pdo = db();
+    $id = new_id();
+    $source = source();
+    $pdo->prepare(
+        "INSERT INTO users (id, email, full_name, role, auth_provider, is_guest, created_at)
+         VALUES (?, NULL, '', 'client', 'guest', 1, ?)"
+    )->execute([$id, now_utc()]);
+
+    // Согласие гость даёт тем же нажатием — храним так же, как у обычных.
+    $consentVersion = str_field('consentVersion', 32);
+    if ($consentVersion !== '') {
+        $consent = $pdo->prepare(
+            'INSERT INTO consents (user_id, kind, granted, doc_version, source, ip) VALUES (?, ?, 1, ?, ?, ?)'
+        );
+        $consent->execute([$id, 'personal_data', $consentVersion, $source, client_ip()]);
+        $consent->execute([$id, 'offer', $consentVersion, $source, client_ip()]);
+    }
+
+    $token = create_session($id, $source === 'app' ? 'app' : 'web');
+    $user = $pdo->prepare('SELECT * FROM users WHERE id = ?');
+    $user->execute([$id]);
+    respond(['ok' => true, 'token' => $token, 'user' => user_public($user->fetch())], 201);
+}
+
+/**
+ * Удаление своего аккаунта по требованию клиента (152-ФЗ, ст. 14 ч. 1: право
+ * на удаление данных; в приложении это обязательный пункт и по правилам
+ * магазинов).
+ *
+ * Что происходит: профиль помечается удалённым и обезличивается прямо сейчас,
+ * входы обрываются, чат и уведомления удаляются вместе с ним (они привязаны к
+ * пользователю). Заказы остаются: на них держится бухгалтерия и чеки ЮKassa —
+ * но без имени, почты и телефона. Файлы заказов чистит уборщик по сроку.
+ */
+function delete_account()
+{
+    $user = require_user();
+    if ($user['role'] === 'admin') {
+        fail('Аккаунт администратора так не удаляется', 403);
+    }
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('UPDATE orders SET user_name = ?, user_email = ?, user_phone = NULL WHERE user_id = ?')
+            ->execute(['Удалённый аккаунт', '', $user['id']]);
+        $pdo->prepare('DELETE FROM sessions WHERE user_id = ?')->execute([$user['id']]);
+        $pdo->prepare(
+            "UPDATE users SET email = NULL, full_name = '', phone = NULL, avatar_url = NULL,
+                    password_hash = NULL, telegram_chat_id = NULL, telegram_username = NULL,
+                    telegram_notifications_enabled = 0, expo_push_token = NULL, push_subscription = NULL,
+                    promo_code = NULL, promo_discount = NULL, promo_expires_at = NULL,
+                    referral_code = NULL, deleted_at = ?
+             WHERE id = ?"
+        )->execute([now_utc(), $user['id']]);
+        // Отзыв оставляем админу, но без имени и почты — сам текст это уже не
+        // персональные данные, а привязка к человеку — да.
+        $pdo->prepare("UPDATE feedback SET user_name = 'Удалённый аккаунт', user_email = '' WHERE user_id = ?")
+            ->execute([$user['id']]);
+        $pdo->prepare('DELETE FROM chat_messages WHERE user_id = ?')->execute([$user['id']]);
+        $pdo->prepare('DELETE FROM notifications WHERE user_id = ?')->execute([$user['id']]);
+        $pdo->prepare('DELETE FROM referral_codes WHERE user_id = ?')->execute([$user['id']]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        error_log('api/v2 delete-account: ' . $e->getMessage());
+        fail('Не удалось удалить аккаунт. Напишите нам, и мы удалим вручную.', 500);
+    }
+    respond(['ok' => true]);
 }
