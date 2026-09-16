@@ -2754,7 +2754,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       // его можно было подменить на чужой).
       if (v2.isV2Enabled()) {
         const uploaded = await withTimeout(v2.files.upload(file), 120000);
-        return uploaded.url;
+        // Именно здесь файл помечается загруженным. Без этой строки он
+        // навсегда оставался в состоянии «Загрузка…», и кнопки оформления
+        // заказа не включались — файл-то формально ещё не готов.
+        patchFileState(fileId, { url: uploaded.url });
+        return;
       }
 
       const formData = new FormData();

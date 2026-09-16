@@ -96,7 +96,9 @@ function upload_file(array $user)
     respond([
         'ok' => true,
         'path' => $path,
-        'url' => signed_url($path, LINK_DEFAULT_HOURS),
+        // Ссылка на файл заказа нужна долго: её открывают из админки при
+        // печати, иногда через несколько дней. Сутки — мало.
+        'url' => signed_url($path, LINK_MAX_HOURS),
         'name' => $safeName,
         'size' => (int) $f['size'],
     ]);
