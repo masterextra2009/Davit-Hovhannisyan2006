@@ -122,6 +122,21 @@ function create(array $user)
     $id = (string) ($o['id'] ?? '');
     $pdo = db();
 
+    // Один и тот же заказ может прилететь дважды: экран сохраняет его сам, а
+    // следом это же делает общий механизм «отправить изменения на сервер».
+    // Второй раз брони уже нет — она снимается при создании, — и клиент видел
+    // пугающее «Номер заказа устарел», хотя заказ на самом деле оформлен.
+    // Поэтому: заказ с этим номером уже есть и он наш — просто отдаём его.
+    $already = $pdo->prepare('SELECT * FROM orders WHERE id = ?');
+    $already->execute([$id]);
+    $existing = $already->fetch();
+    if ($existing) {
+        if ($existing['user_id'] !== $user['id']) {
+            fail('Номер заказа занят — оформите заказ ещё раз', 409);
+        }
+        respond(['ok' => true, 'order' => order_public($existing)]);
+    }
+
     $res = $pdo->prepare('SELECT user_id FROM order_reservations WHERE order_id = ? AND expires_at > UTC_TIMESTAMP(3)');
     $res->execute([$id]);
     if ($res->fetchColumn() !== $user['id']) {
