@@ -88,6 +88,7 @@ import {
 import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
 import { isVoice, parseVoice, formatVoiceLength } from '../utils/chatVoice';
 import { PromoTicket } from './PromoTicket';
+import * as v2 from '../api/v2';
 import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode, registerUserWithFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -2739,6 +2740,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       // не может открыть своё служебное хранилище), и лечится входом в аккаунт.
       if (!user.id) {
         throw new Error('не удалось определить ваш аккаунт — войдите в кабинет заново и повторите загрузку');
+      }
+
+      // На своём сервере загрузка требует входа, а папку выбирает сам сервер
+      // по аккаунту — номер владельца в запросе больше не участвует (раньше
+      // его можно было подменить на чужой).
+      if (v2.isV2Enabled()) {
+        const uploaded = await withTimeout(v2.files.upload(file), 120000);
+        return uploaded.url;
       }
 
       const formData = new FormData();

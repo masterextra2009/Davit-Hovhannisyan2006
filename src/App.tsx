@@ -40,8 +40,10 @@ import {
   deleteUserAccountWithFirebase,
   signOutUserWithFirebase,
   trackSiteVisit,
-  signInAsGuest
+  signInAsGuest,
+  setCachedUser
 } from './firebaseUtils';
+import * as v2 from './api/v2';
 
 // Заглушка "технические работы" на весь сайт. true = показывать её всем посетителям
 // вместо обычного сайта. Поставь false и задеплой, когда работы закончены.
@@ -108,6 +110,41 @@ export default function App() {
 
   // Restore and keep authentication session synced in real-time
   useEffect(() => {
+    // На своём сервере «кто вошёл» определяется не Firebase, а пропуском в
+    // этом браузере: спрашиваем сервер один раз при открытии страницы.
+    // Заодно здесь же заканчивается вход через соцсеть — она возвращает
+    // человека на сайт со ссылкой ?auth_ticket=…
+    if (v2.isV2Enabled()) {
+      let cancelled = false;
+      (async () => {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const ticket = params.get('auth_ticket');
+          if (ticket) {
+            window.history.replaceState({}, '', window.location.pathname);
+            const result = await v2.exchangeSocialTicket(ticket, { personalDataConsent: true });
+            if (result.user && !cancelled) {
+              setUser(result.user);
+              saveCurrentUser(result.user);
+              setCachedUser(result.user);
+              return;
+            }
+          }
+          const current = await v2.me();
+          if (cancelled) return;
+          setUser(current);
+          saveCurrentUser(current);
+          setCachedUser(current);
+          if (current && 'Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().catch(() => {});
+          }
+        } catch (err) {
+          console.warn('Не удалось восстановить вход:', err);
+        }
+      })();
+      return () => { cancelled = true; };
+    }
+
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
       if (!fbUser) {
         setUser(null);

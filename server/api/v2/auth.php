@@ -8,6 +8,8 @@ declare(strict_types=1);
 //   POST logout    (Authorization: Bearer <token>)
 //   GET  me        (Authorization: Bearer <token>)
 //   POST guest     {source}  — «Загрузить файл» без регистрации
+//   POST upgrade   {email, password, fullName, phone?, consentVersion}
+//                            — гость заводит настоящий аккаунт, заказы остаются
 //   POST delete-account       — клиент удаляет свой аккаунт (152-ФЗ, ст. 14)
 //
 // Старые клиенты входят со своими паролями: пока пароль ещё не перенесён
@@ -52,6 +54,10 @@ switch ($action) {
         require_method('POST');
         limit_attempts();
         guest();
+    case 'upgrade':
+        require_method('POST');
+        limit_attempts();
+        upgrade_guest();
     case 'delete-account':
         require_method('POST');
         delete_account();
@@ -298,4 +304,70 @@ function delete_account()
         fail('Не удалось удалить аккаунт. Напишите нам, и мы удалим вручную.', 500);
     }
     respond(['ok' => true]);
+}
+
+/**
+ * Гость решил завести настоящий аккаунт. Важно: остаёмся тем же самым
+ * пользователем — только добавляем почту, пароль и имя. Иначе его заказы,
+ * загруженные файлы и переписка остались бы на «старом» госте, а человек
+ * увидел бы пустой кабинет.
+ */
+function upgrade_guest()
+{
+    $user = require_user();
+    if ((int) $user['is_guest'] !== 1) {
+        fail('Аккаунт уже зарегистрирован', 409);
+    }
+    $email = normalized_email();
+    $password = (string) (body()['password'] ?? '');
+    $fullName = str_field('fullName');
+    $phone = str_field('phone', 32);
+    $consentVersion = str_field('consentVersion', 32);
+
+    if (mb_strlen($password) < MIN_PASSWORD) {
+        fail('Пароль — не короче ' . MIN_PASSWORD . ' символов');
+    }
+    if ($fullName === '') {
+        fail('Укажите имя');
+    }
+    if ($consentVersion === '' || (body()['personalDataConsent'] ?? false) !== true) {
+        fail('Нужно согласие на обработку персональных данных');
+    }
+
+    $pdo = db();
+    $exists = $pdo->prepare('SELECT 1 FROM users WHERE email = ? AND id <> ?');
+    $exists->execute([$email, $user['id']]);
+    if ($exists->fetchColumn()) {
+        fail('Эта почта уже занята — войдите в тот аккаунт', 409);
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare(
+            "UPDATE users SET email = ?, full_name = ?, phone = ?, password_hash = ?,
+                    auth_provider = 'password', is_guest = 0 WHERE id = ?"
+        )->execute([$email, $fullName, $phone ?: null, password_hash($password, PASSWORD_DEFAULT), $user['id']]);
+
+        $consent = $pdo->prepare(
+            'INSERT INTO consents (user_id, kind, granted, doc_version, source, ip) VALUES (?, ?, 1, ?, ?, ?)'
+        );
+        $source = source();
+        $consent->execute([$user['id'], 'personal_data', $consentVersion, $source, client_ip()]);
+        $consent->execute([$user['id'], 'offer', $consentVersion, $source, client_ip()]);
+
+        // Свой код приглашения гостю не заводили — заводим сейчас, вместе с
+        // подарком, если он пришёл по чужой ссылке.
+        register_referral_code($pdo, $user['id']);
+        apply_invite($pdo, $user['id'], str_field('referralCode', 32));
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        error_log('api/v2 upgrade: ' . $e->getMessage());
+        fail('Не удалось завершить регистрацию. Попробуйте ещё раз.', 500);
+    }
+
+    // Заказы, файлы и переписка остаются на месте: id не менялся.
+    $st = $pdo->prepare('SELECT * FROM users WHERE id = ?');
+    $st->execute([$user['id']]);
+    respond(['ok' => true, 'user' => user_public($st->fetch())]);
 }

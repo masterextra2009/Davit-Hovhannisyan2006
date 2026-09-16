@@ -22,6 +22,7 @@ import {
   getStatusColor, getPaymentStatusLabel, getPaymentStatusColor,
   exportToCSV, printInvoiceHTML, calculateOrderCost, getLocalDateKey, sortServicesByGroup
 } from '../utils';
+import * as v2 from '../api/v2';
 import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase } from '../firebaseUtils';
 import { db, doc, setDoc, deleteDoc, getDoc } from '../firebase';
 import { isVoice, parseVoice, formatVoiceLength } from '../utils/chatVoice';
@@ -775,20 +776,30 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         height = size.h;
       }
 
-      const formData = new FormData();
-      formData.append('file', toSend);
-      formData.append('userId', adminUser.id);
-      const res = await fetch('https://sever-18.ru/api/upload.php', { method: 'POST', body: formData });
-      // upload.php объясняет отказ по-русски в теле ответа — читаем его,
-      // а не показываем голый номер ошибки.
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.url) {
-        throw new Error(data?.error || ('сервер ответил кодом ' + res.status));
+      let uploadedUrl: string;
+      if (v2.isV2Enabled()) {
+        // Картинка новости — общая: кладём её в общую папку, чтобы ссылка
+        // осталась рабочей и в приложении, и через годы (личные файлы заказов
+        // так не отдаются — там нужен вход, см. files.php).
+        const uploaded = await v2.files.uploadPublic(toSend);
+        uploadedUrl = uploaded.url;
+      } else {
+        const formData = new FormData();
+        formData.append('file', toSend);
+        formData.append('userId', adminUser.id);
+        const res = await fetch('https://sever-18.ru/api/upload.php', { method: 'POST', body: formData });
+        // upload.php объясняет отказ по-русски в теле ответа — читаем его,
+        // а не показываем голый номер ошибки.
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.url) {
+          throw new Error(data?.error || ('сервер ответил кодом ' + res.status));
+        }
+        uploadedUrl = data.url;
       }
 
       setPromoForm(f => ({
         ...f,
-        imageUrl: data.url,
+        imageUrl: uploadedUrl,
         mediaType: isVideo ? 'video' : 'image',
         mediaWidth: width,
         mediaHeight: height,

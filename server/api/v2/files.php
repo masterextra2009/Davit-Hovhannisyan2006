@@ -10,6 +10,7 @@ declare(strict_types=1);
 // кто её знает. Паспорт или справка клиента — ровно такой же файл.
 //
 //   POST upload  (multipart: file)            → {path, url, name, size}
+//   POST upload-public (multipart: file)      → {url}   только админ
 //   GET  get     &path=…[&exp=…&sig=…]        → сам файл
 //   POST link    {path, hours?}               → {url}  временная ссылка
 //
@@ -44,6 +45,10 @@ switch ($action) {
     case 'upload':
         require_method('POST');
         upload_file($user);
+    case 'upload-public':
+        require_method('POST');
+        require_admin($isAdmin);
+        upload_public($user);
     case 'link':
         require_method('POST');
         make_link($user, $isAdmin);
@@ -115,6 +120,46 @@ function upload_error_text(int $code): string
         UPLOAD_ERR_NO_FILE => 'Файл не выбран',
         default => 'Не удалось загрузить файл',
     };
+}
+
+/**
+ * Картинки новостей, услуг и стикеров — они по смыслу общие: их показывает
+ * приложение всем клиентам, и ссылка на них живёт в новости годами. Поэтому
+ * такие файлы кладём в отдельную папку uploads/public/ и отдаём обычной
+ * прямой ссылкой, без входа и без срока.
+ *
+ * Разделение нужно и на будущее: личные файлы заказов из uploads/{номер
+ * клиента}/ мы закроем от прямых ссылок, а эту папку оставим открытой.
+ */
+function upload_public(array $user)
+{
+    if (!isset($_FILES['file']) || !is_array($_FILES['file'])) {
+        fail('Файл не получен');
+    }
+    $f = $_FILES['file'];
+    if (($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        fail(upload_error_text((int) $f['error']));
+    }
+    if ((int) $f['size'] > UPLOAD_MAX_BYTES) {
+        fail('Файл слишком большой. Максимальный размер — 50 МБ', 413);
+    }
+    $safeName = safe_file_name((string) $f['name']);
+    $ext = strtolower(pathinfo($safeName, PATHINFO_EXTENSION));
+    if (in_array($ext, FORBIDDEN_EXT, true)) {
+        fail('Этот тип файла не поддерживается');
+    }
+
+    $dir = SITE_DIR . '/uploads/public';
+    if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+        error_log('api/v2 files: не удалось создать общую папку');
+        fail('Не удалось сохранить файл', 500);
+    }
+    $unique = time() . '_' . random_int(1000, 9999) . '_' . $safeName;
+    if (!move_uploaded_file($f['tmp_name'], $dir . '/' . $unique)) {
+        error_log('api/v2 files: не удалось перенести общий файл');
+        fail('Не удалось сохранить файл', 500);
+    }
+    respond(['ok' => true, 'url' => 'https://sever-18.ru/uploads/public/' . rawurlencode($unique), 'name' => $safeName]);
 }
 
 // ─────────────────────────── Выдача ───────────────────────────

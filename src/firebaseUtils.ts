@@ -34,6 +34,34 @@ import {
 } from './firebase';
 import type { User as FirebaseAuthUser } from 'firebase/auth';
 import { User, Order, ChatMessage, Notification, Service, Feedback, Promo, DatabaseState } from './types';
+import * as v2 from './api/v2';
+
+/**
+ * ПЕРЕЕЗД С FIREBASE НА СВОЙ СЕРВЕР.
+ *
+ * Каждая функция ниже умеет работать двумя способами: по-старому через
+ * Firebase и по-новому через наш сервер (api/v2, клиент — src/api/v2.ts).
+ * Выбор делает один флаг, и по умолчанию он ВЫКЛЮЧЕН: боевой сайт работает
+ * как раньше. Включается сборкой (VITE_BACKEND=v2) или вручную в браузере
+ * (localStorage sever18_backend=v2) — так проверяем на копии /proverka/,
+ * не трогая работающий сайт.
+ *
+ * Компоненты (Dashboard, AdminPanel, AuthScreen) при этом не меняются вовсе:
+ * они как звали эти функции, так и зовут.
+ */
+const useV2 = () => v2.isV2Enabled();
+const CONSENT_VERSION = v2.CONSENT_VERSION;
+
+/**
+ * Кто сейчас вошёл — по ответу нашего сервера. Нужен там, где поведение
+ * зависит от роли (например, клиент оформляет заказ, а админ правит чужой).
+ * Firebase держал это в auth.currentUser; у нас профиль приходит с сервера,
+ * поэтому запоминаем последний известный и обновляем при каждом входе.
+ */
+let cachedUser: User | null = null;
+export function setCachedUser(user: User | null): void {
+  cachedUser = user;
+}
 
 // Автоматический приветственный промокод для тех, кто регистрируется в
 // период акции 22.07.2026–02.08.2026 (обе даты включительно). После конца
@@ -166,6 +194,26 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
  */
 export async function registerUserWithFirebase(email: string, password: string,fullName: string, phone: string, role: 'client' | 'admin' = 'client', referralCodeInput?: string): Promise<User> {
   const trimmedEmail = email.trim();
+  if (useV2()) {
+    const input = {
+      email: trimmedEmail,
+      password,
+      fullName: fullName.trim(),
+      phone: phone.trim(),
+      consentVersion: CONSENT_VERSION,
+      personalDataConsent: true,
+      referralCode: referralCodeInput,
+    };
+    // Если в этой вкладке уже есть гостевой пропуск («Загрузить файл» без
+    // регистрации) — не заводим второй аккаунт, а достраиваем этот: иначе
+    // заказы гостя остались бы на прежнем номере, и человек увидел бы пустой
+    // кабинет. На стороне сервера это auth.php?action=upgrade.
+    const current = await v2.me();
+    const user = current?.isGuest ? await v2.upgradeGuest(input) : await v2.register(input);
+    setCachedUser(user);
+    trackAnalyticsEvent('registration');
+    return user;
+  }
   try {
     // Если в этой же вкладке уже есть анонимная гостевая сессия ("Загрузить
     // файл" без регистрации, см. signInAsGuest) — апгрейдим её на месте
@@ -249,6 +297,11 @@ export async function registerUserWithFirebase(email: string, password: string,f
  */
 export async function signInUserWithFirebase(email: string, password: string): Promise<User> {
   const trimmedEmail = email.trim();
+  if (useV2()) {
+    const user = await v2.login(trimmedEmail, password);
+    setCachedUser(user);
+    return user;
+  }
   try {
     const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
     const fbUser = userCredential.user;
@@ -402,6 +455,14 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
  * and wasn't applied here since it can't be safely tested from this repo.)
  */
 export async function signInWithGoogleFirebase(): Promise<User> {
+  if (useV2()) {
+    // На своём сервере это не всплывающее окно, а обычный переход на страницу
+    // Google и возврат обратно с билетом (?auth_ticket=…), который меняется на
+    // вход уже в App.tsx. Поэтому здесь страница просто уходит, и обещание
+    // никогда не выполняется — это нормально.
+    v2.startSocialLogin('google');
+    return new Promise<User>(() => {});
+  }
   const provider = new GoogleAuthProvider();
   const result = await signInWithPopup(auth, provider);
   return upsertGoogleUserProfile(result.user);
@@ -417,6 +478,11 @@ export async function signInWithGoogleFirebase(): Promise<User> {
  * месте (linkWithCredential) — заказы остаются на том же uid.
  */
 export async function signInAsGuest(): Promise<User> {
+  if (useV2()) {
+    const user = await v2.guest(CONSENT_VERSION);
+    setCachedUser(user);
+    return user;
+  }
   const userCredential = await signInAnonymously(auth);
   const fbUser = userCredential.user;
 
@@ -528,6 +594,11 @@ export async function signInWithTelegram(telegramData: TelegramAuthData): Promis
  * Log out user from Firebase Auth
  */
 export async function signOutUserWithFirebase(): Promise<void> {
+  if (useV2()) {
+    await v2.logout();
+    setCachedUser(null);
+    return;
+  }
   await signOut(auth);
 }
 
@@ -535,6 +606,10 @@ export async function signOutUserWithFirebase(): Promise<void> {
  * Deletes a single order document from Firestore
  */
 export async function deleteOrderFromFirebase(orderId: string): Promise<void> {
+  if (useV2()) {
+    await v2.orders.remove(orderId);
+    return;
+  }
   try {
     await deleteDoc(doc(db, 'orders', orderId));
   } catch (e) {
@@ -546,6 +621,11 @@ export async function deleteOrderFromFirebase(orderId: string): Promise<void> {
  * Deletes user profile and related resources from Firestore
  */
 export async function deleteUserAccountWithFirebase(userId: string): Promise<void> {
+  if (useV2()) {
+    // Клиент удаляет себя сам; сервер обезличивает профиль и обрывает входы.
+    await v2.deleteAccount();
+    return;
+  }
   const user = auth.currentUser;
 
   // handleFirestoreError() ниже перебрасывает исключение дальше — раньше
@@ -616,6 +696,16 @@ export async function deleteUserAccountWithFirebase(userId: string): Promise<voi
  * заказа не заблокировалось из-за проблемы со счётчиком.
  */
 export async function getNextOrderNumber(): Promise<number> {
+  if (useV2()) {
+    // Сервер сам выдаёт следующий номер и держит его за этим клиентом
+    // (orders.php?action=reserve), возвращая готовый «ORD-1042».
+    const { orderId } = await v2.orders.reserve();
+    const digits = parseInt(String(orderId).replace(/\D+/g, ''), 10);
+    if (!Number.isFinite(digits)) {
+      throw new Error('Сервер вернул неожиданный номер заказа');
+    }
+    return digits;
+  }
   const counterRef = doc(db, 'counters', 'orders');
   return runTransaction(db, async (transaction) => {
     const snap = await transaction.get(counterRef);
@@ -629,6 +719,17 @@ export async function getNextOrderNumber(): Promise<number> {
  * Handle Order updates
  */
 export async function saveOrderToFirebase(order: Order): Promise<void> {
+  if (useV2()) {
+    // Клиент оформляет заказ (create — сервер сам поставит дату, статус и
+    // пересчитает сумму), админ правит уже существующий (save).
+    const current = cachedUser ?? (await v2.me());
+    if (current?.role === 'admin') {
+      await v2.orders.save(order);
+    } else {
+      await v2.orders.create(order);
+    }
+    return;
+  }
   const ref = doc(db, 'orders', order.id);
   try {
     await setDoc(ref, order);
@@ -638,6 +739,14 @@ export async function saveOrderToFirebase(order: Order): Promise<void> {
 }
 
 export async function updateOrderInFirebase(orderId: string, updates: Partial<Order>): Promise<void> {
+  if (useV2()) {
+    // У нашего сервера нет «дописать пару полей»: он принимает заказ целиком
+    // (так надёжнее — сумму и права он пересчитывает сам). Поэтому берём
+    // текущий заказ и отдаём его обратно с изменениями.
+    const { order } = await v2.orders.get(orderId);
+    await v2.orders.save({ ...order, ...updates } as Order);
+    return;
+  }
   const ref = doc(db, 'orders', orderId);
   try {
     await updateDoc(ref, updates);
@@ -650,6 +759,12 @@ export async function updateOrderInFirebase(orderId: string, updates: Partial<Or
  * Handle Chat updates
  */
 export async function sendChatMessageToFirebase(msg: ChatMessage): Promise<void> {
+  if (useV2()) {
+    // Кто отправитель и когда — ставит сервер; от нас только текст и, если
+    // пишет админ, чей это диалог.
+    await v2.chat.send(msg.message, msg.senderRole === 'admin' ? msg.userId : undefined);
+    return;
+  }
   const ref = doc(db, 'chatMessages', msg.id);
   try {
     await setDoc(ref, msg);
@@ -659,6 +774,16 @@ export async function sendChatMessageToFirebase(msg: ChatMessage): Promise<void>
 }
 
 export async function updateChatMessageInFirebase(msgId: string, updates: Partial<ChatMessage>): Promise<void> {
+  if (useV2()) {
+    // Единственное, что сайт правит в чужом сообщении, — «прочитано». На
+    // сервере это отдельное действие и сразу на весь диалог.
+    if (updates.readByClient) await v2.chat.markRead();
+    if (updates.readByAdmin) {
+      const dialogUserId = (updates as ChatMessage).userId;
+      if (dialogUserId) await v2.chat.markRead(dialogUserId);
+    }
+    return;
+  }
   const ref = doc(db, 'chatMessages', msgId);
   try {
     await updateDoc(ref, updates);
@@ -673,6 +798,13 @@ export async function updateChatMessageInFirebase(msgId: string, updates: Partia
  * не сюда, а обычным сообщением в chatMessages).
  */
 export async function sendFeedbackToFirebase(feedback: Feedback): Promise<void> {
+  if (useV2()) {
+    await v2.feedback.send(feedback.message, {
+      isBugReport: feedback.isBugReport,
+      screenshotUrl: feedback.screenshotUrl,
+    });
+    return;
+  }
   const ref = doc(db, 'feedback', feedback.id);
   try {
     await setDoc(ref, feedback);
@@ -682,6 +814,10 @@ export async function sendFeedbackToFirebase(feedback: Feedback): Promise<void> 
 }
 
 export async function deleteFeedbackFromFirebase(feedbackId: string): Promise<void> {
+  if (useV2()) {
+    await v2.feedback.remove(feedbackId);
+    return;
+  }
   try {
     await deleteDoc(doc(db, 'feedback', feedbackId));
   } catch (e) {
@@ -693,6 +829,15 @@ export async function deleteFeedbackFromFirebase(feedbackId: string): Promise<vo
  * Handle Notifications
  */
 export async function sendNotificationToFirebase(alert: Notification): Promise<void> {
+  if (useV2()) {
+    await v2.notifications.create({
+      title: alert.title,
+      body: alert.body,
+      type: alert.type,
+      userId: alert.userId,
+    });
+    return;
+  }
   const ref = doc(db, 'notifications', alert.id);
   try {
     await setDoc(ref, alert);
@@ -702,6 +847,10 @@ export async function sendNotificationToFirebase(alert: Notification): Promise<v
 }
 
 export async function updateNotificationInFirebase(alertId: string, updates: Partial<Notification>): Promise<void> {
+  if (useV2()) {
+    if (updates.read) await v2.notifications.markRead(alertId);
+    return;
+  }
   const ref = doc(db, 'notifications', alertId);
   try {
     await updateDoc(ref, updates);
@@ -711,6 +860,10 @@ export async function updateNotificationInFirebase(alertId: string, updates: Par
 }
 
 export async function deleteNotificationFromFirebase(alertId: string): Promise<void> {
+  if (useV2()) {
+    await v2.notifications.remove(alertId);
+    return;
+  }
   try {
     await deleteDoc(doc(db, 'notifications', alertId));
   } catch (e) {
@@ -735,6 +888,10 @@ export async function trackSiteVisit(): Promise<void> {
     if (alreadyTracked) return;
     sessionStorage.setItem('sever18_visit_tracked', '1');
 
+    if (useV2()) {
+      await v2.visits.track();
+      return;
+    }
     const today = getLocalDateKey();
     const statsRef = doc(db, 'stats', 'visits');
     // ВАЖНО: setDoc(..., {merge:true}) НЕ разворачивает ключ-строку с точкой
@@ -796,6 +953,13 @@ export function subscribeToFirebaseCollections(
   currentUser: User,
   onSync: (state: Partial<DatabaseState>) => void
 ): () => void {
+  if (useV2()) {
+    // Опрос вместо живой подписки. Удалённые записи приходят отдельным
+    // списком: опрос «что нового» их не увидит — их в базе уже нет.
+    return v2.subscribeByPolling(currentUser, (updates, deleted) => {
+      onSync(applyDeletions(updates, deleted));
+    });
+  }
   const unsubscribes: (() => void)[] = [];
 
   const isAdminUser = currentUser.role === 'admin';
@@ -909,7 +1073,33 @@ export function subscribeToFirebaseCollections(
 /**
  * Initial Seeding for blank relational databases
  */
+/**
+ * Убирает из свежего списка то, что удалили на другом устройстве. Сервер
+ * присылает такие записи отдельным списком номеров, потому что в самих
+ * данных их уже нет.
+ */
+function applyDeletions(
+  updates: Partial<DatabaseState>,
+  deleted?: { orders?: string[]; chatMessages?: string[]; notifications?: string[] }
+): Partial<DatabaseState> {
+  if (!deleted) return updates;
+  const out: Partial<DatabaseState> & { deletedIds?: unknown } = { ...updates };
+  if (deleted.orders?.length && out.orders) {
+    out.orders = out.orders.filter(o => !deleted.orders!.includes(o.id));
+  }
+  if (deleted.chatMessages?.length && out.chatMessages) {
+    out.chatMessages = out.chatMessages.filter(c => !deleted.chatMessages!.includes(c.id));
+  }
+  if (deleted.notifications?.length && out.notifications) {
+    out.notifications = out.notifications.filter(n => !deleted.notifications!.includes(n.id));
+  }
+  return out;
+}
+
 export async function seedInitialDataIfRequired(): Promise<void> {
+  // На своём сервере витрину услуг заводит админка, а при переезде она
+  // приедет вместе с остальными данными — засевать нечего.
+  if (useV2()) return;
   const currentUser = auth.currentUser;
   if (!currentUser) {
     console.log('Skipping Firestore seeding: no authenticated session.');
@@ -1018,6 +1208,10 @@ export async function seedInitialDataIfRequired(): Promise<void> {
  * Automatically sync updates to Firebase based on dirty checking
  */
 export async function syncLocalUpdatesToFirebase(updates: Partial<DatabaseState>, currentDatabase: DatabaseState) {
+  if (useV2()) {
+    await syncLocalUpdatesToServer(updates, currentDatabase);
+    return;
+  }
   try {
     if (updates.users) {
       for (const u of updates.users) {
@@ -1056,6 +1250,54 @@ export async function syncLocalUpdatesToFirebase(updates: Partial<DatabaseState>
   }
 }
 
+/**
+ * То же самое, но на наш сервер: отправляем только то, что действительно
+ * изменилось, каждую запись своим запросом. Сравнение с прежним состоянием
+ * оставлено как было — иначе при каждом обновлении экрана мы переписывали бы
+ * на сервере всё подряд.
+ */
+async function syncLocalUpdatesToServer(updates: Partial<DatabaseState>, currentDatabase: DatabaseState) {
+  const changed = <T extends { id: string }>(list: T[] | undefined, before: T[]): T[] =>
+    (list || []).filter(item => {
+      const existing = before.find(x => x.id === item.id);
+      return !existing || JSON.stringify(existing) !== JSON.stringify(item);
+    });
+
+  try {
+    for (const u of changed(updates.users, currentDatabase.users)) {
+      await v2.users.save(u);
+    }
+    for (const o of changed(updates.orders, currentDatabase.orders)) {
+      await saveOrderToFirebase(o);
+    }
+    for (const c of changed(updates.chatMessages, currentDatabase.chatMessages)) {
+      const existing = currentDatabase.chatMessages.find(x => x.id === c.id);
+      if (existing) {
+        // Уже отправленное сообщение сайт правит только ради «прочитано».
+        await updateChatMessageInFirebase(c.id, c);
+      } else {
+        await sendChatMessageToFirebase(c);
+      }
+    }
+    for (const n of changed(updates.notifications, currentDatabase.notifications)) {
+      const existing = currentDatabase.notifications.find(x => x.id === n.id);
+      if (existing) {
+        await updateNotificationInFirebase(n.id, n);
+      } else {
+        await sendNotificationToFirebase(n);
+      }
+    }
+    for (const s of changed(updates.services, currentDatabase.services || [])) {
+      await v2.services.save(s);
+    }
+    for (const p of changed(updates.promos, currentDatabase.promos || [])) {
+      await v2.promos.save(p);
+    }
+  } catch (err) {
+    console.error('Не удалось сохранить изменения на сервере', err);
+  }
+}
+
 // Публичный VAPID-ключ (не секрет, безопасно хранить в клиентском коде) —
 // в паре с приватным ключом на сервере (Cloud Functions) для отправки push.
 const VAPID_PUBLIC_KEY = 'BAWT1sZ2a1ES2-anphGlydEvZNAA4xM6ty-g-_I9um9VWexVqAlbNZPYKMh8sMKIAgW6WA2iJP1T09wF4mtpo1M';
@@ -1077,6 +1319,12 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
  * заказа или новом сообщении в чате.
  */
 export async function subscribeToPushNotifications(userId: string): Promise<void> {
+  if (useV2()) {
+    // Ключ у нас свой и новый, поэтому подписку на старый ключ надо сначала
+    // отменить — иначе браузер вернёт прежнюю, и уведомления не дойдут.
+    await v2.subscribeBrowserPush();
+    return;
+  }
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     throw new Error('Push-уведомления не поддерживаются этим браузером');
   }

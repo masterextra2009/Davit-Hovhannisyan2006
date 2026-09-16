@@ -12,7 +12,7 @@
  * телефоне клиента могут врать, а сервер сам себе всегда верен.
  */
 
-import { User, Order, ChatMessage, Notification, Promo, DatabaseState } from '../types';
+import { User, Order, ChatMessage, Notification, Promo, Service, Feedback, DatabaseState } from '../types';
 
 const BASE = 'https://sever-18.ru/api/v2';
 
@@ -22,6 +22,8 @@ const TOKEN_KEY = 'sever18_token';
 const POLL_MS = 5000;
 /** Реже, чем всё остальное: новости меняются раз в недели, а не в секунды. */
 const PROMOS_EVERY = 12;
+/** Профили: подарочный промокод и клиентская база меняются редко. */
+const USERS_EVERY = 6;
 /** Сигнал «я на сайте» — по нему сервер решает, слать ли push. */
 const HEARTBEAT_MS = 45000;
 
@@ -97,6 +99,38 @@ async function request<T>(path: string, options: { method?: 'GET' | 'POST'; body
 
 // ─────────────────────────── Вход и аккаунт ───────────────────────────
 
+/**
+ * Версия документов, на которые человек соглашается при регистрации
+ * (политика обработки данных и оферта). Сервер хранит её вместе с самим
+ * согласием — по закону надо знать, с чем именно человек согласился и когда.
+ * Меняем дату, когда меняется текст документов.
+ */
+export const CONSENT_VERSION = '2026-09-16';
+
+/** Переход на страницу входа соцсети. Назад вернёмся с билетом (?auth_ticket=…). */
+export function startSocialLogin(provider: 'google' | 'telegram' | 'yandex' | 'vk'): void {
+  window.location.href = `${BASE}/oauth.php?action=start&provider=${provider}&source=site`;
+}
+
+/**
+ * Обмен билета соцвхода на вход. Новому человеку сервер сначала ответит
+ * needConsent: согласие на обработку данных — отдельное действие, сама кнопка
+ * «Войти через Google» им не считается (152-ФЗ, ст. 9).
+ */
+export async function exchangeSocialTicket(
+  ticket: string,
+  consent?: { personalDataConsent: boolean; marketingConsent?: boolean }
+): Promise<{ user?: User; needConsent?: boolean; profile?: { email?: string; fullName?: string; provider?: string } }> {
+  const data = await request<any>('oauth.php?action=exchange', {
+    body: { ticket, consentVersion: CONSENT_VERSION, ...(consent || {}) },
+  });
+  if (data.needConsent) {
+    return { needConsent: true, profile: data.profile };
+  }
+  setToken(data.token);
+  return { user: data.user };
+}
+
 export interface AuthAnswer { ok: true; token: string; user: User }
 
 export async function register(input: {
@@ -124,6 +158,33 @@ export async function me(): Promise<User | null> {
     if (e instanceof ApiError && e.status === 401) return null;
     throw e;
   }
+}
+
+/** «Загрузить файл» без регистрации: заказ держится на пропуске этого браузера. */
+export async function guest(consentVersion?: string): Promise<User> {
+  const data = await request<AuthAnswer>('auth.php?action=guest', {
+    body: { source: 'site', consentVersion: consentVersion || '' },
+  });
+  setToken(data.token);
+  return data.user;
+}
+
+/**
+ * Гость заводит настоящий аккаунт. Пропуск и номер остаются прежними —
+ * поэтому его заказы, файлы и переписка никуда не деваются.
+ */
+export async function upgradeGuest(input: {
+  email: string; password: string; fullName: string; phone?: string;
+  consentVersion: string; personalDataConsent: boolean; referralCode?: string;
+}): Promise<User> {
+  const data = await request<{ user: User }>('auth.php?action=upgrade', { body: input });
+  return data.user;
+}
+
+/** Удаление своего аккаунта (152-ФЗ и правила магазинов приложений). */
+export async function deleteAccount(): Promise<void> {
+  await request('auth.php?action=delete-account', { method: 'POST', body: {} });
+  setToken('');
 }
 
 export async function logout(): Promise<void> {
@@ -194,6 +255,35 @@ export const referrals = {
     'referrals.php?action=info'),
 };
 
+// ─────────────────────────── Профили ───────────────────────────
+
+export const users = {
+  /** Клиенту вернётся только он сам, админу — все. */
+  list: () => request<{ users: User[] }>('users.php?action=list'),
+  save: (user: Partial<User> & { id: string }) => request<{ user: User }>('users.php?action=save', { body: { user } }),
+};
+
+// ─────────────────────────── Услуги, отзывы, посещения ───────────────────────────
+
+export const services = {
+  list: (all = false) => request<{ services: Service[] }>(`misc.php?action=services${all ? '&all=1' : ''}`),
+  save: (service: Partial<Service>) => request<{ service: Service }>('misc.php?action=service-save', { body: { service } }),
+  remove: (id: string) => request('misc.php?action=service-delete', { body: { id } }),
+};
+
+export const feedback = {
+  send: (message: string, extra?: { isBugReport?: boolean; screenshotUrl?: string }) =>
+    request<{ id: string }>('misc.php?action=feedback', { body: { message, ...extra } }),
+  list: () => request<{ feedback: Feedback[] }>('misc.php?action=feedback-list'),
+  remove: (id: string) => request('misc.php?action=feedback-delete', { body: { id } }),
+};
+
+export const visits = {
+  /** Одно посещение на вкладку — как и раньше, отмечаем раз за сессию браузера. */
+  track: () => request('misc.php?action=visit', { method: 'POST', body: {} }),
+  stats: () => request<{ total: number; history: { date: string; count: number }[] }>('misc.php?action=visits'),
+};
+
 // ─────────────────────────── Файлы ───────────────────────────
 
 export const files = {
@@ -201,6 +291,15 @@ export const files = {
     const form = new FormData();
     form.append('file', file);
     return request<{ path: string; url: string; name: string; size: number }>('files.php?action=upload', { form });
+  },
+  /**
+   * Картинки новостей, услуг и стикеров — они общие: лежат в отдельной папке
+   * и открываются обычной прямой ссылкой, без входа и без срока. Только админ.
+   */
+  uploadPublic: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<{ url: string; name: string }>('files.php?action=upload-public', { form });
   },
   /** Временная ссылка — для картинок и печати, где заголовок с входом не приложить. */
   link: (path: string, hours?: number) => request<{ url: string }>('files.php?action=link', { body: { path, hours } }),
@@ -298,10 +397,28 @@ export function subscribeByPolling(
       if (c.messages.length || !sinceChat) updates.chatMessages = c.messages;
       if (n.notifications.length || !sinceAlerts) updates.notifications = n.notifications;
 
-      // Новости спрашиваем реже — они меняются не каждую секунду.
+      // Профили нужны всегда: у клиента там подарочный промокод, у админа —
+      // вся клиентская база. Но меняются они редко, поэтому реже опроса.
+      if (ticks % USERS_EVERY === 0) {
+        const u = await users.list();
+        updates.users = u.users;
+      }
+
+      // Новости и витрина услуг меняются не каждую секунду — ещё реже.
       if (ticks % PROMOS_EVERY === 0) {
-        const p = await promos.list(currentUser.role === 'admin');
+        const isAdmin = currentUser.role === 'admin';
+        const [p, s] = await Promise.all([promos.list(isAdmin), services.list(isAdmin)]);
         updates.promos = p.promos;
+        updates.services = s.services;
+
+        // Отзывы и счётчик посещений видит только админ — клиенту их вообще
+        // не отдают, и спрашивать незачем.
+        if (isAdmin) {
+          const [f, v] = await Promise.all([feedback.list(), visits.stats()]);
+          updates.feedback = f.feedback;
+          updates.siteVisits = v.total;
+          updates.siteVisitsHistory = v.history;
+        }
       }
 
       sinceOrders = o.serverTime;
