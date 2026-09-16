@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_telegram.php';
+require __DIR__ . '/_referrals.php';
 
 const PAYMENT_RETURN_URL = 'https://sever-18.ru/?payment=success&order=';
 const YOOKASSA_API = 'https://api.yookassa.ru/v3/payments';
@@ -202,6 +203,8 @@ function apply_payment(array $order, array $payment, bool $fromWebhook): string
             . '📁 Файлов: <b>' . count($files) . "</b>\n"
             . '💰 Сумма: <b>' . tg_escape(number_format($expected, 0, '.', ' ')) . " ₽</b>\n\n"
             . '🖨 <a href="https://sever-18.ru">Открыть админку</a>');
+        // Первый оплаченный заказ приглашённого — награда пригласившему.
+        grant_referral_reward((string) $order['user_id']);
         return 'paid';
     }
     return 'already_paid';

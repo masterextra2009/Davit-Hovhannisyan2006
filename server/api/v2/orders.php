@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_pricing.php';
+require __DIR__ . '/_referrals.php';
 
 const ORDER_STATUSES = ['pending', 'approved', 'printing', 'ready', 'printed'];
 const PAYMENT_STATUSES = ['unpaid', 'paid', 'failed'];
@@ -393,6 +394,13 @@ function admin_save()
     $pdo->prepare('INSERT INTO orders (' . implode(', ', $cols) . ') VALUES (' . implode(', ', array_fill(0, count($cols), '?')) . ')'
         . ' AS new ON DUPLICATE KEY UPDATE ' . $updates)
         ->execute(array_values($row));
+
+    // Заказ только что стал оплаченным (в том числе «оплата при получении»,
+    // которую отмечает админ) — если клиента кто-то пригласил, пригласившему
+    // пора начислить награду. Раньше это считала открытая вкладка админки.
+    if ($payment === 'paid' && ($old['payment_status'] ?? 'unpaid') !== 'paid') {
+        grant_referral_reward($userId);
+    }
 
     $st->execute([$id]);
     respond(['ok' => true, 'order' => order_public($st->fetch())]);

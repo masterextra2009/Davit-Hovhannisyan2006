@@ -14,6 +14,7 @@ declare(strict_types=1);
 // выгружаются и нигде не хранятся в открытом виде.
 
 require __DIR__ . '/_bootstrap.php';
+require __DIR__ . '/_referrals.php';
 
 /**
  * Защита от подбора пароля: не больше 10 попыток входа или регистрации за
@@ -106,6 +107,12 @@ function register()
         if ((body()['marketingConsent'] ?? false) === true) {
             $consent->execute([$id, 'marketing', $consentVersion, $source, client_ip()]);
         }
+
+        // Свой код для приглашения друзей и, если пришёл по чужой ссылке,
+        // подарочная скидка новичку (см. _referrals.php).
+        register_referral_code($pdo, $id);
+        apply_invite($pdo, $id, str_field('referralCode', 32));
+
         $pdo->commit();
     } catch (Throwable $e) {
         $pdo->rollBack();
