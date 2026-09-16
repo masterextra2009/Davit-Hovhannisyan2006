@@ -108,12 +108,12 @@ async function request<T>(path: string, options: { method?: 'GET' | 'POST'; body
 export const CONSENT_VERSION = '2026-09-16';
 
 /**
- * Готов ли вход через Google на нашем сервере. Пока ключи Google не вписаны в
- * .sever18-private/oauth.php, кнопку не показываем: нажатие всё равно
- * закончилось бы ошибкой. Когда ключи появятся — поставить true.
- * Вход через Telegram работает независимо от этого.
+ * Готов ли вход через Google на нашем сервере. Ключи вписаны в
+ * .sever18-private/oauth.php 17.09.2026 — кнопку показываем. Если ключи
+ * когда-нибудь отзовут, поставить false: без них нажатие даёт ошибку, и
+ * лучше убрать кнопку, чем показывать клиенту поломку.
  */
-export const GOOGLE_LOGIN_READY = false;
+export const GOOGLE_LOGIN_READY = true;
 
 /** Переход на страницу входа соцсети. Назад вернёмся с билетом (?auth_ticket=…). */
 export function startSocialLogin(provider: 'google' | 'telegram' | 'yandex' | 'vk'): void {
