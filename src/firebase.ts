@@ -4,6 +4,7 @@
  */
 
 import { initializeApp } from 'firebase/app';
+import { isV2Enabled } from './api/v2';
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -94,4 +95,9 @@ async function testConnection() {
     console.info("Firestore connection test: initializing database. Caching mode active.");
   }
 }
-testConnection();
+// На своём сервере этой проверки быть не должно: именно она открывала живое
+// соединение с Firestore при каждом открытии сайта — даже когда все данные
+// уже идут через api/v2.
+if (!isV2Enabled()) {
+  testConnection();
+}

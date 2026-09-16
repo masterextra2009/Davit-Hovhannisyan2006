@@ -40,8 +40,10 @@ import {
   deleteUserAccountWithFirebase,
   signOutUserWithFirebase,
   trackSiteVisit,
-  signInAsGuest
+  signInAsGuest,
+  setCachedUser
 } from './firebaseUtils';
+import * as v2 from './api/v2';
 
 // Заглушка "технические работы" на весь сайт. true = показывать её всем посетителям
 // вместо обычного сайта. Поставь false и задеплой, когда работы закончены.
@@ -53,7 +55,16 @@ export default function App() {
   // задерживает реальный рендер контента под собой.
   const [showSplash, setShowSplash] = useState(true);
   // Маркетинговая главная страница — показывается гостям до формы входа
-  const [showLanding, setShowLanding] = useState(true);
+  // Ссылка из письма о смене пароля (?reset=…) должна вести прямо к форме
+  // нового пароля, а не на рекламную главную.
+  const hasResetLink = (() => {
+    try {
+      return new URLSearchParams(window.location.search).has('reset');
+    } catch {
+      return false;
+    }
+  })();
+  const [showLanding, setShowLanding] = useState(!hasResetLink);
 
   // "Загрузить файл" на лендинге — вместо формы входа тихо выдаём гостевой
   // Firebase-пропуск (см. signInAsGuest) и сразу ведём на экран загрузки.
@@ -108,6 +119,41 @@ export default function App() {
 
   // Restore and keep authentication session synced in real-time
   useEffect(() => {
+    // На своём сервере «кто вошёл» определяется не Firebase, а пропуском в
+    // этом браузере: спрашиваем сервер один раз при открытии страницы.
+    // Заодно здесь же заканчивается вход через соцсеть — она возвращает
+    // человека на сайт со ссылкой ?auth_ticket=…
+    if (v2.isV2Enabled()) {
+      let cancelled = false;
+      (async () => {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const ticket = params.get('auth_ticket');
+          if (ticket) {
+            window.history.replaceState({}, '', window.location.pathname);
+            const result = await v2.exchangeSocialTicket(ticket, { personalDataConsent: true });
+            if (result.user && !cancelled) {
+              setUser(result.user);
+              saveCurrentUser(result.user);
+              setCachedUser(result.user);
+              return;
+            }
+          }
+          const current = await v2.me();
+          if (cancelled) return;
+          setUser(current);
+          saveCurrentUser(current);
+          setCachedUser(current);
+          if (current && 'Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().catch(() => {});
+          }
+        } catch (err) {
+          console.warn('Не удалось восстановить вход:', err);
+        }
+      })();
+      return () => { cancelled = true; };
+    }
+
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
       if (!fbUser) {
         setUser(null);
@@ -223,6 +269,9 @@ export default function App() {
     // заметит. Дополняет reconnect-логику внутри onSnapshot-обёртки в
     // firebaseUtils.ts (та чинит уже случившийся обрыв, эта — упреждает его).
     const nudgeReconnect = () => {
+      // На своём сервере будить нечего: живого соединения нет, есть опрос,
+      // который сам просыпается при возврате на вкладку.
+      if (v2.isV2Enabled()) return;
       enableNetwork(db).catch(() => {});
     };
     const handleVisibilityChange = () => {
@@ -359,7 +408,7 @@ export default function App() {
               </button>
             </div>
           </div>
-        ) : !user && showLanding ? (
+        ) : !user && showLanding && !hasResetLink ? (
           <LandingPage onEnter={() => setShowLanding(false)} onUploadClick={handleUploadClick} />
         ) : !user ? (
           <Suspense fallback={<AppSectionLoader />}>
