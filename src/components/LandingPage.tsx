@@ -65,11 +65,15 @@ export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
               {/* truncate, а не nowrap: при крупном шрифте название заезжало
                   под кнопку справа — пусть лучше сократится многоточием. */}
               <div className="text-sm font-black truncate">Фото-Север</div>
-              <div className="text-[11px] text-slate-600 dark:text-white/60 truncate">Северное шоссе, 18</div>
+              {/* На узком телефоне адрес из шапки убираем: он всё равно есть
+                  ниже, в блоке контактов, а место в шапке дороже. */}
+              <div className="hidden sm:block text-[11px] text-slate-600 dark:text-white/60 truncate">Северное шоссе, 18</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <a href="tel:+79680508800" aria-label="Позвонить по телефону +7 968 050-88-00" className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-white/70 hover:text-orange-500 transition-colors p-2.5 -m-2.5 sm:p-0 sm:m-0">
+            {/* Телефон в шапке прячем на узком экране — он есть в первом
+                экране крупно, а здесь только отбирал место у кнопки входа. */}
+            <a href="tel:+79680508800" aria-label="Позвонить по телефону +7 968 050-88-00" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-white/70 hover:text-orange-500 transition-colors p-2.5 -m-2.5 sm:p-0 sm:m-0">
               <Phone className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" />
               <span className="hidden sm:inline">+7 (968) 050-88-00</span>
             </a>
