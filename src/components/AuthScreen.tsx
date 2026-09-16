@@ -51,6 +51,9 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     }
   });
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>(resetToken ? 'reset' : 'login');
+  // Кнопку Google показываем, только если этот вход действительно работает:
+  // на Firebase — всегда, на своём сервере — когда вписаны ключи Google.
+  const showGoogleButton = !v2.isV2Enabled() || v2.GOOGLE_LOGIN_READY;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -724,7 +727,8 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className={`mt-4 grid gap-3 ${showGoogleButton ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {showGoogleButton && (
                 <button
                   type="button"
                   onClick={handleGoogleAuth}
@@ -746,6 +750,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                     </>
                   )}
                 </button>
+                )}
 
                 <a
                   href={telegramLoginUrl}

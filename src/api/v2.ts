@@ -107,6 +107,14 @@ async function request<T>(path: string, options: { method?: 'GET' | 'POST'; body
  */
 export const CONSENT_VERSION = '2026-09-16';
 
+/**
+ * Готов ли вход через Google на нашем сервере. Пока ключи Google не вписаны в
+ * .sever18-private/oauth.php, кнопку не показываем: нажатие всё равно
+ * закончилось бы ошибкой. Когда ключи появятся — поставить true.
+ * Вход через Telegram работает независимо от этого.
+ */
+export const GOOGLE_LOGIN_READY = false;
+
 /** Переход на страницу входа соцсети. Назад вернёмся с билетом (?auth_ticket=…). */
 export function startSocialLogin(provider: 'google' | 'telegram' | 'yandex' | 'vk'): void {
   window.location.href = `${BASE}/oauth.php?action=start&provider=${provider}&source=site`;
