@@ -8,12 +8,21 @@ declare(strict_types=1);
 //   POST subscribe  {subscription}   — браузер подписался на уведомления сайта
 //   POST unsubscribe                 — отписался
 //   POST heartbeat  {online}         — «я сейчас на сайте» (раз в 45 секунд)
+//   GET  key                         — открытый ключ VAPID для подписки браузера
 //
 // Зачем heartbeat: push не шлётся тому, кто прямо сейчас на сайте — он и так
 // видит новое сообщение или смену статуса живьём. Раньше этот признак вела
 // Firestore (users.isOnline / lastActiveAt).
 
 require __DIR__ . '/_bootstrap.php';
+require __DIR__ . '/_webpush.php';
+
+// Открытый ключ нужен браузеру ДО подписки, и секретом он не является —
+// единственное место здесь, куда можно зайти без входа в аккаунт.
+if (($_GET['action'] ?? '') === 'key') {
+    require_method('GET');
+    respond(['ok' => true, 'publicKey' => webpush_public_key()]);
+}
 
 $user = require_user();
 require_method('POST');

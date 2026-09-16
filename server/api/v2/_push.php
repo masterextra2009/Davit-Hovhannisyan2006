@@ -4,15 +4,14 @@ declare(strict_types=1);
 // Push-уведомления на телефон (приложение sever18-app) — вместо Cloud
 // Functions notifyOrderStatusChange / notifyNewChatMessage / notifyNewPromo.
 //
-// Канал один и простой: POST в Expo, ключей и секретов не нужно — адрес
-// телефона (expoPushToken) кладёт в профиль само приложение при входе.
-//
-// Браузерные уведомления сайта (push_subscription) здесь пока не шлются:
-// там письмо надо подписывать и шифровать ключами VAPID, это отдельный шаг.
-// Поле в базе уже есть, место для второго канала оставлено ниже.
+// Каналов два, и они независимы: приложение (Expo) и браузер сайта
+// (push_subscription, шифрование — в _webpush.php). Один и тот же человек
+// может пользоваться и тем и другим, поэтому шлём в оба, какие есть.
 //
 // Общее правило (было и в Cloud Function): не шлём уведомление тому, кто
 // прямо сейчас сидит на сайте — он и так видит всё живьём.
+
+require_once __DIR__ . '/_webpush.php';
 
 /** Сколько человек считается «на сайте» после последнего сигнала (сайт шлёт его раз в 45 с). */
 const ONLINE_FRESHNESS_SECONDS = 120;
@@ -37,25 +36,30 @@ function push_to_user(string $userId, string $title, string $body): void
     if ($userId === '') {
         return;
     }
-    $st = db()->prepare('SELECT id, expo_push_token, is_online, last_active_at FROM users WHERE id = ? AND deleted_at IS NULL');
+    $st = db()->prepare('SELECT id, expo_push_token, push_subscription, is_online, last_active_at
+                         FROM users WHERE id = ? AND deleted_at IS NULL');
     $st->execute([$userId]);
     $user = $st->fetch();
     if (!$user || recently_online($user)) {
         return;
     }
     expo_send([$user['id'] => $user['expo_push_token']], $title, $body);
+    browser_send($user, $title, $body);
 }
 
 /** Уведомление всем администраторам (новое сообщение клиента в чате). */
 function push_to_admins(string $title, string $body): void
 {
-    $rows = db()->query("SELECT id, expo_push_token, is_online, last_active_at FROM users
-                         WHERE role = 'admin' AND deleted_at IS NULL AND expo_push_token IS NOT NULL")->fetchAll();
+    $rows = db()->query("SELECT id, expo_push_token, push_subscription, is_online, last_active_at FROM users
+                         WHERE role = 'admin' AND deleted_at IS NULL
+                           AND (expo_push_token IS NOT NULL OR push_subscription IS NOT NULL)")->fetchAll();
     $targets = [];
     foreach ($rows as $u) {
-        if (!recently_online($u)) {
-            $targets[$u['id']] = $u['expo_push_token'];
+        if (recently_online($u)) {
+            continue;
         }
+        $targets[$u['id']] = $u['expo_push_token'];
+        browser_send($u, $title, $body);
     }
     expo_send($targets, $title, $body);
 }
@@ -75,6 +79,26 @@ function push_broadcast_clients(string $title, string $body): int
     }
     expo_send($targets, $title, $body);
     return count($targets);
+}
+
+/**
+ * Уведомление в браузер сайта. Подписки больше нет (404/410) — убираем её,
+ * иначе будем стучаться в мёртвый адрес при каждом заказе.
+ */
+function browser_send(array $user, string $title, string $body): void
+{
+    $raw = $user['push_subscription'] ?? null;
+    if (!is_string($raw) || $raw === '') {
+        return;
+    }
+    $sub = json_decode($raw, true);
+    if (!is_array($sub)) {
+        return;
+    }
+    $code = webpush_send($sub, $title, $body);
+    if ($code === 404 || $code === 410) {
+        db()->prepare('UPDATE users SET push_subscription = NULL WHERE id = ?')->execute([$user['id']]);
+    }
 }
 
 function recently_online(array $user): bool
