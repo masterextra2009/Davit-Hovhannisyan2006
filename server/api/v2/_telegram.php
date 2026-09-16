@@ -59,6 +59,40 @@ function notify_admin(string $html): bool
     return $code === 200;
 }
 
+/**
+ * Сообщение клиенту в Telegram — если он привязал бота и не выключил
+ * уведомления. Раньше это делал открытый api/telegram_notify.php, которым мог
+ * воспользоваться кто угодно; здесь адрес берётся из базы, а не из запроса.
+ */
+function notify_user(?string $chatId, string $html): bool
+{
+    $chatId = trim((string) $chatId);
+    $token = telegram_bot_token();
+    if ($chatId === '' || $token === '') {
+        return false;
+    }
+    $ch = curl_init('https://api.telegram.org/bot' . $token . '/sendMessage');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 8,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode([
+            'chat_id' => $chatId,
+            'text' => $html,
+            'parse_mode' => 'HTML',
+            'disable_web_page_preview' => true,
+        ], JSON_UNESCAPED_UNICODE),
+    ]);
+    curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code !== 200) {
+        error_log('api/v2 notify_user: telegram HTTP ' . $code);
+    }
+    return $code === 200;
+}
+
 function tg_escape(string $s): string
 {
     return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

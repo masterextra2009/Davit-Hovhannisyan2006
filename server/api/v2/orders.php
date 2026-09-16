@@ -297,13 +297,6 @@ function cancel(array $user)
 
 // ─────────────────────────── Админ ───────────────────────────
 
-function require_admin(bool $isAdmin)
-{
-    if (!$isAdmin) {
-        fail('Нет доступа', 403);
-    }
-}
-
 /**
  * Сохраняет заказ целиком — так админка сейчас пишет в Firestore (статус,
  * оплата, брак, удаление файла с пересчётом суммы). Незнакомые поля не
@@ -567,15 +560,3 @@ function money($v): ?string
     return number_format((float) $v, 2, '.', '');
 }
 
-/** ISO 8601 → время MySQL в UTC, или null. */
-function parse_iso(string $s): ?string
-{
-    if ($s === '' || !preg_match('/^\d{4}-\d{2}-\d{2}T/', $s)) {
-        return null;
-    }
-    try {
-        return (new DateTimeImmutable($s))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s.v');
-    } catch (Throwable $e) {
-        return null;
-    }
-}

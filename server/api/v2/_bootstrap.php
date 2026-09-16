@@ -201,6 +201,26 @@ function require_user(): array
     return $user;
 }
 
+/** ISO 8601 → время MySQL в UTC, или null. */
+function parse_iso(string $s): ?string
+{
+    if ($s === '' || !preg_match('/^\d{4}-\d{2}-\d{2}T/', $s)) {
+        return null;
+    }
+    try {
+        return (new DateTimeImmutable($s))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s.v');
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+function require_admin(bool $isAdmin)
+{
+    if (!$isAdmin) {
+        fail('Нет доступа', 403);
+    }
+}
+
 /** Пользователь в том виде, в каком его ждут сайт и приложение (src/types.ts). */
 function user_public(array $u): array
 {
