@@ -112,10 +112,12 @@ export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
                 кабинет: путь у всех один и понятный. */}
             <button
               onClick={onEnter}
-              className="landing-cta-btn btn-holo-glass flex items-center gap-2 px-6 py-3.5 rounded-full text-sm font-bold cursor-pointer whitespace-nowrap"
+              className="landing-cta-btn btn-holo-glass flex items-center justify-center gap-2 px-5 sm:px-6 py-3.5 rounded-full text-sm font-bold cursor-pointer max-w-full text-left"
             >
               <LogIn className="w-4 h-4 shrink-0" />
-              Войти в личный кабинет
+              {/* На узком экране с крупным шрифтом длинная надпись не влезала —
+                  пусть переносится, но не вылезает за край. */}
+              <span className="min-w-0">Войти в личный кабинет</span>
             </button>
             <a
               href="https://t.me/photosever18"
