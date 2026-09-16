@@ -20,6 +20,7 @@ declare(strict_types=1);
 // Права повторяют firestore.rules: читают все вошедшие, пишет только админ.
 
 require __DIR__ . '/_bootstrap.php';
+require __DIR__ . '/_push.php';
 
 const PROMO_MEDIA_TYPES = ['image', 'video'];
 const MAX_PROMOS = 200;
@@ -141,8 +142,15 @@ function save_promo()
         $pdo->prepare('INSERT INTO promos (id, title, body, active, show_from, show_to, extra, created_at)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
             ->execute([$id, $title, $body, $active ? 1 : 0, $from, $to, json_encode($extra, JSON_UNESCAPED_UNICODE), now_utc()]);
-        // Рассылка уведомлений о новой новости появится вместе с push через
-        // Expo (сейчас это делает Cloud Function notifyNewPromo).
+        // Рассылка владельцам приложения — как раньше делала Cloud Function
+        // notifyNewPromo. Скрытую новость (галочка снята) не рассылаем: её
+        // завели «на потом».
+        if ($active) {
+            push_broadcast_clients(
+                $title !== '' ? $title : 'Новость Фото-Север',
+                $body !== '' ? $body : 'Загляните в приложение'
+            );
+        }
     } else {
         $st = $pdo->prepare('SELECT id FROM promos WHERE id = ?');
         $st->execute([$id]);

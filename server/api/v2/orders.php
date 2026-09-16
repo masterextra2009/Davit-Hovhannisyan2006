@@ -23,6 +23,7 @@ declare(strict_types=1);
 require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_pricing.php';
 require __DIR__ . '/_referrals.php';
+require __DIR__ . '/_push.php';
 
 const ORDER_STATUSES = ['pending', 'approved', 'printing', 'ready', 'printed'];
 const PAYMENT_STATUSES = ['unpaid', 'paid', 'failed'];
@@ -398,8 +399,17 @@ function admin_save()
     // Заказ только что стал оплаченным (в том числе «оплата при получении»,
     // которую отмечает админ) — если клиента кто-то пригласил, пригласившему
     // пора начислить награду. Раньше это считала открытая вкладка админки.
-    if ($payment === 'paid' && ($old['payment_status'] ?? 'unpaid') !== 'paid') {
+    $justPaid = $payment === 'paid' && ($old['payment_status'] ?? 'unpaid') !== 'paid';
+    if ($justPaid) {
         grant_referral_reward($userId);
+    }
+
+    // Уведомление на телефон — как раньше делала Cloud Function
+    // notifyOrderStatusChange. Тому, кто прямо сейчас на сайте, не шлём.
+    // Только при настоящей смене: заведение нового заказа — это не «статус
+    // изменился», клиент о нём и так знает.
+    if ($old !== null && ($justPaid || $status !== $old['status'])) {
+        push_order_status($userId, $id, $status, $justPaid);
     }
 
     $st->execute([$id]);

@@ -26,6 +26,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_telegram.php';
+require __DIR__ . '/_push.php';
 
 /** Фото и голосовые пока лежат внутри сообщения как data:-ссылка (см. schema.sql). */
 const MAX_MESSAGE_CHARS = 3000000;
@@ -214,6 +215,7 @@ function send_message(array $user, bool $isAdmin)
                 . "\n\n<i>Ответить можно в личном кабинете: https://sever-18.ru</i>"
             );
         }
+        push_to_user($dialogUserId, 'Ответ от Фото-Север', preview($text));
     } else {
         // Раньше это делала Cloud Function notifyNewChatMessage — она уезжает
         // вместе с Firebase. Уведомление уходит здесь, когда сообщение уже в базе.
@@ -222,6 +224,10 @@ function send_message(array $user, bool $isAdmin)
             . tg_escape($user['full_name'] !== '' ? $user['full_name'] : 'Клиент')
             . ($user['email'] ? ' (' . tg_escape((string) $user['email']) . ')' : '')
             . "\n\n" . tg_escape(preview($text))
+        );
+        push_to_admins(
+            'Новое сообщение от ' . ($user['full_name'] !== '' ? $user['full_name'] : 'клиента'),
+            preview($text)
         );
     }
 
