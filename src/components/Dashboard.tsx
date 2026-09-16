@@ -89,7 +89,7 @@ import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from
 import { isVoice, parseVoice, formatVoiceLength } from '../utils/chatVoice';
 import { PromoTicket } from './PromoTicket';
 import * as v2 from '../api/v2';
-import { subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode, registerUserWithFirebase } from '../firebaseUtils';
+import { saveOrderToFirebase, subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode, registerUserWithFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Synthesized high-quality feedback sound chimes using Web Audio API
@@ -1033,9 +1033,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
     setAvatarUploading(true);
     try {
-      const fileRef = ref(storage, `avatars/${user.id}_${Date.now()}_${file.name}`);
-      await uploadBytes(fileRef, file);
-      const downloadUrl = await getDownloadURL(fileRef);
+      // Аватар: на своём сервере это обычная загрузка файла со временной
+      // ссылкой (хранилище Firebase уезжает вместе с остальным).
+      let downloadUrl: string;
+      if (v2.isV2Enabled()) {
+        downloadUrl = (await v2.files.upload(file)).url;
+      } else {
+        const fileRef = ref(storage, `avatars/${user.id}_${Date.now()}_${file.name}`);
+        await uploadBytes(fileRef, file);
+        downloadUrl = await getDownloadURL(fileRef);
+      }
       
       const updatedUsers = database.users.map(u => {
         if (u.id === user.id) {
@@ -1187,7 +1194,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         serviceId: docCheckService.id,
       };
       sessionStorage.setItem(`doc_check_pending_${orderId}`, JSON.stringify({ image: docCheckImage, docType: docCheckType }));
-      await withTimeout(setDoc(doc(db, 'orders', orderId), order), 15000);
+      await withTimeout(saveOrderToFirebase(order), 15000);
       trackAnalyticsEvent('order_created');
       const res = await withTimeout(
         fetch('https://sever-18.ru/api/payment-create.php', {
@@ -1199,7 +1206,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       );
       const data = await res.json();
       if (data.paymentUrl && data.paymentId) {
-        await withTimeout(setDoc(doc(db, 'orders', orderId), { ...order, transactionId: data.paymentId }), 15000);
+        await withTimeout(saveOrderToFirebase({ ...order, transactionId: data.paymentId }), 15000);
         window.location.href = data.paymentUrl;
       } else {
         sessionStorage.removeItem(`doc_check_pending_${orderId}`);
@@ -1246,6 +1253,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     
     const setOnlineState = async (online: boolean) => {
       try {
+        if (v2.isV2Enabled()) {
+          // На своём сервере это отдельный сигнал: по нему сервер решает,
+          // слать ли push (тому, кто смотрит на экран, не шлём).
+          await v2.push.heartbeat(online);
+          return;
+        }
         const userDocRef = doc(db, 'users', user.id);
         await setDoc(userDocRef, { 
           isOnline: online, 
@@ -1944,9 +1957,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     setBugReportPreviewUrl(URL.createObjectURL(file));
     setBugReportUploading(true);
     try {
-      const fileRef = ref(storage, `bug-reports/${user.id}_${Date.now()}_${file.name}`);
-      await uploadBytes(fileRef, file);
-      const downloadUrl = await getDownloadURL(fileRef);
+      let downloadUrl: string;
+      if (v2.isV2Enabled()) {
+        downloadUrl = (await v2.files.upload(file)).url;
+      } else {
+        const fileRef = ref(storage, `bug-reports/${user.id}_${Date.now()}_${file.name}`);
+        await uploadBytes(fileRef, file);
+        downloadUrl = await getDownloadURL(fileRef);
+      }
       setBugReportScreenshotUrl(downloadUrl);
     } catch (err) {
       console.error('Error uploading bug report screenshot:', err);
@@ -3565,7 +3583,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       setUploadError('');
       setOrderAcceptPhase('loading');
       try {
-        await withTimeout(setDoc(doc(db, 'orders', orderId), onReceiptOrder), 15000);
+        await withTimeout(saveOrderToFirebase(onReceiptOrder), 15000);
         trackAnalyticsEvent('order_created');
         onUpdateDatabase({ orders: [onReceiptOrder, ...database.orders], users: updatedUsers });
         setUploadedFiles([]);
@@ -3609,7 +3627,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         // код читает оттуда реальную сумму заказа (защита от подделки
         // суммы платежа), значит документ обязан уже существовать к этому
         // моменту, а не только после успешного ответа ЮKassa.
-        await withTimeout(setDoc(doc(db, 'orders', orderId), pendingOrder), 15000);
+        await withTimeout(saveOrderToFirebase(pendingOrder), 15000);
         trackAnalyticsEvent('order_created');
 
         const res = await withTimeout(
@@ -3627,7 +3645,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           sessionStorage.setItem('pending_order', JSON.stringify(updated));
           // Дозаписываем transactionId, полученный от ЮKassa (сам заказ уже
           // существует в базе — записан выше, до вызова payment-create.php).
-          await withTimeout(setDoc(doc(db, 'orders', orderId), updated), 15000);
+          await withTimeout(saveOrderToFirebase(updated), 15000);
           onUpdateDatabase({ orders: [updated, ...database.orders], users: updatedUsers });
           setUploadedFiles([]);
           setNotes('');

@@ -839,7 +839,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     // обычное дело, требовать к ней ещё и заголовок незачем.
     if (!title && !promoForm.imageUrl) return;
     const id = `promo_${Date.now()}`;
-    setDoc(doc(db, 'promos', id), {
+    const promoData: any = {
       id,
       title,
       body: promoForm.body.trim(),
@@ -856,18 +856,26 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       ...(normalizePromoLink(promoForm.linkUrl) ? { linkUrl: normalizePromoLink(promoForm.linkUrl) } : {}),
       active: true,
       createdAt: new Date().toISOString(),
-    }).catch(console.error);
+    };
+    // На своём сервере номер и дату ставит сам сервер, поэтому id не шлём.
+    (v2.isV2Enabled()
+      ? v2.promos.save({ ...promoData, id: undefined })
+      : setDoc(doc(db, 'promos', id), promoData)
+    ).catch(console.error);
     setPromoForm({ title: '', body: '', imageUrl: '', to: '', mediaType: '', mediaWidth: 0, mediaHeight: 0, linkUrl: '' });
     setPromoUploadError('');
   };
 
   const handleTogglePromo = (id: string, active: boolean) => {
-    setDoc(doc(db, 'promos', id), { active }, { merge: true }).catch(console.error);
+    (v2.isV2Enabled()
+      ? v2.promos.toggle(id, active)
+      : setDoc(doc(db, 'promos', id), { active }, { merge: true })
+    ).catch(console.error);
   };
 
   const handleDeletePromo = (id: string, title: string) => {
     if (!window.confirm(`Удалить новость «${title}»?`)) return;
-    deleteDoc(doc(db, 'promos', id)).catch(console.error);
+    (v2.isV2Enabled() ? v2.promos.remove(id) : deleteDoc(doc(db, 'promos', id))).catch(console.error);
   };
 
   const handleCreateService = () => {
@@ -884,7 +892,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       isActive: true,
       order: (database.services?.length || 0) + 1,
     };
-    setDoc(doc(db, 'services', newId), newService).catch(console.error);
+    (v2.isV2Enabled()
+      ? v2.services.save(newService)
+      : setDoc(doc(db, 'services', newId), newService)
+    ).catch(console.error);
     setShowAddServiceModal(false);
     setNewServiceForm({ emoji: '🖨️', title: '', description: '', price: '', imageUrl: '', imageScale: 1, iconUrl: '' });
   };
@@ -892,7 +903,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const handleUpdateService = (id: string, field: string, value: any) => {
     const svc = database.services?.find(s => s.id === id);
     if (!svc) return;
-    setDoc(doc(db, 'services', id), { ...svc, [field]: value }, { merge: true }).catch(console.error);
+    (v2.isV2Enabled()
+      ? v2.services.save({ ...svc, [field]: value })
+      : setDoc(doc(db, 'services', id), { ...svc, [field]: value }, { merge: true })
+    ).catch(console.error);
   };
 
   // Перетащил карточку draggedId на место карточки targetId — двигаем её
@@ -909,14 +923,17 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     list.splice(toIdx, 0, moved);
     list.forEach((s, i) => {
       if (s.order !== i) {
-        setDoc(doc(db, 'services', s.id), { ...s, order: i }, { merge: true }).catch(console.error);
+        (v2.isV2Enabled()
+          ? v2.services.save({ ...s, order: i })
+          : setDoc(doc(db, 'services', s.id), { ...s, order: i }, { merge: true })
+        ).catch(console.error);
       }
     });
   };
 
   const handleDeleteService = (id: string, title: string) => {
     if (!window.confirm(`Удалить услугу «${title}»?`)) return;
-    deleteDoc(doc(db, 'services', id)).catch(console.error);
+    (v2.isV2Enabled() ? v2.services.remove(id) : deleteDoc(doc(db, 'services', id))).catch(console.error);
   };
 
   // 3D-наклон карточки услуги вслед за курсором + усиление свечения —
@@ -974,10 +991,21 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     setExportingBackup(true);
     setExportError(null);
     try {
-      const [statsSnap, countersSnap] = await Promise.all([
-        getDoc(doc(db, 'stats', 'visits')),
-        getDoc(doc(db, 'counters', 'orders')),
-      ]);
+      // Счётчик посещений и номер следующего заказа лежат отдельно от общего
+      // состояния — их забираем по месту. На своём сервере номер заказа
+      // выдаётся при оформлении, отдельной «тетрадки» с ним нет.
+      let stats: any = null;
+      let counters: any = null;
+      if (v2.isV2Enabled()) {
+        stats = await v2.visits.stats().catch(() => null);
+      } else {
+        const [statsSnap, countersSnap] = await Promise.all([
+          getDoc(doc(db, 'stats', 'visits')),
+          getDoc(doc(db, 'counters', 'orders')),
+        ]);
+        stats = statsSnap.exists() ? statsSnap.data() : null;
+        counters = countersSnap.exists() ? countersSnap.data() : null;
+      }
 
       const backup = {
         exportedAt: new Date().toISOString(),
@@ -987,8 +1015,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         notifications: database.notifications,
         services: database.services || [],
         feedback: database.feedback || [],
-        stats: statsSnap.exists() ? statsSnap.data() : null,
-        counters: countersSnap.exists() ? countersSnap.data() : null,
+        promos: database.promos || [],
+        stats,
+        counters,
       };
 
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -1394,7 +1423,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     const now = Date.now();
     if (now - lastTypingSignalRef.current < 2500) return;
     lastTypingSignalRef.current = now;
-    setDoc(doc(db, 'users', activeChatUserId), { adminTypingAt: new Date(now).toISOString() }, { merge: true }).catch(() => {});
+    (v2.isV2Enabled()
+      ? v2.chat.typing(activeChatUserId, true)
+      : setDoc(doc(db, 'users', activeChatUserId), { adminTypingAt: new Date(now).toISOString() }, { merge: true })
+    ).catch(() => {});
   };
 
   const handleAdminSendMessage = (e: React.FormEvent) => {
@@ -1432,7 +1464,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
     // Ответ ушёл — «печатает» у клиента гаснет сразу, не дожидаясь 6 секунд.
     lastTypingSignalRef.current = 0;
-    setDoc(doc(db, 'users', activeChatUserId), { adminTypingAt: '' }, { merge: true }).catch(() => {});
+    (v2.isV2Enabled()
+      ? v2.chat.typing(activeChatUserId, false)
+      : setDoc(doc(db, 'users', activeChatUserId), { adminTypingAt: '' }, { merge: true })
+    ).catch(() => {});
 
     setAdminChatInput('');
   };

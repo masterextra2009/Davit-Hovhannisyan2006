@@ -260,6 +260,9 @@ export default function App() {
     // заметит. Дополняет reconnect-логику внутри onSnapshot-обёртки в
     // firebaseUtils.ts (та чинит уже случившийся обрыв, эта — упреждает его).
     const nudgeReconnect = () => {
+      // На своём сервере будить нечего: живого соединения нет, есть опрос,
+      // который сам просыпается при возврате на вкладку.
+      if (v2.isV2Enabled()) return;
       enableNetwork(db).catch(() => {});
     };
     const handleVisibilityChange = () => {
