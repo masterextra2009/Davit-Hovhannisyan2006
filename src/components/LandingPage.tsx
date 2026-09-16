@@ -64,7 +64,7 @@ export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
             <div className="leading-tight min-w-0">
               {/* truncate, а не nowrap: при крупном шрифте название заезжало
                   под кнопку справа — пусть лучше сократится многоточием. */}
-              <div className="text-sm font-black truncate">Фото-Север</div>
+              <div className="text-[13px] sm:text-sm font-black truncate">Фото-Север</div>
               {/* На узком телефоне адрес из шапки убираем: он всё равно есть
                   ниже, в блоке контактов, а место в шапке дороже. */}
               <div className="hidden sm:block text-[11px] text-slate-600 dark:text-white/60 truncate">Северное шоссе, 18</div>
