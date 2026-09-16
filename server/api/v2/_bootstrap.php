@@ -224,7 +224,12 @@ function require_admin(bool $isAdmin)
 /** Пользователь в том виде, в каком его ждут сайт и приложение (src/types.ts). */
 function user_public(array $u): array
 {
-    return array_filter([
+    // Редкие поля профиля (например, как обрезан аватар: avatarX/avatarY/
+    // avatarScale) лежат в extra одним свёртком — их сайт ждёт наравне с
+    // остальными, поэтому разворачиваем обратно.
+    $extra = !empty($u['extra']) ? (json_decode((string) $u['extra'], true) ?: []) : [];
+
+    return array_filter(array_merge($extra, [
         'id' => $u['id'],
         'email' => $u['email'],
         'fullName' => $u['full_name'],
@@ -242,5 +247,5 @@ function user_public(array $u): array
         'promoGiftedSeen' => (bool) $u['promo_gifted_seen'],
         'referralCode' => $u['referral_code'],
         'adminTypingAt' => iso($u['admin_typing_at']),
-    ], fn($v) => $v !== null);
+    ]), fn($v) => $v !== null);
 }
