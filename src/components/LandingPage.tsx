@@ -4,14 +4,13 @@
  */
 
 import React, { useState } from 'react';
-import {
-  Phone, MapPin, Clock, ArrowRight, Upload, Sliders, PackageCheck,
-  FileText, Printer, Send, ShieldCheck, ExternalLink
-} from 'lucide-react';
+import { Phone, MapPin, Clock, ArrowRight, Upload, Sliders, PackageCheck, FileText, Printer, Send, ShieldCheck, ExternalLink, LogIn } from 'lucide-react';
 import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
 
 interface LandingPageProps {
   onEnter: () => void;
+  /** Больше не используется: кнопку «Загрузить файл» заменили на вход в
+   *  кабинет 17.09.2026. Оставлено, чтобы не трогать App.tsx лишний раз. */
   onUploadClick: () => void;
 }
 
@@ -57,12 +56,14 @@ export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
           непрозрачность держит шапку читаемой даже без блюра, а там где
           блюр есть — по-прежнему выглядит как лёгкое стекло. */}
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/95 dark:bg-black/90 border-b border-slate-150 dark:border-white/10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
+          {/* min-w-0 обязателен: без него длинное название не даёт блоку
+              сжаться, и кнопка справа уезжает за край экрана. */}
+          <div className="flex items-center gap-2.5 min-w-0">
             <img src="/logo-header.webp" alt="Фото-Север" width="36" height="36" className="w-9 h-9 rounded-xl object-cover" />
-            <div className="leading-tight">
-              <div className="text-sm font-black">Фото-Север</div>
-              <div className="text-[11px] text-slate-600 dark:text-white/60">Северное шоссе, 18</div>
+            <div className="leading-tight min-w-0">
+              <div className="text-sm font-black whitespace-nowrap">Фото-Север</div>
+              <div className="text-[11px] text-slate-600 dark:text-white/60 truncate">Северное шоссе, 18</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -70,12 +71,18 @@ export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
               <Phone className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" />
               <span className="hidden sm:inline">+7 (968) 050-88-00</span>
             </a>
+            {/* shrink-0 и whitespace-nowrap: при крупном системном шрифте
+                (у многих на телефоне он увеличен) надпись переносилась на две
+                строки, кнопка становилась вдвое выше и наполовину уезжала за
+                край экрана — нажать её было нельзя. На узких экранах пишем
+                коротко «Кабинет», полное название — начиная с планшета. */}
             <button
               onClick={onEnter}
-              className="landing-cta-btn btn-holo-glass flex items-center gap-1.5 px-4 py-3.5 rounded-full text-xs font-bold cursor-pointer"
+              className="landing-cta-btn btn-holo-glass flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 sm:py-3.5 rounded-full text-xs font-bold cursor-pointer shrink-0 whitespace-nowrap"
             >
-              Войти в кабинет
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span className="sm:hidden">Кабинет</span>
+              <span className="hidden sm:inline">Войти в кабинет</span>
+              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
             </button>
           </div>
         </div>
@@ -100,12 +107,15 @@ export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
           </p>
 
           <div className="flex flex-wrap items-center gap-3 mb-8">
+            {/* Раньше здесь была «Загрузить файл» — она вела к загрузке без
+                регистрации. 17.09.2026 по просьбе Давида заменена на вход в
+                кабинет: путь у всех один и понятный. */}
             <button
-              onClick={onUploadClick}
-              className="landing-cta-btn btn-holo-glass flex items-center gap-2 px-6 py-3.5 rounded-full text-sm font-bold cursor-pointer"
+              onClick={onEnter}
+              className="landing-cta-btn btn-holo-glass flex items-center gap-2 px-6 py-3.5 rounded-full text-sm font-bold cursor-pointer whitespace-nowrap"
             >
-              <Upload className="w-4 h-4" />
-              Загрузить файл
+              <LogIn className="w-4 h-4 shrink-0" />
+              Войти в личный кабинет
             </button>
             <a
               href="https://t.me/photosever18"
