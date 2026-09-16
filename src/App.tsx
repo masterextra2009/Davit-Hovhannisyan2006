@@ -55,7 +55,16 @@ export default function App() {
   // задерживает реальный рендер контента под собой.
   const [showSplash, setShowSplash] = useState(true);
   // Маркетинговая главная страница — показывается гостям до формы входа
-  const [showLanding, setShowLanding] = useState(true);
+  // Ссылка из письма о смене пароля (?reset=…) должна вести прямо к форме
+  // нового пароля, а не на рекламную главную.
+  const hasResetLink = (() => {
+    try {
+      return new URLSearchParams(window.location.search).has('reset');
+    } catch {
+      return false;
+    }
+  })();
+  const [showLanding, setShowLanding] = useState(!hasResetLink);
 
   // "Загрузить файл" на лендинге — вместо формы входа тихо выдаём гостевой
   // Firebase-пропуск (см. signInAsGuest) и сразу ведём на экран загрузки.
@@ -399,7 +408,7 @@ export default function App() {
               </button>
             </div>
           </div>
-        ) : !user && showLanding ? (
+        ) : !user && showLanding && !hasResetLink ? (
           <LandingPage onEnter={() => setShowLanding(false)} onUploadClick={handleUploadClick} />
         ) : !user ? (
           <Suspense fallback={<AppSectionLoader />}>

@@ -187,6 +187,18 @@ export async function deleteAccount(): Promise<void> {
   setToken('');
 }
 
+/** «Забыли пароль?» — сервер шлёт на почту ссылку, которая живёт час. */
+export async function forgotPassword(email: string): Promise<void> {
+  await request('auth.php?action=forgot', { body: { email } });
+}
+
+/** Смена пароля по ссылке из письма: сразу впускает в кабинет. */
+export async function resetPassword(token: string, password: string): Promise<User> {
+  const data = await request<AuthAnswer>('auth.php?action=reset', { body: { token, password, source: 'site' } });
+  setToken(data.token);
+  return data.user;
+}
+
 export async function logout(): Promise<void> {
   try {
     await request('auth.php?action=logout', { method: 'POST', body: {} });

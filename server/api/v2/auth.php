@@ -11,6 +11,8 @@ declare(strict_types=1);
 //   POST upgrade   {email, password, fullName, phone?, consentVersion}
 //                            — гость заводит настоящий аккаунт, заказы остаются
 //   POST delete-account       — клиент удаляет свой аккаунт (152-ФЗ, ст. 14)
+//   POST forgot    {email}    — письмо со ссылкой на смену пароля
+//   POST reset     {token, password} — сама смена пароля по ссылке из письма
 //
 // Старые клиенты входят со своими паролями: пока пароль ещё не перенесён
 // (password_hash пуст), он один раз сверяется с Firebase и сохраняется у нас
@@ -19,6 +21,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_referrals.php';
+require __DIR__ . '/_mail.php';
 
 /**
  * Защита от подбора пароля: не больше 10 попыток входа или регистрации за
@@ -32,6 +35,8 @@ function limit_attempts()
 }
 
 const MIN_PASSWORD = 6;
+/** Сколько живёт ссылка из письма о смене пароля. */
+const RESET_TTL_MINUTES = 60;
 
 $action = $_GET['action'] ?? '';
 
@@ -61,6 +66,14 @@ switch ($action) {
     case 'delete-account':
         require_method('POST');
         delete_account();
+    case 'forgot':
+        require_method('POST');
+        limit_attempts();
+        forgot_password();
+    case 'reset':
+        require_method('POST');
+        limit_attempts();
+        reset_password();
     default:
         fail('Неизвестное действие', 404);
 }
@@ -370,4 +383,109 @@ function upgrade_guest()
     $st = $pdo->prepare('SELECT * FROM users WHERE id = ?');
     $st->execute([$user['id']]);
     respond(['ok' => true, 'user' => user_public($st->fetch())]);
+}
+
+
+/**
+ * «Забыли пароль?» — присылаем на почту ссылку для смены пароля.
+ *
+ * Ответ всегда одинаковый, даже если такой почты у нас нет: иначе по форме
+ * можно было бы проверять, зарегистрирован ли человек на сайте.
+ */
+function forgot_password()
+{
+    $email = mb_strtolower(str_field('email'));
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        fail('Проверьте адрес почты');
+    }
+    $answer = ['ok' => true, 'sent' => true];
+
+    $pdo = db();
+    $st = $pdo->prepare('SELECT id, full_name FROM users WHERE email = ? AND deleted_at IS NULL AND is_guest = 0');
+    $st->execute([$email]);
+    $user = $st->fetch();
+    if (!$user) {
+        respond($answer);
+    }
+
+    // Старые неиспользованные ссылки этого человека гасим: действующей должна
+    // быть только последняя.
+    $pdo->prepare('DELETE FROM password_resets WHERE user_id = ? AND used_at IS NULL')->execute([$user['id']]);
+
+    $token = bin2hex(random_bytes(32));
+    $expires = (new DateTimeImmutable('now', new DateTimeZone('UTC')))
+        ->modify('+' . RESET_TTL_MINUTES . ' minutes')->format('Y-m-d H:i:s.v');
+    $pdo->prepare('INSERT INTO password_resets (token_hash, user_id, expires_at) VALUES (?, ?, ?)')
+        ->execute([hash('sha256', $token), $user['id'], $expires]);
+
+    $link = 'https://sever-18.ru/?reset=' . $token;
+    $name = trim((string) $user['full_name']);
+    $text = ($name !== '' ? $name . ', здравствуйте!' : 'Здравствуйте!') . "
+
+"
+        . "Вы просили сменить пароль в личном кабинете Фото-Север.
+"
+        . "Ссылка (действует час, сработает один раз):
+
+"
+        . $link . "
+
+"
+        . "Если вы ничего не просили — просто удалите это письмо, пароль останется прежним.
+
+"
+        . "Фото-Север, Северное шоссе, 18
+https://sever-18.ru";
+
+    if (!send_mail($email, 'Смена пароля в Фото-Север', $text)) {
+        // Человеку про внутренние сбои не рассказываем — но и делать вид, что
+        // письмо ушло, нельзя: он будет ждать его напрасно.
+        fail('Не удалось отправить письмо. Напишите нам в чат — поможем вручную.', 500);
+    }
+    respond($answer);
+}
+
+/** Смена пароля по ссылке из письма. */
+function reset_password()
+{
+    $token = str_field('token', 128);
+    $password = (string) (body()['password'] ?? '');
+    if (!preg_match('/^[a-f0-9]{64}$/i', $token)) {
+        fail('Ссылка не подходит — запросите новую');
+    }
+    if (mb_strlen($password) < MIN_PASSWORD) {
+        fail('Пароль — не короче ' . MIN_PASSWORD . ' символов');
+    }
+
+    $pdo = db();
+    $st = $pdo->prepare('SELECT r.user_id, u.email FROM password_resets r JOIN users u ON u.id = r.user_id
+                         WHERE r.token_hash = ? AND r.used_at IS NULL AND r.expires_at > UTC_TIMESTAMP(3)
+                           AND u.deleted_at IS NULL');
+    $st->execute([hash('sha256', $token)]);
+    $row = $st->fetch();
+    if (!$row) {
+        fail('Ссылка устарела или уже использована — запросите новую', 410);
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+            ->execute([password_hash($password, PASSWORD_DEFAULT), $row['user_id']]);
+        $pdo->prepare('UPDATE password_resets SET used_at = ? WHERE token_hash = ?')
+            ->execute([now_utc(), hash('sha256', $token)]);
+        // Все прежние входы обрываем: если пароль меняют из-за того, что в
+        // аккаунт кто-то влез, чужой вход должен закончиться здесь же.
+        $pdo->prepare('DELETE FROM sessions WHERE user_id = ?')->execute([$row['user_id']]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        error_log('api/v2 reset: ' . $e->getMessage());
+        fail('Не удалось сменить пароль. Попробуйте ещё раз.', 500);
+    }
+
+    // Сразу впускаем — человек только что подтвердил, что почта его.
+    $newToken = create_session($row['user_id'], source() === 'app' ? 'app' : 'web');
+    $user = $pdo->prepare('SELECT * FROM users WHERE id = ?');
+    $user->execute([$row['user_id']]);
+    respond(['ok' => true, 'token' => $newToken, 'user' => user_public($user->fetch())]);
 }

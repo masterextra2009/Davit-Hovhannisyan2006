@@ -9,6 +9,7 @@ import { Lock, Mail, User as UserIcon, Phone, ArrowRight, ShieldAlert, CheckCirc
 import { ThemeToggle } from './ThemeToggle';
 import { signInUserWithFirebase, registerUserWithFirebase, signInWithGoogleFirebase, signInWithTelegram, TelegramAuthData } from '../firebaseUtils';
 import { motion } from 'motion/react';
+import * as v2 from '../api/v2';
 
 // Яркий голубой градиент фона окна входа (наносится напрямую через inline-style,
 // чтобы гарантированно отображаться независимо от порядка загрузки CSS-файлов)
@@ -41,7 +42,15 @@ interface AuthScreenProps {
 }
 
 export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScreenProps) {
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  // Ссылка из письма о смене пароля приходит видом sever-18.ru/?reset=…
+  const [resetToken] = useState<string>(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('reset') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>(resetToken ? 'reset' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -175,12 +184,51 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
       });
   };
 
-  const handleForgotPasswordSubmit = (e: React.FormEvent) => {
+  /** Человек пришёл по ссылке из письма и задаёт новый пароль. */
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    resetMessages();
+    if (password.length < 6) {
+      setErrorMsg('Пароль — не короче 6 символов.');
+      return;
+    }
+    setSocialLoading('reset');
+    try {
+      const user = await v2.resetPassword(resetToken, password);
+      // Убираем код из адреса: ссылка одноразовая, и оставлять её в истории
+      // браузера незачем.
+      window.history.replaceState({}, '', window.location.pathname);
+      onAuthSuccess(user);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Не удалось сменить пароль. Запросите новую ссылку.');
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     resetMessages();
 
     if (!email) {
       setErrorMsg('Введите ваш адрес электронной почты.');
+      return;
+    }
+
+    // Раньше здесь не отправлялось ничего: человеку писали «инструкции
+    // отправлены», а письма не было. Теперь письмо шлёт наш сервер.
+    if (v2.isV2Enabled()) {
+      setSocialLoading('forgot');
+      try {
+        await v2.forgotPassword(email.trim());
+      } catch (err: any) {
+        setSocialLoading(null);
+        setErrorMsg(err?.message || 'Не удалось отправить письмо. Попробуйте ещё раз.');
+        return;
+      }
+      setSocialLoading(null);
+      setIsForgotPasswordSent(true);
+      setSuccessMsg('Письмо со ссылкой отправлено. Ссылка работает час.');
       return;
     }
 
@@ -328,6 +376,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
               {mode === 'login' && 'Вход в Кабинет'}
               {mode === 'signup' && 'Создать Кабинет'}
               {mode === 'forgot' && 'Сброс Пароля'}
+              {mode === 'reset' && 'Новый пароль'}
             </h2>
 
             {/* Feedback alerts */}
@@ -573,6 +622,51 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                   className="btn-holo-glass w-full flex justify-center items-center py-3.5 px-4 mt-2 rounded-full text-xs font-bold text-slate-900 active:scale-[0.985] transition-all cursor-pointer"
                 >
                   Создать профиль
+                </button>
+              </form>
+            )}
+
+            {mode === 'reset' && (
+              <form className="space-y-4" onSubmit={handleResetSubmit}>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 px-1">
+                  Придумайте новый пароль для входа в личный кабинет.
+                </p>
+                <div>
+                  <label htmlFor="reset-password" className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5 pl-1">
+                    Новый пароль
+                  </label>
+                  <div className="relative rounded-full">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                      <Lock className="h-4.5 w-4.5" />
+                    </div>
+                    <input
+                      id="reset-password"
+                      name="password"
+                      type="password"
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Не короче 6 символов"
+                      className="block w-full pl-11 pr-4 py-3 border border-slate-200 dark:border-slate-800 rounded-full bg-white/80 dark:bg-slate-900/60 text-[15px]"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={socialLoading === 'reset'}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-full bg-blue-600 text-white font-black uppercase tracking-wider text-[13px] disabled:opacity-60"
+                >
+                  {socialLoading === 'reset' ? 'Сохраняем…' : 'Сохранить и войти'}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); resetMessages(); }}
+                  className="w-full text-[12px] font-bold text-slate-400 uppercase tracking-wider"
+                >
+                  Вернуться ко входу
                 </button>
               </form>
             )}
