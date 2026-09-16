@@ -1196,15 +1196,16 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       sessionStorage.setItem(`doc_check_pending_${orderId}`, JSON.stringify({ image: docCheckImage, docType: docCheckType }));
       await withTimeout(saveOrderToFirebase(order), 15000);
       trackAnalyticsEvent('order_created');
-      const res = await withTimeout(
-        fetch('https://sever-18.ru/api/payment-create.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId, amount: DOC_CHECK_PAID_PRICE, email: user.email }),
-        }),
-        15000
-      );
-      const data = await res.json();
+      const data = v2.isV2Enabled()
+        ? await withTimeout(v2.payments.create(orderId), 20000)
+        : await withTimeout(
+            fetch('https://sever-18.ru/api/payment-create.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orderId, amount: DOC_CHECK_PAID_PRICE, email: user.email }),
+            }).then(r => r.json()),
+            15000
+          );
       if (data.paymentUrl && data.paymentId) {
         await withTimeout(saveOrderToFirebase({ ...order, transactionId: data.paymentId }), 15000);
         window.location.href = data.paymentUrl;
@@ -3623,15 +3624,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         await withTimeout(saveOrderToFirebase(pendingOrder), 15000);
         trackAnalyticsEvent('order_created');
 
-        const res = await withTimeout(
-          fetch('https://sever-18.ru/api/payment-create.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderId, amount: finalTotalCost, email: user.email }),
-          }),
-          15000
-        );
-        const data = await res.json();
+        // Оплату создаёт наш сервер: он сам берёт сумму из заказа и знает
+        // новые ключи ЮKassa. Старый api/payment-create.php остался с
+        // отозванным ключом — через него страница оплаты не открывалась.
+        const data = v2.isV2Enabled()
+          ? await withTimeout(v2.payments.create(orderId), 20000)
+          : await withTimeout(
+              fetch('https://sever-18.ru/api/payment-create.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, amount: finalTotalCost, email: user.email }),
+              }).then(r => r.json()),
+              15000
+            );
 
         if (data.paymentUrl && data.paymentId) {
           const updated = { ...pendingOrder, transactionId: data.paymentId };
@@ -5995,19 +6000,20 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 onClick={async () => {
                                   setRetryPayingOrderId(ord.id);
                                   try {
-                                    const res = await withTimeout(
-                                      fetch('https://sever-18.ru/api/payment-create.php', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                          orderId: ord.id,
-                                          amount: ord.totalCost,
-                                          email: user.email,
-                                        }),
-                                      }),
-                                      15000
-                                    );
-                                    const data = await res.json();
+                                    const data = v2.isV2Enabled()
+                                      ? await withTimeout(v2.payments.create(ord.id), 20000)
+                                      : await withTimeout(
+                                          fetch('https://sever-18.ru/api/payment-create.php', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                              orderId: ord.id,
+                                              amount: ord.totalCost,
+                                              email: user.email,
+                                            }),
+                                          }).then(r => r.json()),
+                                          15000
+                                        );
                                     if (data.paymentUrl) {
                                       window.location.href = data.paymentUrl;
                                     } else {

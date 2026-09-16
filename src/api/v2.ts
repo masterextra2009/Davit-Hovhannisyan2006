@@ -275,6 +275,20 @@ export const referrals = {
     'referrals.php?action=info'),
 };
 
+// ─────────────────────────── Оплата ───────────────────────────
+
+export const payments = {
+  /**
+   * Создаёт платёж в ЮKassa. Сумму сервер берёт из самого заказа — прислать
+   * свою нельзя, иначе цену можно было бы подделать на стороне браузера.
+   */
+  create: (orderId: string) =>
+    request<{ paymentUrl?: string; paymentId?: string; paid?: boolean }>(
+      'payments.php?action=create', { body: { orderId } }),
+  status: (orderId: string) =>
+    request<{ paymentStatus: string }>(`payments.php?action=status&orderId=${encodeURIComponent(orderId)}`),
+};
+
 // ─────────────────────────── Профили ───────────────────────────
 
 export const users = {
