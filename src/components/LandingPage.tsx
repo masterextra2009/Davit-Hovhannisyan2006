@@ -62,7 +62,9 @@ export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
           <div className="flex items-center gap-2.5 min-w-0">
             <img src="/logo-header.webp" alt="Фото-Север" width="36" height="36" className="w-9 h-9 rounded-xl object-cover" />
             <div className="leading-tight min-w-0">
-              <div className="text-sm font-black whitespace-nowrap">Фото-Север</div>
+              {/* truncate, а не nowrap: при крупном шрифте название заезжало
+                  под кнопку справа — пусть лучше сократится многоточием. */}
+              <div className="text-sm font-black truncate">Фото-Север</div>
               <div className="text-[11px] text-slate-600 dark:text-white/60 truncate">Северное шоссе, 18</div>
             </div>
           </div>
