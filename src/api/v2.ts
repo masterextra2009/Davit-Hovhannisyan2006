@@ -420,6 +420,24 @@ export function subscribeByPolling(
   let timer: ReturnType<typeof setTimeout> | null = null;
   let heartbeat: ReturnType<typeof setInterval> | null = null;
 
+  // Экран ждёт ПОЛНЫЙ список — так было с живой подпиской Firebase. А опрос
+  // приносит только изменения, поэтому полный список собираем здесь: храним
+  // всё виденное по номерам, добавляем новое, убираем удалённое. Без этого
+  // новый заказ не появлялся у админа до перезагрузки страницы.
+  const known = {
+    orders: new Map<string, Order>(),
+    chatMessages: new Map<string, ChatMessage>(),
+    notifications: new Map<string, Notification>(),
+  };
+
+  const merge = <T extends { id: string }>(store: Map<string, T>, fresh: T[], deleted: string[]): T[] => {
+    fresh.forEach(item => store.set(item.id, item));
+    deleted.forEach(id => store.delete(id));
+    return [...store.values()];
+  };
+
+  const byTime = (a: string | undefined, b: string | undefined) => new Date(b || 0).getTime() - new Date(a || 0).getTime();
+
   const tick = async () => {
     if (stopped || busy || document.visibilityState === 'hidden') return;
     busy = true;
@@ -427,9 +445,23 @@ export function subscribeByPolling(
       const [o, c, n] = await Promise.all([orders.list(sinceOrders), chat.list(sinceChat), notifications.list(sinceAlerts)]);
 
       const updates: Partial<DatabaseState> = {};
-      if (o.orders.length || !sinceOrders) updates.orders = o.orders;
-      if (c.messages.length || !sinceChat) updates.chatMessages = c.messages;
-      if (n.notifications.length || !sinceAlerts) updates.notifications = n.notifications;
+
+      // Собираем полный список из накопленного и пришедших изменений.
+      // Отдаём его экрану только когда что-то действительно поменялось —
+      // иначе каждые несколько секунд перерисовывали бы всё подряд.
+      if (o.orders.length || o.deletedIds.length || !sinceOrders) {
+        updates.orders = merge(known.orders, o.orders, o.deletedIds)
+          .sort((a, b) => byTime(a.orderDate, b.orderDate));
+      }
+      if (c.messages.length || c.deletedIds.length || !sinceChat) {
+        // Сообщения — от старых к новым: так их читает и показывает экран чата.
+        updates.chatMessages = merge(known.chatMessages, c.messages, c.deletedIds)
+          .sort((a, b) => byTime(b.timestamp, a.timestamp));
+      }
+      if (n.notifications.length || n.deletedIds.length || !sinceAlerts) {
+        updates.notifications = merge(known.notifications, n.notifications, n.deletedIds)
+          .sort((a, b) => byTime(a.timestamp, b.timestamp));
+      }
 
       // Профили нужны всегда: у клиента там подарочный промокод, у админа —
       // вся клиентская база. Но меняются они редко, поэтому реже опроса.
@@ -461,11 +493,8 @@ export function subscribeByPolling(
       ticks++;
 
       if (Object.keys(updates).length) {
-        onSync(updates, {
-          orders: o.deletedIds,
-          chatMessages: c.deletedIds,
-          notifications: n.deletedIds,
-        });
+        // Удалённое уже вычтено выше — экрану отдаём готовый список.
+        onSync(updates);
       }
       onTyping?.(c.adminTyping);
     } catch (e) {
