@@ -207,18 +207,57 @@ function serve_file()
     header_remove('Content-Type');
     header('Content-Type: ' . $mime);
     header('Content-Disposition: ' . $disposition . '; filename*=UTF-8\'\'' . rawurlencode($name));
-    header('Content-Length: ' . (string) filesize($full));
     header('X-Content-Type-Options: nosniff');
     header('Cache-Control: private, max-age=300');
+    // Докачка: без этого оборвавшаяся загрузка начинается с нуля, а у Давида
+    // большие файлы рвутся на его сети регулярно (17.09.2026 — заказ клиента
+    // на 2,4 МБ не скачивался вовсе). С Range браузер продолжает с места
+    // обрыва, а не качает всё заново.
+    header('Accept-Ranges: bytes');
+
+    $size = filesize($full);
+    $start = 0;
+    $end = $size - 1;
+
+    $range = $_SERVER['HTTP_RANGE'] ?? '';
+    if ($range !== '' && preg_match('/^bytes=(\d*)-(\d*)$/', trim($range), $m)) {
+        if ($m[1] === '' && $m[2] !== '') {
+            // «последние N байт»
+            $start = max(0, $size - (int) $m[2]);
+        } else {
+            $start = (int) $m[1];
+            if ($m[2] !== '') {
+                $end = min((int) $m[2], $size - 1);
+            }
+        }
+        if ($start > $end || $start >= $size) {
+            header('HTTP/1.1 416 Range Not Satisfiable');
+            header('Content-Range: bytes */' . $size);
+            exit;
+        }
+        header('HTTP/1.1 206 Partial Content');
+        header('Content-Range: bytes ' . $start . '-' . $end . '/' . $size);
+    }
+
+    header('Content-Length: ' . (string) ($end - $start + 1));
 
     @set_time_limit(0);
     $fp = fopen($full, 'rb');
     if ($fp === false) {
         fail('Файл не читается', 500);
     }
-    while (!feof($fp)) {
-        echo fread($fp, 1024 * 1024);
+    if ($start > 0) {
+        fseek($fp, $start);
+    }
+    $left = $end - $start + 1;
+    while ($left > 0 && !feof($fp)) {
+        $chunk = fread($fp, (int) min(1024 * 1024, $left));
+        if ($chunk === false || $chunk === '') {
+            break;
+        }
+        echo $chunk;
         flush();
+        $left -= strlen($chunk);
     }
     fclose($fp);
     exit;
