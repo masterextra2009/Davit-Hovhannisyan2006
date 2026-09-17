@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS users (
   telegram_username  VARCHAR(64)  NULL,
   telegram_notifications_enabled TINYINT(1) NOT NULL DEFAULT 0,
   expo_push_token VARCHAR(255) NULL,
+  -- Согласие на новости и акции (38-ФЗ, ст. 18): по умолчанию НЕТ. История
+  -- согласий и отзывов — в таблице consents, здесь текущее состояние.
+  marketing_consent TINYINT(1) NOT NULL DEFAULT 0,
   -- Персональный промокод-подарок
   promo_code      VARCHAR(64)  NULL,
   promo_discount  INT          NULL,

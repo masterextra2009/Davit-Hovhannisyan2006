@@ -120,19 +120,23 @@ function register()
     }
 
     $id = new_id();
+    // Согласие на рекламу — отдельное, и по умолчанию его НЕТ
+    // (38-ФЗ, ст. 18). Уведомления о своём заказе к рекламе не
+    // относятся и приходят независимо от этой галочки.
+    $marketing = (body()['marketingConsent'] ?? false) === true;
     $pdo->beginTransaction();
     try {
         $pdo->prepare(
-            'INSERT INTO users (id, email, full_name, role, phone, password_hash, auth_provider, created_at)
-             VALUES (?, ?, ?, \'client\', ?, ?, \'password\', ?)'
-        )->execute([$id, $email, $fullName, $phone ?: null, password_hash($password, PASSWORD_DEFAULT), now_utc()]);
+            'INSERT INTO users (id, email, full_name, role, phone, password_hash, auth_provider, marketing_consent, created_at)
+             VALUES (?, ?, ?, \'client\', ?, ?, \'password\', ?, ?)'
+        )->execute([$id, $email, $fullName, $phone ?: null, password_hash($password, PASSWORD_DEFAULT), $marketing ? 1 : 0, now_utc()]);
 
         $consent = $pdo->prepare(
             'INSERT INTO consents (user_id, kind, granted, doc_version, source, ip) VALUES (?, ?, 1, ?, ?, ?)'
         );
         $consent->execute([$id, 'personal_data', $consentVersion, $source, client_ip()]);
         $consent->execute([$id, 'offer', $consentVersion, $source, client_ip()]);
-        if ((body()['marketingConsent'] ?? false) === true) {
+        if ($marketing) {
             $consent->execute([$id, 'marketing', $consentVersion, $source, client_ip()]);
         }
 

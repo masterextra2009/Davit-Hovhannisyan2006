@@ -71,8 +71,12 @@ function push_to_admins(string $title, string $body): void
  */
 function push_broadcast_clients(string $title, string $body): int
 {
+    // Только те, кто согласился получать новости и акции: это реклама,
+    // и без согласия её слать нельзя (38-ФЗ, ст. 18). Уведомления о
+    // заказе и ответы в чате идут другим путём и сюда не попадают.
     $rows = db()->query("SELECT id, expo_push_token FROM users
-                         WHERE role <> 'admin' AND deleted_at IS NULL AND expo_push_token IS NOT NULL")->fetchAll();
+                         WHERE role <> 'admin' AND deleted_at IS NULL AND expo_push_token IS NOT NULL
+                           AND marketing_consent = 1")->fetchAll();
     $targets = [];
     foreach ($rows as $u) {
         $targets[$u['id']] = $u['expo_push_token'];

@@ -241,6 +241,7 @@ function user_public(array $u): array
         'telegramChatId' => $u['telegram_chat_id'],
         'telegramUsername' => $u['telegram_username'],
         'telegramNotificationsEnabled' => (bool) $u['telegram_notifications_enabled'],
+        'marketingConsent' => (bool) ($u['marketing_consent'] ?? 0),
         'promoCode' => $u['promo_code'],
         'promoDiscount' => $u['promo_discount'] !== null ? (int) $u['promo_discount'] : null,
         'promoExpiresAt' => iso($u['promo_expires_at']),

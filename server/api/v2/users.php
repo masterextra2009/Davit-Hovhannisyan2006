@@ -86,6 +86,26 @@ function save_user(array $me, bool $isAdmin)
     if (array_key_exists('telegramNotificationsEnabled', $u)) {
         $put('telegram_notifications_enabled', $u['telegramNotificationsEnabled'] ? 1 : 0);
     }
+    // Согласие на новости и акции. Каждое включение и выключение
+    // записывается в историю согласий: по закону надо уметь показать,
+    // когда человек согласился и когда отозвал (152-ФЗ, 38-ФЗ).
+    if (array_key_exists('marketingConsent', $u)) {
+        $wants = $u['marketingConsent'] ? 1 : 0;
+        $put('marketing_consent', $wants);
+        if ((int) ($current['marketing_consent'] ?? 0) !== $wants) {
+            $pdo->prepare(
+                'INSERT INTO consents (user_id, kind, granted, doc_version, source, ip)
+                 VALUES (?, ?, ?, ?, ?, ?)'
+            )->execute([
+                $id,
+                'marketing',
+                $wants,
+                str_field('consentVersion', 32),
+                str_field('source', 8) === 'app' ? 'app' : 'site',
+                client_ip(),
+            ]);
+        }
+    }
     if (array_key_exists('promoGiftedSeen', $u)) {
         $put('promo_gifted_seen', $u['promoGiftedSeen'] ? 1 : 0);
     }
