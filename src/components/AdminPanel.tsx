@@ -2169,7 +2169,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <div>
                         <p className="text-[11px] uppercase tracking-wider font-bold text-emerald-300">Отсканирован заказ</p>
                         <p className="text-xl font-extrabold text-white">{scanned.id}</p>
-                        <p className="text-sm text-white/90 mt-1">{describeOrder(scanned)}</p>
+                        <p className="text-sm text-white/90 mt-1">
+                          {describeOrder(scanned)}
+                          {scanned.binding === 'file' ? ' · в файлике' : ''}
+                        </p>
                         <p className="text-xs text-white/60 mt-0.5">
                           {scanned.userName}{scanned.userPhone ? ` · ${scanned.userPhone}` : ''}
                         </p>
@@ -2614,7 +2617,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             <div>Количество тиража: <strong className="text-slate-800 dark:text-white">{order.copies} шт.</strong></div>
                             {order.binding && order.binding !== 'none' && (
                               <div>Скрепление: <strong className="text-indigo-650 dark:text-indigo-400">
-                                {order.binding === 'staple' ? 'Скрепка в углу' :
+                                {order.binding === 'file' ? 'Вложить в файлик' :
+                                 order.binding === 'staple' ? 'Скрепка в углу' :
                                  order.binding === 'spring_plastic' ? 'Пружина пластик' :
                                  order.binding === 'spring_metal' ? 'Пружина металл' : 'Тв. переплет'}
                               </strong></div>
