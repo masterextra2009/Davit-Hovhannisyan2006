@@ -1223,6 +1223,31 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     return () => clearTimeout(t);
   }, [activeTab, activeChatUserId, database.chatMessages.length]);
 
+  /**
+   * Что это за заказ — одной строкой: «Фото 10×15», «Документы А4»,
+   * «Чертёж А3». Нужно на выдаче: Давид сканирует код и должен сразу
+   * видеть, что выносить клиенту, не разбирая карточку по полям.
+   */
+  const describeOrder = (o: Order): string => {
+    const files = o.files ?? [];
+    if (!files.length) return 'Заказ без файлов';
+
+    const sizes = new Set(files.map(f => f.photoSize).filter(Boolean) as string[]);
+    if (files.every(f => f.paperType === 'photo')) {
+      if (sizes.size === 1 && [...sizes][0] === 'polaroid') return 'Полароид';
+      const list = [...sizes].map(x => x.replace('x', '×')).join(', ');
+      return list ? `Фото ${list}` : 'Фото';
+    }
+    if (files.some(f => f.format === 'a3')) {
+      const photo = files.some(f => f.a3Kind === 'photo');
+      return photo ? 'А3 на фотобумаге' : 'А3, чертёж';
+    }
+    if (files.some(f => f.format === 'binding')) return 'Переплёт';
+    const pages = files.reduce((n, f) => n + (f.pageCount || 1), 0);
+    const color = o.printColor === 'bw' ? 'Ч/Б' : 'цвет';
+    return `Документы А4 · ${pages} л. · ${color}`;
+  };
+
   // Order print status modifier
   const handleUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
     const targetOrder = database.orders.find(o => o.id === orderId);
@@ -2119,19 +2144,81 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               
               {/* Плашка о сканировании: сразу видно, какой заказ поймал сканер
                   и как вернуться ко всем заказам. */}
-              {scannedOrderId && (
-                <div className="glass-panel p-3 rounded-2xl flex items-center justify-between gap-3">
-                  <p className="text-sm text-white">
-                    Отсканирован заказ <strong>{scannedOrderId}</strong>
-                  </p>
-                  <button
-                    onClick={() => { setScannedOrderId(null); setOrderSearchQuery(''); }}
-                    className="text-xs font-bold text-white/70 hover:text-white underline"
-                  >
-                    Показать все
-                  </button>
-                </div>
-              )}
+              {scannedOrderId && (() => {
+                const scanned = database.orders.find(o => o.id === scannedOrderId);
+                if (!scanned) {
+                  return (
+                    <div className="glass-panel p-4 rounded-2xl flex items-center justify-between gap-3">
+                      <p className="text-sm text-white">
+                        Заказ <strong>{scannedOrderId}</strong> не найден — возможно, он уже выдан и в архиве.
+                      </p>
+                      <button
+                        onClick={() => { setScannedOrderId(null); setOrderSearchQuery(''); }}
+                        className="text-xs font-bold text-white/70 hover:text-white underline"
+                      >
+                        Показать все
+                      </button>
+                    </div>
+                  );
+                }
+                const given = scanned.status === 'printed';
+                const paid = scanned.paymentStatus === 'paid';
+                return (
+                  <div className="glass-panel p-4 rounded-2xl space-y-3 border border-emerald-400/30">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wider font-bold text-emerald-300">Отсканирован заказ</p>
+                        <p className="text-xl font-extrabold text-white">{scanned.id}</p>
+                        <p className="text-sm text-white/90 mt-1">{describeOrder(scanned)}</p>
+                        <p className="text-xs text-white/60 mt-0.5">
+                          {scanned.userName}{scanned.userPhone ? ` · ${scanned.userPhone}` : ''}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xl font-extrabold text-white">{scanned.totalCost} ₽</p>
+                        <p className={`text-[11px] uppercase font-bold ${paid ? 'text-emerald-300' : 'text-amber-300'}`}>
+                          {paid ? 'оплачен' : 'не оплачен'}
+                        </p>
+                        <p className="text-[11px] text-white/60 mt-0.5">{getStatusLabel(scanned.status)}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {!paid && (
+                        <button
+                          onClick={() => handleTogglePaymentStatus(scanned.id)}
+                          className="px-4 py-2 rounded-xl bg-amber-500/90 hover:bg-amber-500 text-white text-sm font-bold transition-colors"
+                        >
+                          Принял оплату
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleUpdateOrderStatus(scanned.id, 'printed')}
+                        disabled={given}
+                        className={`px-5 py-2 rounded-xl text-sm font-bold transition-colors ${
+                          given
+                            ? 'bg-white/10 text-white/50 cursor-default'
+                            : 'bg-emerald-500 hover:bg-emerald-400 text-white'
+                        }`}
+                      >
+                        {given ? 'Уже выдан' : 'Выдать клиенту'}
+                      </button>
+                      <button
+                        onClick={() => { setScannedOrderId(null); setOrderSearchQuery(''); }}
+                        className="text-xs font-bold text-white/70 hover:text-white underline ml-auto"
+                      >
+                        Показать все
+                      </button>
+                    </div>
+
+                    {!paid && (
+                      <p className="text-[11px] text-amber-200/80">
+                        Заказ не оплачен. Возьмите оплату и нажмите «Принял оплату» — иначе в отчётах он останется долгом.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Order Lists Filter and bulk actions bar */}
               <div className="glass-panel p-4 rounded-2xl space-y-3">
