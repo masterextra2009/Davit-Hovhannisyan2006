@@ -1229,6 +1229,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
    * видеть, что выносить клиенту, не разбирая карточку по полям.
    */
   const describeOrder = (o: Order): string => {
+    // Заказ из витрины услуг — это и есть услуга: «Кружка», «Печать на
+    // футболке». Файл при ней — материал (картинка), а не отдельная печать,
+    // поэтому и в цене он не участвует (server/api/v2/_pricing.php).
+    if (o.serviceId) {
+      const svc = database.services?.find(x => x.id === o.serviceId);
+      if (svc) return `Услуга: ${svc.title}`;
+    }
     const files = o.files ?? [];
     if (!files.length) return 'Заказ без файлов';
 
@@ -2623,6 +2630,15 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                order.printColor === 'color_full' ? 'Цветная 100% заливочная' : 'Цветная (RGB)'}
                             </strong></div>
                             <div>Количество тиража: <strong className="text-slate-800 dark:text-white">{order.copies} шт.</strong></div>
+                            {order.serviceId && (
+                              <div>Услуга из витрины: <strong className="text-indigo-650 dark:text-indigo-400">
+                                {database.services?.find(x => x.id === order.serviceId)?.title || order.serviceId}
+                                {(() => {
+                                  const svc = database.services?.find(x => x.id === order.serviceId);
+                                  return svc?.price ? ` — ${svc.price}` : '';
+                                })()}
+                              </strong></div>
+                            )}
                             {order.binding && order.binding !== 'none' && (
                               <div>Скрепление: <strong className="text-indigo-650 dark:text-indigo-400">
                                 {order.binding === 'file' ? 'Вложить в файлик' :
