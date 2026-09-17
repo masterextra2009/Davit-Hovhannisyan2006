@@ -113,6 +113,14 @@ function file_price(array $f): int
  */
 function order_price(array $files, ?string $binding, int $discountPercent, int $serviceExtra): int
 {
+    // Заказ на услугу из витрины: приложенный файл — это материал для неё
+    // (картинка на кружку, макет), а не отдельная печать. Считать его ещё и
+    // страницей А4 значит взять с человека дважды: 17.09.2026 так и вышло —
+    // кружка 800 ₽ превратилась в 865 ₽ (заказ ORD-1067).
+    if ($serviceExtra > 0) {
+        return $serviceExtra;
+    }
+
     $subtotal = 0;
     $totalPages = 0;
     foreach ($files as $f) {

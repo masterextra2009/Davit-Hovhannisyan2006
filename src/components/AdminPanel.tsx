@@ -1351,9 +1351,14 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     setDownloadProgress(50);
 
     try {
-      // Формируем ссылку через download.php — принудительное скачивание
-      const urlPath = file.url.replace(/https?:\/\/(www\.)?sever-18\.ru\//, '');
-      const downloadUrl = `https://sever-18.ru/api/download.php?file=${encodeURIComponent(urlPath)}&name=${encodeURIComponent(file.name)}`;
+      // Скачиваем по самой ссылке файла. Раньше здесь строился адрес к
+      // старому api/download.php, которому подсовывался кусок новой
+      // подписанной ссылки, — тот её не понимал, и браузер писал «Загрузка
+      // прервана» (17.09.2026, заказ ORD-1067). Ссылка files.php и так
+      // отдаёт файл вложением, ей нужно только имя для сохранения.
+      const downloadUrl = file.url.includes('files.php')
+        ? `${file.url}&name=${encodeURIComponent(file.name)}`
+        : file.url;
 
       const link = document.createElement('a');
       link.href = downloadUrl;
@@ -1389,8 +1394,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         if (file.url && (file.url.startsWith('http') || file.url.startsWith('https'))) {
           try {
             // Если файл на нашем сервере — загружаем через прокси (обходит CORS)
+            // Файлы нового сервера отдаются подписанной ссылкой и с нашего
+            // же домена — обходить CORS через старый download.php больше не
+            // нужно и нельзя: он этих ссылок не понимает.
             let fetchUrl = file.url;
-            if (file.url.includes('sever-18.ru/uploads/')) {
+            if (!file.url.includes('files.php') && file.url.includes('sever-18.ru/uploads/')) {
               const urlPath = file.url.replace(/https?:\/\/(www\.)?sever-18\.ru\//, '');
               fetchUrl = `https://sever-18.ru/api/download.php?file=${encodeURIComponent(urlPath)}&name=${encodeURIComponent(file.name)}`;
             }
