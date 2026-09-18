@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getLocalDateKey, trackAnalyticsEvent } from './utils';
+import { getLocalDateKey, trackAnalyticsEvent, getCurrentUser } from './utils';
 import {
   auth,
   db,
@@ -622,6 +622,14 @@ export async function deleteOrderFromFirebase(orderId: string): Promise<void> {
  */
 export async function deleteUserAccountWithFirebase(userId: string): Promise<void> {
   if (useV2()) {
+    // ⚠️ На сервере есть только «удалить СЕБЯ» (auth.php?action=delete-account):
+    // он смотрит на того, кто прислал запрос, а userId не читает вовсе. Если
+    // позвать его из админки для клиента, удалится сам администратор. Пока
+    // отдельного действия для админа нет — не даём этому случиться.
+    const me = getCurrentUser();
+    if (me && me.id !== userId) {
+      throw new Error('Удаление клиента администратором пока не поддерживается сервером — обратитесь к разработчику.');
+    }
     // Клиент удаляет себя сам; сервер обезличивает профиль и обрывает входы.
     await v2.deleteAccount();
     return;
@@ -777,10 +785,18 @@ export async function updateChatMessageInFirebase(msgId: string, updates: Partia
   if (useV2()) {
     // Единственное, что сайт правит в чужом сообщении, — «прочитано». На
     // сервере это отдельное действие и сразу на весь диалог.
-    if (updates.readByClient) await v2.chat.markRead();
+    if (updates.readByClient) {
+      await v2.chat.markRead();
+      // Опрос приносит только новые сообщения, а «прочитано» меняет старые —
+      // поэтому правим и накопленную копию, иначе значок вернётся.
+      v2.chatCache.markRead(undefined, false);
+    }
     if (updates.readByAdmin) {
       const dialogUserId = (updates as ChatMessage).userId;
-      if (dialogUserId) await v2.chat.markRead(dialogUserId);
+      if (dialogUserId) {
+        await v2.chat.markRead(dialogUserId);
+        v2.chatCache.markRead(dialogUserId, true);
+      }
     }
     return;
   }
@@ -789,6 +805,40 @@ export async function updateChatMessageInFirebase(msgId: string, updates: Partia
     await updateDoc(ref, updates);
   } catch (e) {
     handleFirestoreError(e, OperationType.UPDATE, `chatMessages/${msgId}`);
+  }
+}
+
+/**
+ * Удаление переписки админом. Раньше сайт просто выбрасывал сообщения из
+ * своего состояния: на сервере (и в Firestore) они оставались, и после
+ * обновления страницы возвращались обратно вместе со значком непрочитанных.
+ */
+export async function deleteChatMessageInFirebase(msgId: string): Promise<void> {
+  if (useV2()) {
+    await v2.chat.remove(msgId);
+    v2.chatCache.forget([msgId]);
+    return;
+  }
+  try {
+    await deleteDoc(doc(db, 'chatMessages', msgId));
+  } catch (e) {
+    handleFirestoreError(e, OperationType.DELETE, `chatMessages/${msgId}`);
+  }
+}
+
+/** Вся переписка с одним клиентом (аккаунт и заказы остаются). */
+export async function clearChatHistoryInFirebase(dialogUserId: string, msgIds: string[]): Promise<void> {
+  if (useV2()) {
+    await v2.chat.clear(dialogUserId);
+    v2.chatCache.forgetUser(dialogUserId);
+    return;
+  }
+  for (const id of msgIds) {
+    try {
+      await deleteDoc(doc(db, 'chatMessages', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `chatMessages/${id}`);
+    }
   }
 }
 

@@ -23,7 +23,7 @@ import {
   exportToCSV, printInvoiceHTML, calculateOrderCost, getLocalDateKey, sortServicesByGroup
 } from '../utils';
 import * as v2 from '../api/v2';
-import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase } from '../firebaseUtils';
+import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase, deleteChatMessageInFirebase, clearChatHistoryInFirebase } from '../firebaseUtils';
 import { db, doc, setDoc, deleteDoc, getDoc } from '../firebase';
 import { isVoice, parseVoice, formatVoiceLength } from '../utils/chatVoice';
 import { PromoCardPreview } from './PromoCardPreview';
@@ -1638,18 +1638,39 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   };
 
   // Clear chat history with a single client (keeps account, orders, everything else intact)
-  const handleClearChatHistory = (clientId: string) => {
+  //
+  // Удалять надо ИМЕННО на сервере: общая выгрузка состояния (onUpdateDatabase)
+  // отправляет только то, что в списке есть, а про исчезнувшие записи не знает
+  // вовсе. Поэтому раньше переписка пропадала лишь с экрана и возвращалась
+  // вместе со значком непрочитанных при следующем опросе или обновлении страницы.
+  const handleClearChatHistory = async (clientId: string) => {
     if (!clientId) return;
     const clientName = clientsOnly.find(u => u.id === clientId)?.fullName || 'этого клиента';
     const confirmed = window.confirm(`Удалить всю историю переписки с ${clientName}? Это действие нельзя отменить.`);
     if (!confirmed) return;
+
+    const doomed = database.chatMessages.filter(c => c.userId === clientId).map(c => c.id);
+    try {
+      await clearChatHistoryInFirebase(clientId, doomed);
+    } catch (err) {
+      console.error('Не удалось очистить переписку на сервере:', err);
+      window.alert('Не удалось удалить переписку на сервере. Проверьте соединение и попробуйте ещё раз.');
+      return;
+    }
 
     const filteredChats = database.chatMessages.filter(c => c.userId !== clientId);
     onUpdateDatabase({ chatMessages: filteredChats });
   };
 
   // Delete a single chat message
-  const handleDeleteMessage = (messageId: string) => {
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await deleteChatMessageInFirebase(messageId);
+    } catch (err) {
+      console.error('Не удалось удалить сообщение на сервере:', err);
+      window.alert('Не удалось удалить сообщение на сервере. Проверьте соединение и попробуйте ещё раз.');
+      return;
+    }
     const filteredChats = database.chatMessages.filter(c => c.id !== messageId);
     onUpdateDatabase({ chatMessages: filteredChats });
   };

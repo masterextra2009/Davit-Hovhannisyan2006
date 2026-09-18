@@ -406,6 +406,40 @@ function bytesToBase64Url(bytes: Uint8Array): string {
  *  • удалённые записи приходят отдельным списком deletedIds — опрос «что
  *    нового» иначе их не увидит, их же в базе уже нет.
  */
+/**
+ * Накопленная копия переписки живёт внутри subscribeByPolling. Опрос приносит
+ * только НОВЫЕ сообщения — а «прочитано» и удаление меняют уже полученные,
+ * времени создания не трогают, и следующим опросом их не видно. Поэтому
+ * экран, который пометил диалог прочитанным или стёр сообщение, правит и эту
+ * копию. Без этого значок непрочитанных возвращался при первом же опросе.
+ */
+let knownChat: Map<string, ChatMessage> | null = null;
+
+export const chatCache = {
+  /** Диалог открыли и прочитали: у админа — сообщения клиента, у клиента — ответы админа. */
+  markRead(dialogUserId: string | undefined, byAdmin: boolean) {
+    if (!knownChat) return;
+    knownChat.forEach((m, id) => {
+      if (byAdmin) {
+        if (m.userId === dialogUserId && m.senderRole === 'client') knownChat!.set(id, { ...m, readByAdmin: true });
+      } else if (m.senderRole === 'admin') {
+        knownChat!.set(id, { ...m, readByClient: true });
+      }
+    });
+  },
+  /** Сообщения удалены на сервере — забываем их сразу, не дожидаясь списка deletedIds. */
+  forget(ids: string[]) {
+    ids.forEach(id => knownChat?.delete(id));
+  },
+  /** Вся переписка с клиентом стёрта. */
+  forgetUser(dialogUserId: string) {
+    if (!knownChat) return;
+    [...knownChat.entries()].forEach(([id, m]) => {
+      if (m.userId === dialogUserId) knownChat!.delete(id);
+    });
+  },
+};
+
 export function subscribeByPolling(
   currentUser: User,
   onSync: (updates: Partial<DatabaseState>, deleted?: { orders?: string[]; chatMessages?: string[]; notifications?: string[] }) => void,
@@ -429,6 +463,8 @@ export function subscribeByPolling(
     chatMessages: new Map<string, ChatMessage>(),
     notifications: new Map<string, Notification>(),
   };
+  // Чтобы экран мог поправить накопленную переписку (см. chatCache выше).
+  knownChat = known.chatMessages;
 
   const merge = <T extends { id: string }>(store: Map<string, T>, fresh: T[], deleted: string[]): T[] => {
     fresh.forEach(item => store.set(item.id, item));
@@ -523,6 +559,7 @@ export function subscribeByPolling(
 
   return () => {
     stopped = true;
+    if (knownChat === known.chatMessages) knownChat = null;
     if (timer) clearInterval(timer);
     if (heartbeat) clearInterval(heartbeat);
     document.removeEventListener('visibilitychange', onVisible);
