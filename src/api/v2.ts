@@ -183,7 +183,8 @@ export async function guest(consentVersion?: string): Promise<User> {
  */
 export async function upgradeGuest(input: {
   email: string; password: string; fullName: string; phone?: string;
-  consentVersion: string; personalDataConsent: boolean; referralCode?: string;
+  consentVersion: string; personalDataConsent: boolean; marketingConsent?: boolean;
+  referralCode?: string;
 }): Promise<User> {
   const data = await request<{ user: User }>('auth.php?action=upgrade', { body: input });
   return data.user;

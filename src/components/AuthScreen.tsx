@@ -59,6 +59,9 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  // Согласие на рекламу — отдельное и выключенное по умолчанию: смешивать его
+  // с согласием на обработку данных нельзя (38-ФЗ, ст. 18).
+  const [wantsNews, setWantsNews] = useState(false);
   // Реферальная программа — код друга: подхватываем из ссылки (?ref=КОД),
   // которой обычно и делятся, но также даём ввести вручную (мессенджеры
   // иногда обрезают query-параметры в превью ссылки).
@@ -164,7 +167,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     setSuccessMsg('Регистрация в Firebase...');
     const role = email.trim().toLowerCase() === 'photo-sever@yandex.ru' ? 'admin' : 'client';
 
-    registerUserWithFirebase(email.trim(), password, fullName, phone, role, referralCodeInput)
+    registerUserWithFirebase(email.trim(), password, fullName, phone, role, referralCodeInput, wantsNews)
       .then((firebaseUser) => {
         setSuccessMsg('Регистрация прошла успешно! Выполняется вход...');
         setTimeout(() => {
@@ -619,6 +622,30 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                   {' '}·{' '}
                   <a href="/legal.html" target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:text-blue-500">политику данных</a>
                 </div>
+
+                {/* Вторая галочка — про рекламу, и она необязательная. Закон о
+                    рекламе (38-ФЗ, ст. 18) требует отдельного согласия: одной
+                    общей галочкой «согласен со всем» его получить нельзя.
+                    В приложении такая галочка появилась 17.09.2026, на сайте
+                    рекламное согласие не спрашивали вовсе. */}
+                <label className="flex items-start gap-2.5 px-2 py-2 -mx-1 rounded-xl cursor-pointer select-none active:bg-white/10 transition-colors">
+                  <input
+                    id="signup-wants-news"
+                    name="wants-news"
+                    type="checkbox"
+                    autoComplete="off"
+                    checked={wantsNews}
+                    onChange={e => setWantsNews(e.target.checked)}
+                    className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 cursor-pointer"
+                    style={{ accentColor: '#2563eb' }}
+                  />
+                  <span className="text-[12px] leading-snug text-slate-500 dark:text-slate-400">
+                    Хочу получать новости и акции
+                    <span className="block text-[11px] text-slate-400 dark:text-slate-500">
+                      Необязательно. О своём заказе сообщим в любом случае
+                    </span>
+                  </span>
+                </label>
 
                 <button
                   type="submit"

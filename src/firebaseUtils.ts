@@ -192,7 +192,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 /**
  * Register a user via Firebase Auth and create their Firestore document profile
  */
-export async function registerUserWithFirebase(email: string, password: string,fullName: string, phone: string, role: 'client' | 'admin' = 'client', referralCodeInput?: string): Promise<User> {
+export async function registerUserWithFirebase(email: string, password: string,fullName: string, phone: string, role: 'client' | 'admin' = 'client', referralCodeInput?: string, marketingConsent = false): Promise<User> {
   const trimmedEmail = email.trim();
   if (useV2()) {
     const input = {
@@ -202,6 +202,10 @@ export async function registerUserWithFirebase(email: string, password: string,f
       phone: phone.trim(),
       consentVersion: CONSENT_VERSION,
       personalDataConsent: true,
+      // Реклама — только по отдельному согласию (38-ФЗ, ст. 18). Галочка при
+      // регистрации выключена по умолчанию, её ответ сервер пишет в consents
+      // вместе с датой и версией документа.
+      marketingConsent,
       referralCode: referralCodeInput,
     };
     // Если в этой вкладке уже есть гостевой пропуск («Загрузить файл» без
