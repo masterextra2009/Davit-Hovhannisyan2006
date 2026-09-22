@@ -3669,6 +3669,16 @@ button.glass-card::after,
 .grok-chat-item-text { min-width: 0; flex: 1; }
 .grok-chat-item-name { font-size: 14px; font-weight: 500; }
 .grok-chat-item-preview { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Стикер прямо в строке списка чатов — вместо значка-звёздочки. Размер под
+   высоту строки, чтобы строка от него не подросла. */
+.grok-preview-sticker {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  vertical-align: -4px;
+  margin-right: 5px;
+}
 .grok-unread-badge {
   background: #ef4444 !important; color: #ffffff !important; font-size: 10px; font-weight: 800;
   min-width: 20px; height: 20px; border-radius: 999px; display: flex; align-items: center;

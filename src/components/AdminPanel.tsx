@@ -2741,9 +2741,16 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     <p className="grok-empty-hint px-3">Никого не нашлось</p>
                   ) : filteredChatSessions.map(session => {
                     const isSelected = session.client.id === activeChatUserId;
-                    const preview = session.lastMsg
-                      ? (session.lastMsg.message.startsWith('[IMAGE]:') ? '📷 Фото' : isVoice(session.lastMsg.message) ? '🎤 Голосовое' : session.lastMsg.message.startsWith('[STICKER]:') ? '✨ Стикер' : session.lastMsg.message)
-                      : 'Нет сообщений';
+                    const lastText = session.lastMsg?.message ?? '';
+                    // Стикер в списке показываем им самим, а не значком-звёздочкой:
+                    // по картинке сразу видно, о чём разговор, а «✨ Стикер»
+                    // одинаково выглядит у всех (просьба Давида 23.09.2026).
+                    const stickerSrc = lastText.startsWith('[STICKER]:') ? lastText.substring(10) : '';
+                    const preview = !session.lastMsg
+                      ? 'Нет сообщений'
+                      : lastText.startsWith('[IMAGE]:') ? '📷 Фото'
+                      : isVoice(lastText) ? '🎤 Голосовое'
+                      : lastText;
                     return (
                       <div
                         key={session.client.id}
@@ -2760,7 +2767,29 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         </button>
                         <div className="grok-chat-item-text">
                           <div className="grok-chat-item-name">{session.client.fullName}</div>
-                          <div className="grok-chat-item-preview">{preview}</div>
+                          <div className="grok-chat-item-preview">
+                            {stickerSrc ? (
+                              <>
+                                {/* Стикеры бывают и видео, и картинкой. У видео
+                                    берём кадр на 0.1 секунде: на нулевом кадре
+                                    у некоторых стикеров ещё пусто. */}
+                                {stickerSrc.endsWith('.webm') ? (
+                                  <video
+                                    src={stickerSrc + '#t=0.1'}
+                                    className="grok-preview-sticker"
+                                    muted
+                                    playsInline
+                                    preload="metadata"
+                                  />
+                                ) : (
+                                  <img src={stickerSrc} loading="lazy" alt="" className="grok-preview-sticker" />
+                                )}
+                                Стикер
+                              </>
+                            ) : (
+                              preview
+                            )}
+                          </div>
                         </div>
                         {session.unreadCount > 0 && (
                           <span className="grok-unread-badge">{session.unreadCount}</span>
