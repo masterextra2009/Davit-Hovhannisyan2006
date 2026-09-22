@@ -63,8 +63,8 @@ switch ($action) {
         set_typing();
     case 'delete':
         require_method('POST');
-        require_admin($isAdmin);
-        delete_message();
+        // Удалять может и клиент — но только своё сообщение, см. внутри.
+        delete_message($user, $isAdmin);
     case 'clear':
         require_method('POST');
         require_admin($isAdmin);
@@ -284,18 +284,32 @@ function set_typing()
 
 // ─────────────────────────── Удаление (только админ) ───────────────────────────
 
-function delete_message()
+/**
+ * Удаление сообщения.
+ *
+ * Админ может удалить любое. Клиент — только СВОЁ и только из своей
+ * переписки: чужие сообщения и ответы мастерской он стирать не должен, иначе
+ * из диалога можно вычистить то, о чём договаривались.
+ *
+ * Раньше удалять мог только админ, и в приложении кнопки «Удалить» не было
+ * вовсе — Давид (23.09.2026): «отмечаю в чате сообщение и хочу удалить, нету
+ * кнопки, только копировать и скачать».
+ */
+function delete_message(array $user, bool $isAdmin)
 {
     $id = str_field('id', 64);
     if ($id === '') {
         fail('Не указано сообщение');
     }
     $pdo = db();
-    $st = $pdo->prepare('SELECT user_id FROM chat_messages WHERE id = ?');
+    $st = $pdo->prepare('SELECT user_id, sender_role FROM chat_messages WHERE id = ?');
     $st->execute([$id]);
     $row = $st->fetch();
     if (!$row) {
         respond(['ok' => true]); // уже удалено — повтор не считаем ошибкой
+    }
+    if (!$isAdmin && ($row['user_id'] !== $user['id'] || $row['sender_role'] !== 'client')) {
+        fail('Удалить можно только своё сообщение', 403);
     }
     $pdo->prepare('DELETE FROM chat_messages WHERE id = ?')->execute([$id]);
     remember_deletions([$id], $row['user_id']);
