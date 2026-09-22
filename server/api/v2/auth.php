@@ -35,8 +35,15 @@ function limit_attempts()
 }
 
 const MIN_PASSWORD = 6;
-/** Сколько живёт ссылка из письма о смене пароля. */
+/** Сколько живёт ссылка (и код) из письма о смене пароля. */
 const RESET_TTL_MINUTES = 60;
+/**
+ * Сколько раз можно ошибиться кодом, прежде чем он умрёт.
+ *
+ * Перебор и так закрыт общим ограничителем (10 обращений за 5 минут), но
+ * шесть цифр — это немного, и пусть у самого кода будет свой предел.
+ */
+const RESET_CODE_TRIES = 5;
 
 $action = $_GET['action'] ?? '';
 
@@ -417,22 +424,37 @@ function forgot_password()
     $pdo->prepare('DELETE FROM password_resets WHERE user_id = ? AND used_at IS NULL')->execute([$user['id']]);
 
     $token = bin2hex(random_bytes(32));
+    // Шесть цифр рядом со ссылкой — для приложения. Там ссылку открывать
+    // некуда: телефон откроет её в браузере и уведёт человека на сайт.
+    $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $expires = (new DateTimeImmutable('now', new DateTimeZone('UTC')))
         ->modify('+' . RESET_TTL_MINUTES . ' minutes')->format('Y-m-d H:i:s.v');
-    $pdo->prepare('INSERT INTO password_resets (token_hash, user_id, expires_at) VALUES (?, ?, ?)')
-        ->execute([hash('sha256', $token), $user['id'], $expires]);
+    $pdo->prepare('INSERT INTO password_resets (token_hash, code_hash, user_id, expires_at) VALUES (?, ?, ?, ?)')
+        ->execute([hash('sha256', $token), reset_code_hash($code, (string) $user['id']), $user['id'], $expires]);
 
     $link = 'https://sever-18.ru/?reset=' . $token;
     $name = trim((string) $user['full_name']);
+    // Код идёт ПЕРВЫМ: в приложении нужен именно он, а приложением
+    // пользуются с телефона, где письмо читают бегло и до конца не листают.
     $text = ($name !== '' ? $name . ', здравствуйте!' : 'Здравствуйте!') . "
 
 "
         . "Вы просили сменить пароль в личном кабинете Фото-Север.
+
 "
-        . "Ссылка (действует час, сработает один раз):
+        . "Код для приложения:  " . $code . "
+
+"
+        . "Впишите его в приложении, в окне «Забыли пароль?».
+
+"
+        . "Если вы на компьютере — откройте эту ссылку:
 
 "
         . $link . "
+
+"
+        . "И код, и ссылка действуют час и срабатывают один раз.
 
 "
         . "Если вы ничего не просили — просто удалите это письмо, пароль останется прежним.
@@ -449,26 +471,84 @@ https://sever-18.ru";
     respond($answer);
 }
 
-/** Смена пароля по ссылке из письма. */
+/** Отпечаток кода. Соль — номер клиента: одинаковые шесть цифр у разных людей
+ *  должны давать разные отпечатки. */
+function reset_code_hash(string $code, string $userId): string
+{
+    return hash('sha256', $code . '|' . $userId);
+}
+
+/**
+ * Находит действующую заявку на смену пароля по коду из письма.
+ *
+ * Ответ на «кода нет» и на «код неверен» намеренно один и тот же: иначе по
+ * нему можно было бы узнать, заведён ли на эту почту кабинет.
+ */
+function find_reset_by_code(string $email, string $code): array
+{
+    if (!preg_match('/^\d{6}$/', $code)) {
+        fail('Код — шесть цифр из письма');
+    }
+    $pdo = db();
+    $st = $pdo->prepare('SELECT r.token_hash, r.code_hash, r.tries, r.user_id, u.email
+                         FROM password_resets r JOIN users u ON u.id = r.user_id
+                         WHERE u.email = ? AND r.code_hash IS NOT NULL AND r.used_at IS NULL
+                           AND r.expires_at > UTC_TIMESTAMP(3) AND u.deleted_at IS NULL
+                         ORDER BY r.created_at DESC LIMIT 1');
+    $st->execute([$email]);
+    $row = $st->fetch();
+    if (!$row) {
+        fail('Код не подошёл или устарел — запросите новый', 410);
+    }
+    if ((int) $row['tries'] >= RESET_CODE_TRIES) {
+        fail('Слишком много попыток. Запросите новый код.', 429);
+    }
+    // hash_equals, а не ==: сравнение за одинаковое время, чтобы по задержке
+    // нельзя было подбирать код по одной цифре.
+    if (!hash_equals((string) $row['code_hash'], reset_code_hash($code, (string) $row['user_id']))) {
+        $pdo->prepare('UPDATE password_resets SET tries = tries + 1 WHERE token_hash = ?')
+            ->execute([$row['token_hash']]);
+        fail('Код не подошёл или устарел — запросите новый', 410);
+    }
+    return $row;
+}
+
+/**
+ * Смена пароля: по ссылке из письма (сайт) или по коду из него же (приложение).
+ *
+ * Два входа, потому что и мест два. В браузере ссылка — самый короткий путь.
+ * В приложении она бесполезна: телефон откроет её в браузере и уведёт человека
+ * на сайт, где он попадает на страницу, похожую на обычный вход. Поэтому у
+ * приложения свой ключ — шесть цифр из того же письма.
+ */
 function reset_password()
 {
-    $token = str_field('token', 128);
     $password = (string) (body()['password'] ?? '');
-    if (!preg_match('/^[a-f0-9]{64}$/i', $token)) {
-        fail('Ссылка не подходит — запросите новую');
-    }
     if (mb_strlen($password) < MIN_PASSWORD) {
         fail('Пароль — не короче ' . MIN_PASSWORD . ' символов');
     }
 
+    $token = str_field('token', 128);
+    $code = preg_replace('/\D+/', '', (string) (body()['code'] ?? '')) ?? '';
+
     $pdo = db();
-    $st = $pdo->prepare('SELECT r.user_id, u.email FROM password_resets r JOIN users u ON u.id = r.user_id
-                         WHERE r.token_hash = ? AND r.used_at IS NULL AND r.expires_at > UTC_TIMESTAMP(3)
-                           AND u.deleted_at IS NULL');
-    $st->execute([hash('sha256', $token)]);
-    $row = $st->fetch();
-    if (!$row) {
-        fail('Ссылка устарела или уже использована — запросите новую', 410);
+    if ($token !== '') {
+        if (!preg_match('/^[a-f0-9]{64}$/i', $token)) {
+            fail('Ссылка не подходит — запросите новую');
+        }
+        $st = $pdo->prepare('SELECT r.token_hash, r.user_id, u.email FROM password_resets r
+                             JOIN users u ON u.id = r.user_id
+                             WHERE r.token_hash = ? AND r.used_at IS NULL
+                               AND r.expires_at > UTC_TIMESTAMP(3) AND u.deleted_at IS NULL');
+        $st->execute([hash('sha256', $token)]);
+        $row = $st->fetch();
+        if (!$row) {
+            fail('Ссылка устарела или уже использована — запросите новую', 410);
+        }
+    } elseif ($code !== '') {
+        $row = find_reset_by_code(mb_strtolower(str_field('email')), $code);
+    } else {
+        fail('Впишите код из письма');
     }
 
     $pdo->beginTransaction();
@@ -476,7 +556,7 @@ function reset_password()
         $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
             ->execute([password_hash($password, PASSWORD_DEFAULT), $row['user_id']]);
         $pdo->prepare('UPDATE password_resets SET used_at = ? WHERE token_hash = ?')
-            ->execute([now_utc(), hash('sha256', $token)]);
+            ->execute([now_utc(), $row['token_hash']]);
         // Все прежние входы обрываем: если пароль меняют из-за того, что в
         // аккаунт кто-то влез, чужой вход должен закончиться здесь же.
         $pdo->prepare('DELETE FROM sessions WHERE user_id = ?')->execute([$row['user_id']]);
