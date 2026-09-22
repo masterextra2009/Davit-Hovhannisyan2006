@@ -23,7 +23,7 @@ import {
   exportToCSV, printInvoiceHTML, calculateOrderCost, getLocalDateKey, sortServicesByGroup
 } from '../utils';
 import * as v2 from '../api/v2';
-import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase, deleteChatMessageInFirebase, clearChatHistoryInFirebase } from '../firebaseUtils';
+import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase, deleteChatMessageInFirebase, clearChatHistoryInFirebase, updateChatMessageInFirebase } from '../firebaseUtils';
 import { db, doc, setDoc, deleteDoc, getDoc } from '../firebase';
 import { isVoice, parseVoice, formatVoiceLength } from '../utils/chatVoice';
 import { PromoCardPreview } from './PromoCardPreview';
@@ -1206,6 +1206,15 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           return c;
         });
         onUpdateDatabase({ chatMessages: updatedChats });
+        // ...и то же самое на сервере. Без этой строки «прочитано» жило
+        // только в этой вкладке браузера: диалог открыт, значок пропал, а
+        // после перезагрузки страницы возвращался снова, потому что сервер о
+        // прочтении не знал (Давид, 23.09.2026). На сервере это одно действие
+        // сразу на весь диалог — поэтому номер любого сообщения из него.
+        void updateChatMessageInFirebase(unreadFromActive[0].id, {
+          readByAdmin: true,
+          userId: activeChatUserId,
+        });
       }
     }
   }, [activeChatUserId, activeTab, database.users.length, database.chatMessages.length]);

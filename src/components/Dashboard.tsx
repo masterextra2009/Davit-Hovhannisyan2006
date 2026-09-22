@@ -89,7 +89,7 @@ import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from
 import { isVoice, parseVoice, formatVoiceLength } from '../utils/chatVoice';
 import { PromoTicket } from './PromoTicket';
 import * as v2 from '../api/v2';
-import { saveOrderToFirebase, subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode, registerUserWithFirebase } from '../firebaseUtils';
+import { saveOrderToFirebase, subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode, registerUserWithFirebase, updateChatMessageInFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Synthesized high-quality feedback sound chimes using Web Audio API
@@ -2637,6 +2637,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // Mark chats as read when opening Chat tab
   useEffect(() => {
     if (activeTab === 'chat' && unreadChatsCount > 0) {
+      const unread = database.chatMessages.filter(
+        c => c.userId === user.id && c.senderRole === 'admin' && !c.readByClient
+      );
       const updatedChats = database.chatMessages.map(c => {
         if (c.userId === user.id && c.senderRole === 'admin') {
           return { ...c, readByClient: true };
@@ -2644,6 +2647,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         return c;
       });
       onUpdateDatabase({ chatMessages: updatedChats });
+      // ...и на сервер. Та же беда, что была у админки: без этой строки
+      // «прочитано» живёт только в этой вкладке, и после перезагрузки
+      // страницы значок непрочитанных возвращается.
+      if (unread.length > 0) void updateChatMessageInFirebase(unread[0].id, { readByClient: true });
     }
   }, [activeTab]);
 
