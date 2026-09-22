@@ -1686,15 +1686,24 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   // на бейджах вкладок обязаны так же исключать rejected, иначе бейдж
   // показывает число, которого нет в самом списке под ним (заказ и там
   // посчитан, и оттуда изгнан в «Брак»).
-  const pendingCount = database.orders.filter(o => o.status === 'pending' && !o.rejected).length;
-  const inPrintCount = database.orders.filter(o => o.status === 'printing' && !o.rejected).length;
-  const readyCount = database.orders.filter(o => o.status === 'ready' && !o.rejected).length;
   // Заказы, которые клиент начал оформлять онлайн-оплатой, но не завершил
   // (закрыл вкладку ЮKassa, оплата не прошла и т.п.) — раньше такие заказы
   // просто исчезали из очереди без следа (см. фильтр ниже), из-за чего
   // выглядело, будто заказ вообще не дошёл до сервера.
   const isAbandonedUnpaid = (o: Order) =>
     o.paymentStatus === 'unpaid' && o.paymentMethod !== 'При получении (Наличные/Карта)';
+
+  // То же правило, что и для «Брака» выше, но про неоплаченные: список рабочих
+  // вкладок их выгоняет (см. `if (isAbandonedUnpaid(o)) return false`), значит
+  // и считать их здесь нельзя. Иначе бейджик горит числом, а вкладка под ним
+  // пустая — 22.09.2026 Давид открыл оплату, сразу закрыл, и получил ровно это:
+  // «на кнопке очередь заказов, а справа, где новый заказ, его не видно».
+  // Такой заказ не пропал — он в своей вкладке «Не оплачено».
+  const isWorkable = (o: Order) => !o.rejected && !isAbandonedUnpaid(o);
+
+  const pendingCount = database.orders.filter(o => o.status === 'pending' && isWorkable(o)).length;
+  const inPrintCount = database.orders.filter(o => o.status === 'printing' && isWorkable(o)).length;
+  const readyCount = database.orders.filter(o => o.status === 'ready' && isWorkable(o)).length;
   const unpaidCount = database.orders.filter(o => o.status !== 'printed' && !o.rejected && isAbandonedUnpaid(o)).length;
   // Брак/отказ — независимый от status флаг (см. types.ts), заказ может
   // сломаться на любой стадии. Раньше он просто оставался висеть в своей
