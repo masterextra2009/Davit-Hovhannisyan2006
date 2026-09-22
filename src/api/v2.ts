@@ -262,6 +262,16 @@ export const notifications = {
 
 // ─────────────────────────── Новости и акции ───────────────────────────
 
+/**
+ * Помощник по тексту новости (polza.ai). Ничего не публикует — только
+ * возвращает причёсанный вариант, а выбирать между ним и своим текстом
+ * будет человек.
+ */
+export const aiText = {
+  improve: (title: string, body: string) =>
+    request<{ title: string; body: string }>('ai-text.php?action=improve', { body: { title, body } }),
+};
+
 export const promos = {
   list: (all = false) => request<{ promos: Promo[] }>(`promos.php?action=list${all ? '&all=1' : ''}`),
   save: (promo: Partial<Promo>) => request<{ promo: Promo }>('promos.php?action=save', { body: promo }),

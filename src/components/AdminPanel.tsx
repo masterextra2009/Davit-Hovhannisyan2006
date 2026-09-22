@@ -700,6 +700,30 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   }>({ title: '', body: '', imageUrl: '', to: '', mediaType: '', mediaWidth: 0, mediaHeight: 0, linkUrl: '' });
   const [promoUploading, setPromoUploading] = useState(false);
   const [promoUploadError, setPromoUploadError] = useState('');
+  // Помощник по тексту (polza.ai). Предложение показываем РЯДОМ, а не вместо:
+  // подменять написанное человеком молча нельзя, он должен увидеть оба
+  // варианта и выбрать сам.
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [aiDraft, setAiDraft] = useState<{ title: string; body: string } | null>(null);
+
+  const improvePromoText = async () => {
+    setAiError('');
+    setAiDraft(null);
+    if (!promoForm.title.trim() && !promoForm.body.trim()) {
+      setAiError('Сначала напишите хоть что-нибудь — помощник правит текст, а не придумывает с нуля.');
+      return;
+    }
+    setAiBusy(true);
+    try {
+      const res = await v2.aiText.improve(promoForm.title, promoForm.body);
+      setAiDraft({ title: res.title, body: res.body });
+    } catch (e: any) {
+      setAiError(e?.message || 'Не получилось. Попробуйте ещё раз.');
+    } finally {
+      setAiBusy(false);
+    }
+  };
 
   // Длинная сторона фото после уменьшения. 1600 с запасом покрывает экран
   // любого телефона, но весит сотни килобайт вместо нескольких мегабайт —
@@ -4852,6 +4876,57 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   rows={3}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30 resize-none"
                 />
+
+                {/* Помощник по тексту. Кнопка неяркая: это подсказка, а не
+                    главное действие формы — главное здесь «Опубликовать». */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={improvePromoText}
+                    disabled={aiBusy}
+                    className="text-xs font-bold px-3 py-2 rounded-xl border border-white/15 bg-white/5 text-white/80 hover:bg-white/10 disabled:opacity-50"
+                  >
+                    {aiBusy ? 'Думает…' : '✨ Улучшить текст'}
+                  </button>
+                  <span className="text-[11px] text-white/35">
+                    Поправит ошибки и причешет. Ничего не выдумает и не опубликует.
+                  </span>
+                </div>
+
+                {aiError && <p className="text-xs text-rose-300">{aiError}</p>}
+
+                {aiDraft && (
+                  <div className="rounded-xl border border-emerald-400/30 bg-emerald-400/5 p-3 space-y-2">
+                    <p className="text-[11px] font-black uppercase tracking-wide text-emerald-300">
+                      Как предлагает помощник
+                    </p>
+                    {aiDraft.title && <p className="text-sm font-bold text-white">{aiDraft.title}</p>}
+                    {aiDraft.body && <p className="text-sm text-white/80 whitespace-pre-line">{aiDraft.body}</p>}
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPromoForm(f => ({
+                            ...f,
+                            title: aiDraft.title || f.title,
+                            body: aiDraft.body || f.body,
+                          }));
+                          setAiDraft(null);
+                        }}
+                        className="text-xs font-bold px-3 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-400"
+                      >
+                        Взять этот вариант
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAiDraft(null)}
+                        className="text-xs font-bold px-3 py-2 rounded-lg bg-white/10 text-white/70 hover:bg-white/15"
+                      >
+                        Оставить своё
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {/* Фото или видео выбирается файлом. Раньше тут было поле для
                     ссылки — то есть картинку полагалось сначала где-то выложить
                     самому, чего в копи-центре никто делать не станет.
