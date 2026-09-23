@@ -24,6 +24,7 @@ require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_pricing.php';
 require __DIR__ . '/_referrals.php';
 require __DIR__ . '/_push.php';
+require __DIR__ . '/_telegram.php';
 
 const ORDER_STATUSES = ['pending', 'approved', 'printing', 'ready', 'printed'];
 const PAYMENT_STATUSES = ['unpaid', 'paid', 'failed'];
@@ -212,12 +213,43 @@ function create(array $user)
         }
         throw $e;
     }
+    // Заказ с оплатой при получении готов к работе сразу — сообщаем админу.
+    // Заказ под оплату картой объявляется позже, когда оплата пройдёт
+    // (payments.php): неоплаченный могут и бросить.
+    if (str_starts_with((string) $row['payment_method'], 'При получении')) {
+        announce_new_order($id, $row['user_name'], count($files), (float) $total, 'оплата при получении');
+    }
     respond([
         'ok' => true,
         'order' => order_public(load_order($id, $user, false)),
         // Сайт или приложение показали клиенту другую сумму — пусть покажут эту.
         'priceChanged' => $claimed !== null && $claimed !== $total,
     ], 201);
+}
+
+/**
+ * Один раз сообщить админу о новом заказе: окошко Windows (если админка
+ * закрыта или свёрнута) и Telegram. Давид 24.09.2026: «пусть один раз
+ * высветится, а то каждый раз надо заходить обновлять».
+ * Ошибка уведомления заказ не ломает — он уже в базе.
+ */
+function announce_new_order(string $id, string $name, int $files, ?float $total, string $how): void
+{
+    $sum = $total === null ? '' : ' · ' . number_format($total, 0, '.', ' ') . ' ₽';
+    try {
+        push_to_admins('Новый заказ ' . $id, trim($name) . ' · файлов: ' . $files . $sum . ' · ' . $how);
+    } catch (Throwable $e) {
+        error_log('announce_new_order push: ' . $e->getMessage());
+    }
+    // Оплаченный картой в Telegram уже объявляет payments.php — не дублируем.
+    if ($how !== 'оплачен картой') {
+        notify_admin("🔔 <b>Новый заказ</b> ({$how})\n\n"
+            . '📋 Заказ: <b>' . tg_escape($id) . "</b>\n"
+            . '👤 Клиент: <b>' . tg_escape($name) . "</b>\n"
+            . '📁 Файлов: <b>' . $files . "</b>\n"
+            . ($total === null ? '' : '💰 Сумма: <b>' . number_format($total, 0, '.', ' ') . " ₽</b>\n")
+            . "\n🖨 <a href=\"https://sever-18.ru\">Открыть админку</a>");
+    }
 }
 
 /** Цена услуги из витрины в рублях (первое число в строке цены) или null, если услуги нет. */

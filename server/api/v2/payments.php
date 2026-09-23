@@ -204,6 +204,16 @@ function apply_payment(array $order, array $payment, bool $fromWebhook): string
             . '📁 Файлов: <b>' . count($files) . "</b>\n"
             . '💰 Сумма: <b>' . tg_escape(number_format($expected, 0, '.', ' ')) . " ₽</b>\n\n"
             . '🖨 <a href="https://sever-18.ru">Открыть админку</a>');
+        // И окошко Windows, если админка закрыта (AdminPushToggle.tsx).
+        try {
+            push_to_admins(
+                'Новый заказ ' . $order['id'],
+                trim((string) $order['user_name']) . ' · файлов: ' . count($files) . ' · '
+                    . number_format($expected, 0, '.', ' ') . ' ₽ · оплачен картой'
+            );
+        } catch (Throwable $e) {
+            error_log('payments push_to_admins: ' . $e->getMessage());
+        }
         // Первый оплаченный заказ приглашённого — награда пригласившему.
         grant_referral_reward((string) $order['user_id']);
         push_order_status((string) $order['user_id'], (string) $order['id'], (string) $order['status'], true);

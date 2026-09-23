@@ -27,6 +27,7 @@ import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFire
 import { db, doc, setDoc, deleteDoc, getDoc } from '../firebase';
 import { isVoice, parseVoice } from '../utils/chatVoice';
 import VoiceGlass from './VoiceGlass';
+import AdminPushToggle from './AdminPushToggle';
 import { PromoCardPreview } from './PromoCardPreview';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
@@ -1970,6 +1971,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           <div className="px-1 mb-6 text-[12px] text-white/50 font-bold uppercase tracking-wider">
             Режим Администратора
           </div>
+
+          <AdminPushToggle />
         </div>
 
         {/* Links Navigation */}
