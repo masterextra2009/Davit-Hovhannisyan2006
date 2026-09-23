@@ -99,7 +99,11 @@ function list_messages(array $user, bool $isAdmin)
         // Запас 5 секунд — на сообщения, записанные ровно во время прошлого опроса.
         $since = (new DateTimeImmutable($since, new DateTimeZone('UTC')))
             ->modify('-5 seconds')->format('Y-m-d H:i:s.v');
-        $where[] = 'created_at >= ?';
+        // Плюс сообщения, которые с тех пор отметили прочитанными: иначе
+        // вторые галочки не доходят до собеседника, пока он не откроет чат
+        // заново (schema-010-chat-read.sql).
+        $where[] = '(created_at >= ? OR read_changed_at >= ?)';
+        $args[] = $since;
         $args[] = $since;
     }
 
@@ -261,11 +265,11 @@ function mark_read(array $user, bool $isAdmin)
             fail('Не указан клиент');
         }
         // Админ открыл диалог — прочитаны сообщения клиента.
-        db()->prepare("UPDATE chat_messages SET read_by_admin = 1 WHERE user_id = ? AND sender_role = 'client' AND read_by_admin = 0")
-            ->execute([$dialogUserId]);
+        db()->prepare("UPDATE chat_messages SET read_by_admin = 1, read_changed_at = ? WHERE user_id = ? AND sender_role = 'client' AND read_by_admin = 0")
+            ->execute([now_utc(), $dialogUserId]);
     } else {
-        db()->prepare("UPDATE chat_messages SET read_by_client = 1 WHERE user_id = ? AND sender_role = 'admin' AND read_by_client = 0")
-            ->execute([$user['id']]);
+        db()->prepare("UPDATE chat_messages SET read_by_client = 1, read_changed_at = ? WHERE user_id = ? AND sender_role = 'admin' AND read_by_client = 0")
+            ->execute([now_utc(), $user['id']]);
     }
     respond(['ok' => true]);
 }

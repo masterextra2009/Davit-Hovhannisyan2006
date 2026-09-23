@@ -150,8 +150,12 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at    DATETIME(3)  NOT NULL,
   read_by_admin TINYINT(1)   NOT NULL DEFAULT 0,
   read_by_client TINYINT(1)  NOT NULL DEFAULT 0,
+  -- Когда отметили прочитанным: опрос отдаёт такое сообщение ещё раз
+  -- (schema-010-chat-read.sql).
+  read_changed_at DATETIME(3) NULL,
   PRIMARY KEY (id),
   KEY ix_chat_user_time (user_id, created_at),
+  KEY ix_chat_read_changed (read_changed_at),
   CONSTRAINT fk_chat_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
