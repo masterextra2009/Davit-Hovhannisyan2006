@@ -553,8 +553,16 @@ export function subscribeByPolling(
     }
   };
 
+  // Ушёл на другую вкладку или свернул — сразу говорим серверу «не смотрю»,
+  // иначе он ещё до двух минут считает человека у экрана и окошко Windows
+  // не шлёт (Давид 24.09.2026: «когда не в нём, не приходит сообщение»).
   const onVisible = () => {
-    if (document.visibilityState === 'visible') void tick();
+    if (document.visibilityState === 'visible') {
+      void tick();
+      void push.heartbeat(true).catch(() => {});
+    } else {
+      void push.heartbeat(false).catch(() => {});
+    }
   };
 
   void tick();

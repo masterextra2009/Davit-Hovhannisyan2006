@@ -1272,8 +1272,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
     setOnlineState(true);
 
+    // Только пока вкладку видно: из фоновой «я на сайте» глушило бы push.
     const interval = setInterval(() => {
-      setOnlineState(true);
+      if (document.visibilityState === 'visible') setOnlineState(true);
     }, 45000);
 
     const handleUnload = () => {
