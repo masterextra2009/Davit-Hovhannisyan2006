@@ -25,7 +25,8 @@ import {
 import * as v2 from '../api/v2';
 import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase, deleteChatMessageInFirebase, clearChatHistoryInFirebase, updateChatMessageInFirebase } from '../firebaseUtils';
 import { db, doc, setDoc, deleteDoc, getDoc } from '../firebase';
-import { isVoice, parseVoice, formatVoiceLength } from '../utils/chatVoice';
+import { isVoice, parseVoice } from '../utils/chatVoice';
+import VoiceGlass from './VoiceGlass';
 import { PromoCardPreview } from './PromoCardPreview';
 import { UserAvatar } from './UserAvatar';
 import { EmojiPicker } from './EmojiPicker';
@@ -2881,6 +2882,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                       <img src={msg.message.substring(10)} loading="lazy" className="msg-sticker__img" alt="Стикер" />
                                     )}
                                   </div>
+                                ) : isVoice(msg.message) ? (
+                                  <VoiceGlass src={parseVoice(msg.message).src} seconds={parseVoice(msg.message).seconds} />
                                 ) : (
                                 <div className="grok-msg-bubble">
                                   {msg.message.startsWith('[IMAGE]:') ? (
@@ -2904,11 +2907,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                         }}
                                       />
                                       {isAdmin && <span className="text-[11px] opacity-70 block italic">Защищено водяным знаком &bull; ПРИМЕР</span>}
-                                    </div>
-                                  ) : isVoice(msg.message) ? (
-                                    <div className="space-y-1 text-left">
-                                      <span className="text-[11px] opacity-70 block">🎤 Голосовое · {formatVoiceLength(parseVoice(msg.message).seconds)}</span>
-                                      <audio controls preload="none" src={parseVoice(msg.message).src} style={{ maxWidth: 260, display: 'block' }} />
                                     </div>
                                   ) : msg.message}
                                 </div>
