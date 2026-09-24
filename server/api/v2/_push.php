@@ -186,7 +186,7 @@ function push_order_status(string $userId, string $orderId, string $status, bool
         // приложении с версии 1.0.3; старые версии покажут обычное уведомление.
         push_to_user($userId, 'Заказ готов!', 'Заказ ' . $orderId . ' можно забирать. Ждём вас!', [
             'channelId' => 'order-ready',
-            'sound' => 'order-ready.wav',
+            'sound' => 'order_ready.wav',
             'priority' => 'high',
         ]);
         return;
