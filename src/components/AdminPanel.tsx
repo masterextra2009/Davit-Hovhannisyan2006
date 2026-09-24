@@ -4553,6 +4553,50 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             className="w-full bg-transparent text-xs font-black text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 rounded"
                             placeholder="Цена, например: 20 ₽ / стр"
                           />
+                          {/* Что приложение спросит у клиента при заказе этой услуги.
+                              Пусто — приложение решает само по названию. */}
+                          <details className="pt-1 border-t border-white/10">
+                            <summary className="text-[11px] font-bold text-indigo-300 cursor-pointer select-none py-1">📱 Что спросить у клиента</summary>
+                            <div className="space-y-1.5 pt-1">
+                              <select
+                                defaultValue={svc.ask || ''}
+                                onChange={(e) => handleUpdateService(svc.id, 'ask', e.target.value)}
+                                aria-label="Что прикладывает клиент"
+                                className="w-full bg-black/30 border border-white/10 rounded-lg text-[11px] text-white p-1.5 focus:outline-none focus:border-indigo-400"
+                              >
+                                <option value="">Сам решит по названию</option>
+                                <option value="none">Ничего — клиент приносит сам</option>
+                                <option value="file">Файл для печати (или флешка)</option>
+                                <option value="photo">Фото</option>
+                              </select>
+                              <input
+                                type="text"
+                                defaultValue={svc.askText || ''}
+                                onBlur={(e) => handleUpdateService(svc.id, 'askText', e.target.value.trim())}
+                                aria-label="Поле для надписи"
+                                maxLength={60}
+                                className="w-full bg-black/30 border border-white/10 rounded-lg text-[11px] text-white p-1.5 focus:outline-none focus:border-indigo-400"
+                                placeholder="Надпись: например «Надпись на кружке»"
+                              />
+                              <input
+                                type="text"
+                                defaultValue={svc.askChoiceTitle || ''}
+                                onBlur={(e) => handleUpdateService(svc.id, 'askChoiceTitle', e.target.value.trim())}
+                                aria-label="Заголовок выбора"
+                                maxLength={60}
+                                className="w-full bg-black/30 border border-white/10 rounded-lg text-[11px] text-white p-1.5 focus:outline-none focus:border-indigo-400"
+                                placeholder="Выбор: например «Траурная ленточка»"
+                              />
+                              <input
+                                type="text"
+                                defaultValue={(svc.askChoices || []).join(', ')}
+                                onBlur={(e) => handleUpdateService(svc.id, 'askChoices', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                                aria-label="Варианты выбора через запятую"
+                                className="w-full bg-black/30 border border-white/10 rounded-lg text-[11px] text-white p-1.5 focus:outline-none focus:border-indigo-400"
+                                placeholder="Варианты через запятую: С ленточкой, Без ленточки"
+                              />
+                            </div>
+                          </details>
                         </div>
                       </div>
                     ))}

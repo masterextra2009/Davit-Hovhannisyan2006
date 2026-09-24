@@ -93,9 +93,25 @@ function service_public(array $s): array
         'isActive' => (bool) $s['is_active'],
         'order' => (int) $s['sort_order'],
     ];
-    foreach (['imageUrl', 'imageScale', 'iconUrl'] as $k) {
+    foreach (['imageUrl', 'imageScale', 'iconUrl', 'ask', 'askText', 'askChoiceTitle', 'askChoices'] as $k) {
         if (isset($extra[$k]) && $extra[$k] !== '' && $extra[$k] !== null) {
             $out[$k] = $extra[$k];
+        }
+    }
+    return $out;
+}
+
+/** Варианты выбора для клиента: до 6 непустых строк по 60 символов. */
+function service_choices($raw): array
+{
+    if (!is_array($raw)) {
+        return [];
+    }
+    $out = [];
+    foreach ($raw as $c) {
+        $c = mb_substr(trim((string) $c), 0, 60);
+        if ($c !== '' && count($out) < 6) {
+            $out[] = $c;
         }
     }
     return $out;
@@ -119,7 +135,16 @@ function save_service()
         'imageUrl' => mb_substr(trim((string) ($s['imageUrl'] ?? '')), 0, 1024),
         'imageScale' => isset($s['imageScale']) ? (float) $s['imageScale'] : null,
         'iconUrl' => mb_substr(trim((string) ($s['iconUrl'] ?? '')), 0, 1024),
-    ], fn($v) => $v !== null && $v !== '');
+        // Что спросить у клиента при заказе из приложения (решение Давида
+        // 24.09.2026): ничего / файл для печати / фото. Не задано — приложение
+        // решает по названию услуги.
+        'ask' => in_array($s['ask'] ?? '', ['none', 'file', 'photo'], true) ? $s['ask'] : '',
+        // Подпись поля для надписи («Надпись на кружке»). Пусто — поля нет.
+        'askText' => mb_substr(trim((string) ($s['askText'] ?? '')), 0, 60),
+        // Выбор из вариантов: заголовок («Траурная ленточка») и сами варианты.
+        'askChoiceTitle' => mb_substr(trim((string) ($s['askChoiceTitle'] ?? '')), 0, 60),
+        'askChoices' => service_choices($s['askChoices'] ?? null),
+    ], fn($v) => $v !== null && $v !== '' && $v !== []);
 
     db()->prepare(
         'INSERT INTO services (id, title, description, price, emoji, category, is_active, sort_order, extra)

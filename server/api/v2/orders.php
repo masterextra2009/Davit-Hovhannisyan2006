@@ -163,7 +163,9 @@ function create(array $user)
         if ($servicePrice === null) {
             fail('Эта услуга сейчас недоступна — обновите страницу', 409);
         }
-        $serviceExtra = $servicePrice;
+        // Количество приходит только из приложения (витрина услуг, 24.09.2026);
+        // сайт его не шлёт — у него, как и раньше, одна услуга.
+        $serviceExtra = $servicePrice * (int_in($o['serviceQty'] ?? 1, 1, 1000) ?? 1);
     }
     $binding = str_or_null($o['binding'] ?? null, 32);
     $totalRub = order_price($files, $binding, $discount, $serviceExtra);
