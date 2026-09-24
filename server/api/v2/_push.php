@@ -31,7 +31,7 @@ const PUSH_STATUS_LABELS = [
  * Уведомление одному человеку. Молча ничего не делает, если адреса нет или
  * получатель сейчас на сайте.
  */
-function push_to_user(string $userId, string $title, string $body): void
+function push_to_user(string $userId, string $title, string $body, array $extra = []): void
 {
     if ($userId === '') {
         return;
@@ -43,7 +43,7 @@ function push_to_user(string $userId, string $title, string $body): void
     if (!$user || recently_online($user)) {
         return;
     }
-    expo_send([$user['id'] => $user['expo_push_token']], $title, $body);
+    expo_send([$user['id'] => $user['expo_push_token']], $title, $body, $extra);
     browser_send($user, $title, $body);
 }
 
@@ -121,7 +121,7 @@ function recently_online(array $user): bool
  *
  * @param array<string,string|null> $targets id пользователя → адрес телефона
  */
-function expo_send(array $targets, string $title, string $body): void
+function expo_send(array $targets, string $title, string $body, array $extra = []): void
 {
     $targets = array_filter($targets, fn($t) => is_string($t) && $t !== '');
     if (!$targets) {
@@ -134,7 +134,7 @@ function expo_send(array $targets, string $title, string $body): void
         $userIds = array_keys($chunk);
         $messages = [];
         foreach ($chunk as $token) {
-            $messages[] = ['to' => $token, 'title' => $title, 'body' => $body, 'sound' => 'default'];
+            $messages[] = array_merge(['to' => $token, 'title' => $title, 'body' => $body, 'sound' => 'default'], $extra);
         }
 
         $ch = curl_init('https://exp.host/--/api/v2/push/send');
@@ -178,6 +178,17 @@ function push_order_status(string $userId, string $orderId, string $status, bool
 {
     if ($justPaid) {
         push_to_user($userId, 'Оплата получена!', 'Заказ ' . $orderId . ' оплачен и передан в печать.');
+        return;
+    }
+    if ($status === 'ready') {
+        // «Заказ готов» — своё уведомление со своим звуком «Дерево: готово»
+        // (выбор Давида 24.09.2026). Звук и канал «order-ready» живут в
+        // приложении с версии 1.0.3; старые версии покажут обычное уведомление.
+        push_to_user($userId, 'Заказ готов!', 'Заказ ' . $orderId . ' можно забирать. Ждём вас!', [
+            'channelId' => 'order-ready',
+            'sound' => 'order-ready.wav',
+            'priority' => 'high',
+        ]);
         return;
     }
     $label = PUSH_STATUS_LABELS[$status] ?? $status;
