@@ -31,6 +31,9 @@ self.addEventListener('push', (event) => {
       body: data.body || '',
       icon: '/logo-192.png',
       badge: '/logo-192.png',
+      // Одна метка на клиента/заказ: новое окошко заменяет прежнее, а не
+      // встаёт рядом (дубли в Windows, 25.09.2026).
+      ...(data.tag ? { tag: data.tag } : {}),
       data: { url: data.url || '/' },
     })
   );

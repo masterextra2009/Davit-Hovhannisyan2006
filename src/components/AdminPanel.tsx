@@ -517,7 +517,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       setAdminToast({ type: 'order', text: msg });
       playNotifSound();
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Фото-Север', { body: msg, icon: '/logo-192.png' });
+        new Notification('Фото-Север', { body: msg, icon: '/logo-192.png', tag: `order-${latest.id}` });
       }
       setTimeout(() => setAdminToast(null), 5000);
     }
@@ -533,11 +533,23 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       setAdminToast({ type: 'chat', text: msg });
       playNotifSound();
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Фото-Север', { body: msg, icon: '/logo-192.png' });
+        // Та же метка, что у уведомления с сервера (_push.php): окошко о
+        // сообщениях этого клиента одно, новое заменяет прежнее.
+        new Notification('Фото-Север', { body: msg, icon: '/logo-192.png', tag: `chat-${latest.userId}` });
       }
       setTimeout(() => setAdminToast(null), 5000);
     }
   }, [database.chatMessages]);
+
+  // Админка открыта — всё, что накопилось в уведомлениях Windows, пока браузер
+  // был закрыт, и так видно на экране. Убираем, чтобы не всплывало при каждом
+  // открытии (Давид 25.09.2026).
+  useEffect(() => {
+    navigator.serviceWorker?.getRegistration()
+      .then(reg => reg?.getNotifications())
+      .then(list => list?.forEach(n => n.close()))
+      .catch(() => {});
+  }, []);
 
   // Gift Promo Code state
   const [promoGiftUser, setPromoGiftUser] = useState<User | null>(null);

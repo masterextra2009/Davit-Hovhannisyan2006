@@ -48,7 +48,7 @@ function push_to_user(string $userId, string $title, string $body, array $extra 
 }
 
 /** Уведомление всем администраторам (новое сообщение клиента в чате). */
-function push_to_admins(string $title, string $body): void
+function push_to_admins(string $title, string $body, string $tag = ''): void
 {
     $rows = db()->query("SELECT id, expo_push_token, push_subscription, is_online, last_active_at FROM users
                          WHERE role = 'admin' AND deleted_at IS NULL
@@ -59,7 +59,7 @@ function push_to_admins(string $title, string $body): void
             continue;
         }
         $targets[$u['id']] = $u['expo_push_token'];
-        browser_send($u, $title, $body);
+        browser_send($u, $title, $body, $tag);
     }
     expo_send($targets, $title, $body);
 }
@@ -89,7 +89,7 @@ function push_broadcast_clients(string $title, string $body): int
  * Уведомление в браузер сайта. Подписки больше нет (404/410) — убираем её,
  * иначе будем стучаться в мёртвый адрес при каждом заказе.
  */
-function browser_send(array $user, string $title, string $body): void
+function browser_send(array $user, string $title, string $body, string $tag = ''): void
 {
     $raw = $user['push_subscription'] ?? null;
     if (!is_string($raw) || $raw === '') {
@@ -99,7 +99,7 @@ function browser_send(array $user, string $title, string $body): void
     if (!is_array($sub)) {
         return;
     }
-    $code = webpush_send($sub, $title, $body);
+    $code = webpush_send($sub, $title, $body, $tag);
     if ($code === 404 || $code === 410) {
         db()->prepare('UPDATE users SET push_subscription = NULL WHERE id = ?')->execute([$user['id']]);
     }

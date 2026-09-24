@@ -54,7 +54,7 @@ function webpush_public_key(): string
  * Возвращает код ответа службы доставки: 201 — принято, 404/410 — подписки
  * больше нет (её надо удалить у нас), 0 — отправить не удалось.
  */
-function webpush_send(array $subscription, string $title, string $body): int
+function webpush_send(array $subscription, string $title, string $body, string $tag = ''): int
 {
     $endpoint = (string) ($subscription['endpoint'] ?? '');
     $p256dh = (string) ($subscription['keys']['p256dh'] ?? '');
@@ -69,7 +69,7 @@ function webpush_send(array $subscription, string $title, string $body): int
     }
 
     try {
-        $payload = json_encode(['title' => $title, 'body' => $body, 'url' => '/'], JSON_UNESCAPED_UNICODE);
+        $payload = json_encode(array_filter(['title' => $title, 'body' => $body, 'url' => '/', 'tag' => $tag]), JSON_UNESCAPED_UNICODE);
         $encrypted = webpush_encrypt($p256dh, $auth, (string) $payload);
         $jwt = webpush_vapid_jwt($endpoint, (string) $keys['private_key_pem']);
     } catch (Throwable $e) {

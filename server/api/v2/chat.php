@@ -231,7 +231,8 @@ function send_message(array $user, bool $isAdmin)
         );
         push_to_admins(
             'Новое сообщение от ' . ($user['full_name'] !== '' ? $user['full_name'] : 'клиента'),
-            preview($text)
+            preview($text),
+            'chat-' . $user['id']
         );
     }
 

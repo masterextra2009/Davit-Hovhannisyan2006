@@ -199,7 +199,10 @@ export default function App() {
           );
           if (newMsgs.length > 0) {
             const foreignMsgs = newMsgs.filter(m => m.senderId !== user.id);
-            if (foreignMsgs.length > 0) {
+            // Админу о сообщениях клиентов сообщает сама админка (AdminPanel) —
+            // здесь второе такое же окошко давало дубль (Давид 25.09.2026:
+            // «почему их две?»).
+            if (foreignMsgs.length > 0 && user.role !== 'admin') {
               playNotificationSound('message');
               const finalM = foreignMsgs[foreignMsgs.length - 1];
               showBrowserNotification(
