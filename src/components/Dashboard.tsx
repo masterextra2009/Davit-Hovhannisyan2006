@@ -8,6 +8,7 @@ import { User, Order, ChatMessage, Notification, PrintFile, FileFormatGroup, Pay
 import { ThemeToggle } from './ThemeToggle';
 import { RatingWidget } from './RatingWidget';
 import { UserAvatar } from './UserAvatar';
+import { StickerView } from './StickerView';
 import { EmojiPicker } from './EmojiPicker';
 import { AnimatedTitle } from './AnimatedTitle';
 import { AiPriceCard } from './AiPriceCard';
@@ -6263,11 +6264,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             return (
                               <div className="space-y-1">
                                 <div className="msg-sticker">
-                                  {msg.message.substring(10).endsWith('.webm') ? (
-                                    <video src={msg.message.substring(10)} className="msg-sticker__img" autoPlay loop muted playsInline />
-                                  ) : (
-                                    <img src={msg.message.substring(10)} loading="lazy" className="msg-sticker__img" alt="Стикер" />
-                                  )}
+                                  <StickerView src={msg.message.substring(10)} className="msg-sticker__img" />
                                 </div>
                                 <span className={`text-[9px] font-bold text-slate-400 flex items-center gap-0.5 px-1 ${isAdmin ? '' : 'justify-end'}`}>
                                   {timeStr}{readTicks}

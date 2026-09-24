@@ -30,6 +30,7 @@ import VoiceGlass from './VoiceGlass';
 import AdminPushToggle from './AdminPushToggle';
 import { PromoCardPreview } from './PromoCardPreview';
 import { UserAvatar } from './UserAvatar';
+import { StickerView } from './StickerView';
 import { EmojiPicker } from './EmojiPicker';
 import JSZip from 'jszip';
 
@@ -2819,20 +2820,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           <div className="grok-chat-item-preview">
                             {stickerSrc ? (
                               <>
-                                {/* Стикеры бывают и видео, и картинкой. У видео
-                                    берём кадр на 0.1 секунде: на нулевом кадре
-                                    у некоторых стикеров ещё пусто. */}
-                                {stickerSrc.endsWith('.webm') ? (
-                                  <video
-                                    src={stickerSrc + '#t=0.1'}
-                                    className="grok-preview-sticker"
-                                    muted
-                                    playsInline
-                                    preload="metadata"
-                                  />
-                                ) : (
-                                  <img src={stickerSrc} loading="lazy" alt="" className="grok-preview-sticker" />
-                                )}
+                                {/* Стикер любого вида неподвижным кадром (у видео —
+                                    кадр на 0.1 с: на нулевом у некоторых пусто). */}
+                                <StickerView src={stickerSrc} className="grok-preview-sticker" still />
                                 Стикер
                               </>
                             ) : (
@@ -2891,11 +2881,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               <div>
                                 {msg.message.startsWith('[STICKER]:') ? (
                                   <div className="msg-sticker">
-                                    {msg.message.substring(10).endsWith('.webm') ? (
-                                      <video src={msg.message.substring(10)} className="msg-sticker__img" autoPlay loop muted playsInline />
-                                    ) : (
-                                      <img src={msg.message.substring(10)} loading="lazy" className="msg-sticker__img" alt="Стикер" />
-                                    )}
+                                    <StickerView src={msg.message.substring(10)} className="msg-sticker__img" />
                                   </div>
                                 ) : isVoice(msg.message) ? (
                                   <VoiceGlass src={parseVoice(msg.message).src} seconds={parseVoice(msg.message).seconds} />
