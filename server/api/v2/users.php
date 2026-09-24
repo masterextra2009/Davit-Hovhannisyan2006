@@ -5,6 +5,7 @@ declare(strict_types=1);
 //
 //   GET  list          — клиенту свой профиль, админу все
 //   POST save {user}   — сохранить профиль
+//   POST delete {id}   — админ удаляет клиента (обезличивание, см. _erase.php)
 //
 // Сайт привык писать профиль целиком (setDoc(users/{id}, user)), поэтому и
 // здесь принимается весь объект. Но сохраняются только разрешённые поля, и
@@ -17,6 +18,7 @@ declare(strict_types=1);
 // кем: иначе любой клиент мог бы прислать себе role=admin.
 
 require __DIR__ . '/_bootstrap.php';
+require __DIR__ . '/_erase.php';
 
 const MAX_USERS = 5000;
 
@@ -30,8 +32,32 @@ switch ($_GET['action'] ?? '') {
     case 'save':
         require_method('POST');
         save_user($user, $isAdmin);
+    case 'delete':
+        require_method('POST');
+        require_admin($isAdmin);
+        admin_delete_user($user);
     default:
         fail('Неизвестное действие', 404);
+}
+
+/** Админ удаляет клиента из клиентской базы. Админов и себя так не удалить. */
+function admin_delete_user(array $me)
+{
+    $id = str_field('id', 64);
+    if ($id === '' || $id === $me['id']) {
+        fail('Этот аккаунт так не удалить', 400);
+    }
+    $st = db()->prepare('SELECT role FROM users WHERE id = ? AND deleted_at IS NULL');
+    $st->execute([$id]);
+    $role = $st->fetchColumn();
+    if ($role === false) {
+        respond(['ok' => true]); // уже удалён
+    }
+    if ($role === 'admin') {
+        fail('Администратора удалить нельзя', 403);
+    }
+    erase_user($id);
+    respond(['ok' => true]);
 }
 
 function list_users(array $user, bool $isAdmin)

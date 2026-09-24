@@ -1645,8 +1645,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     try {
       await deleteUserAccountWithFirebase(clientId);
     } catch (err) {
-      console.error('Failed to delete user account with Firebase:', err);
-      setDeleteError('Не удалось полностью удалить пользователя и связанные данные из Firestore. Проверьте соединение.');
+      console.error('Failed to delete user account:', err);
+      setDeleteError(`Не удалось удалить клиента: ${err instanceof Error ? err.message : 'проверьте соединение'}`);
       setIsDeletingUser(false);
       return;
     }

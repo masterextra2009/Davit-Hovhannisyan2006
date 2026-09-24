@@ -22,6 +22,7 @@ declare(strict_types=1);
 require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_referrals.php';
 require __DIR__ . '/_mail.php';
+require __DIR__ . '/_erase.php';
 
 /**
  * Защита от подбора пароля: не больше 10 попыток входа или регистрации за
@@ -300,33 +301,7 @@ function delete_account()
     if ($user['role'] === 'admin') {
         fail('Аккаунт администратора так не удаляется', 403);
     }
-    $pdo = db();
-    $pdo->beginTransaction();
-    try {
-        $pdo->prepare('UPDATE orders SET user_name = ?, user_email = ?, user_phone = NULL WHERE user_id = ?')
-            ->execute(['Удалённый аккаунт', '', $user['id']]);
-        $pdo->prepare('DELETE FROM sessions WHERE user_id = ?')->execute([$user['id']]);
-        $pdo->prepare(
-            "UPDATE users SET email = NULL, full_name = '', phone = NULL, avatar_url = NULL,
-                    password_hash = NULL, telegram_chat_id = NULL, telegram_username = NULL,
-                    telegram_notifications_enabled = 0, expo_push_token = NULL, push_subscription = NULL,
-                    promo_code = NULL, promo_discount = NULL, promo_expires_at = NULL,
-                    referral_code = NULL, deleted_at = ?
-             WHERE id = ?"
-        )->execute([now_utc(), $user['id']]);
-        // Отзыв оставляем админу, но без имени и почты — сам текст это уже не
-        // персональные данные, а привязка к человеку — да.
-        $pdo->prepare("UPDATE feedback SET user_name = 'Удалённый аккаунт', user_email = '' WHERE user_id = ?")
-            ->execute([$user['id']]);
-        $pdo->prepare('DELETE FROM chat_messages WHERE user_id = ?')->execute([$user['id']]);
-        $pdo->prepare('DELETE FROM notifications WHERE user_id = ?')->execute([$user['id']]);
-        $pdo->prepare('DELETE FROM referral_codes WHERE user_id = ?')->execute([$user['id']]);
-        $pdo->commit();
-    } catch (Throwable $e) {
-        $pdo->rollBack();
-        error_log('api/v2 delete-account: ' . $e->getMessage());
-        fail('Не удалось удалить аккаунт. Напишите нам, и мы удалим вручную.', 500);
-    }
+    erase_user($user['id']);
     respond(['ok' => true]);
 }
 

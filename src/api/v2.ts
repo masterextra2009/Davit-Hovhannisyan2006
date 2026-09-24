@@ -306,6 +306,8 @@ export const users = {
   /** Клиенту вернётся только он сам, админу — все. */
   list: () => request<{ users: User[] }>('users.php?action=list'),
   save: (user: Partial<User> & { id: string }) => request<{ user: User }>('users.php?action=save', { body: { user } }),
+  /** Админ удаляет клиента: профиль обезличивается, заказы остаются без имени. */
+  remove: (id: string) => request('users.php?action=delete', { body: { id } }),
 };
 
 // ─────────────────────────── Услуги, отзывы, посещения ───────────────────────────

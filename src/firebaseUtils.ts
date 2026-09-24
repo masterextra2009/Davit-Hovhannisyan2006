@@ -626,13 +626,14 @@ export async function deleteOrderFromFirebase(orderId: string): Promise<void> {
  */
 export async function deleteUserAccountWithFirebase(userId: string): Promise<void> {
   if (useV2()) {
-    // ⚠️ На сервере есть только «удалить СЕБЯ» (auth.php?action=delete-account):
-    // он смотрит на того, кто прислал запрос, а userId не читает вовсе. Если
-    // позвать его из админки для клиента, удалится сам администратор. Пока
-    // отдельного действия для админа нет — не даём этому случиться.
+    // «Удалить СЕБЯ» (auth.php delete-account) смотрит на того, кто прислал
+    // запрос, и userId не читает — позвать его из админки для клиента значит
+    // удалить самого администратора. Поэтому чужой аккаунт админ удаляет
+    // отдельным действием users.php delete (24.09.2026).
     const me = getCurrentUser();
     if (me && me.id !== userId) {
-      throw new Error('Удаление клиента администратором пока не поддерживается сервером — обратитесь к разработчику.');
+      await v2.users.remove(userId);
+      return;
     }
     // Клиент удаляет себя сам; сервер обезличивает профиль и обрывает входы.
     await v2.deleteAccount();
