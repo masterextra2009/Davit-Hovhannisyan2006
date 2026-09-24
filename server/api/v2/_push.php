@@ -191,6 +191,16 @@ function push_order_status(string $userId, string $orderId, string $status, bool
         ]);
         return;
     }
+    // «Принят» и «Печатается» — каждый своим понятным заголовком (Давид
+    // 25.09.2026: «что заказ приняли, печатается и готов к выдаче»).
+    if ($status === 'approved') {
+        push_to_user($userId, 'Заказ принят', 'Заказ ' . $orderId . ' принят в работу.');
+        return;
+    }
+    if ($status === 'printing') {
+        push_to_user($userId, 'Заказ печатается', 'Заказ ' . $orderId . ' уже печатается.');
+        return;
+    }
     $label = PUSH_STATUS_LABELS[$status] ?? $status;
     push_to_user($userId, 'Статус заказа изменился', 'Заказ ' . $orderId . ': ' . $label);
 }
