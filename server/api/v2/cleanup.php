@@ -19,7 +19,10 @@ declare(strict_types=1);
 //   3. Чистит просроченные брони и старые записи о входах.
 //
 // Запуск (Beget, раз в сутки; путь к PHP тот же, что у остальных задач):
-//   /usr/local/php-cgi/8.2/bin/php ~/sever-18.ru/api/v2/cleanup.php
+//   /usr/local/php-cgi/8.2/bin/php ~/sever-18.ru/public_html/api/v2/cleanup.php
+//
+// Пробный запуск — только посчитать, ничего не удаляя:
+//   … cleanup.php --dry
 //
 // Через веб не работает намеренно: снаружи этот файл только отвечает 403.
 
@@ -31,6 +34,9 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require __DIR__ . '/_bootstrap.php';
+
+/** --dry: только посчитать, что было бы удалено. */
+define('DRY_RUN', in_array('--dry', $argv ?? [], true));
 
 /** Сколько дней храним файлы выданного заказа. Должно совпадать с п. 5.3 политики. */
 const KEEP_DAYS_AFTER_ISSUE = 30;
@@ -78,9 +84,11 @@ foreach ($st->fetchAll() as $order) {
     }
     unset($f);
 
-    if ($changed) {
+    if ($changed && !DRY_RUN) {
         $pdo->prepare('UPDATE orders SET files = ? WHERE id = ?')
             ->execute([json_encode($files, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $order['id']]);
+    }
+    if ($changed) {
         $touchedOrders++;
     }
 }
@@ -108,6 +116,27 @@ foreach ($pdo->query('SELECT files FROM orders')->fetchAll(PDO::FETCH_COLUMN) as
     }
 }
 
+// Фото профиля (сайт и приложение) и скриншоты «Заметили ошибку?» лежат в
+// той же папке клиента, но это не заказы — их не трогаем, пока на них
+// ссылается профиль или отзыв (найдено 25.09.2026 перед первым запуском).
+foreach ([
+    'SELECT avatar_url FROM users WHERE avatar_url IS NOT NULL',
+    'SELECT screenshot_url FROM feedback WHERE screenshot_url IS NOT NULL',
+] as $sql) {
+    try {
+        foreach ($pdo->query($sql)->fetchAll(PDO::FETCH_COLUMN) as $url) {
+            $path = upload_path_from_url($url);
+            if ($path !== null) {
+                $referenced[$path] = true;
+            }
+        }
+    } catch (Throwable $e) {
+        // Нет таблицы или поля — лучше ничего не удалять, чем удалить лишнее.
+        error_log('cleanup: не прочитаны ссылки профилей/отзывов: ' . $e->getMessage());
+        exit(1);
+    }
+}
+
 $uploads = SITE_DIR . '/uploads';
 $cutoff = time() - KEEP_DAYS_ORPHAN * 86400;
 $orphans = 0;
@@ -131,7 +160,7 @@ foreach (glob($uploads . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
         }
     }
     // Пустую папку клиента убираем следом, чтобы не копились тысячи пустых.
-    if (($rest = glob($dir . '/*')) !== false && !$rest) {
+    if (!DRY_RUN && ($rest = glob($dir . '/*')) !== false && !$rest) {
         @rmdir($dir);
     }
 }
@@ -139,6 +168,8 @@ foreach (glob($uploads . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
 // ─────────────── 3. Просроченные брони и входы ───────────────
 
 $reservations = 0;
+$sessions = 0;
+if (!DRY_RUN) {
 try {
     $reservations = $pdo->exec(
         'DELETE FROM order_reservations WHERE created_at < UTC_TIMESTAMP(3) - INTERVAL 7 DAY'
@@ -148,15 +179,15 @@ try {
     error_log('cleanup: брони не почищены: ' . $e->getMessage());
 }
 
-$sessions = 0;
 try {
     $sessions = $pdo->exec('DELETE FROM sessions WHERE expires_at < UTC_TIMESTAMP(3)') ?: 0;
 } catch (Throwable $e) {
     error_log('cleanup: сессии не почищены: ' . $e->getMessage());
 }
+}
 
 printf(
-    "Уборка: файлов заказов удалено %d (в %d заказах), осиротевших %d, освобождено %.1f МБ, броней %d, входов %d\n",
+    (DRY_RUN ? '[ПРОБНЫЙ ЗАПУСК, ничего не удалено] ' : '') . "Уборка: файлов заказов удалено %d (в %d заказах), осиротевших %d, освобождено %.1f МБ, броней %d, входов %d\n",
     $removedFiles,
     $touchedOrders,
     $orphans,
@@ -212,6 +243,10 @@ function delete_upload(string $path, int &$freedBytes): bool
         return false;
     }
     $size = (int) filesize($full);
+    if (DRY_RUN) {
+        $freedBytes += $size;
+        return true;
+    }
     if (!@unlink($full)) {
         error_log('cleanup: не удалось удалить ' . $path);
         return false;
