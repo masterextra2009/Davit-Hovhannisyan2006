@@ -2915,6 +2915,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 <div className="grok-msg-time">
                                   {msg.senderName} &bull; {new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                                   {isAdmin && (msg.readByClient ? ' ✓✓' : ' ✓')}
+                                  {/* Клиент убрал у себя — у мастерской остаётся до удаления админом. */}
+                                  {msg.clientDeleted ? <span className="text-rose-400 font-bold"> &bull; удалено клиентом</span> : null}
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteMessage(msg.id)}

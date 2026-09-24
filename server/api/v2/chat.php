@@ -85,6 +85,9 @@ function list_messages(array $user, bool $isAdmin)
     if (!$isAdmin) {
         $where[] = 'user_id = ?';
         $args[] = $user['id'];
+        // Удалённое клиентом у себя клиенту больше не показываем
+        // (у админа оно остаётся, schema-011).
+        $where[] = 'client_deleted_at IS NULL';
     } elseif (($_GET['userId'] ?? '') !== '') {
         $where[] = 'user_id = ?';
         $args[] = (string) $_GET['userId'];
@@ -121,7 +124,7 @@ function list_messages(array $user, bool $isAdmin)
     if ($since !== null) {
         $pdo->exec('DELETE FROM chat_deletions WHERE deleted_at < UTC_TIMESTAMP(3) - INTERVAL 30 DAY');
         $d = $pdo->prepare(
-            'SELECT message_id FROM chat_deletions WHERE deleted_at >= ?' . ($isAdmin ? '' : ' AND user_id = ?')
+            'SELECT message_id FROM chat_deletions WHERE deleted_at >= ?' . ($isAdmin ? ' AND client_only = 0' : ' AND user_id = ?')
         );
         $d->execute($isAdmin ? [$since] : [$since, $user['id']]);
         $deletedIds = $d->fetchAll(PDO::FETCH_COLUMN);
@@ -156,6 +159,8 @@ function message_public(array $m): array
         'timestamp' => iso($m['created_at']),
         'readByAdmin' => (bool) $m['read_by_admin'],
         'readByClient' => (bool) $m['read_by_client'],
+        // Клиент убрал сообщение у себя — админ видит его с пометкой.
+        'clientDeleted' => !empty($m['client_deleted_at']),
     ];
 }
 
@@ -316,6 +321,16 @@ function delete_message(array $user, bool $isAdmin)
     if (!$isAdmin && ($row['user_id'] !== $user['id'] || $row['sender_role'] !== 'client')) {
         fail('Удалить можно только своё сообщение', 403);
     }
+    if (!$isAdmin) {
+        // Клиент удаляет только у себя: у мастерской переписка остаётся до тех
+        // пор, пока её не удалит админ (Давид 25.09.2026 — на случай
+        // претензии). read_changed_at — чтобы пометку увидел опрос админки.
+        $now = now_utc();
+        $pdo->prepare('UPDATE chat_messages SET client_deleted_at = ?, read_changed_at = ? WHERE id = ?')
+            ->execute([$now, $now, $id]);
+        remember_deletions([$id], $row['user_id'], true);
+        respond(['ok' => true]);
+    }
     $pdo->prepare('DELETE FROM chat_messages WHERE id = ?')->execute([$id]);
     remember_deletions([$id], $row['user_id']);
     respond(['ok' => true]);
@@ -340,15 +355,16 @@ function clear_dialog()
  * Опрос «что нового» удалённую строку не увидит — её уже нет. Поэтому факт
  * удаления записываем отдельно, и в ответе list уходит deletedIds.
  */
-function remember_deletions(array $ids, string $dialogUserId): void
+function remember_deletions(array $ids, string $dialogUserId, bool $clientOnly = false): void
 {
     if (!$ids) {
         return;
     }
-    $st = db()->prepare('INSERT INTO chat_deletions (message_id, user_id, deleted_at) VALUES (?, ?, ?)
-                         ON DUPLICATE KEY UPDATE deleted_at = VALUES(deleted_at)');
+    // Удаление админом перекрывает «скрыто клиентом»: тогда сообщение уходит у обоих.
+    $st = db()->prepare('INSERT INTO chat_deletions (message_id, user_id, deleted_at, client_only) VALUES (?, ?, ?, ?)
+                         ON DUPLICATE KEY UPDATE deleted_at = VALUES(deleted_at), client_only = VALUES(client_only)');
     $now = now_utc();
     foreach ($ids as $id) {
-        $st->execute([$id, $dialogUserId, $now]);
+        $st->execute([$id, $dialogUserId, $now, $clientOnly ? 1 : 0]);
     }
 }

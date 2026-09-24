@@ -171,6 +171,8 @@ export interface ChatMessage {
   timestamp: string;
   readByAdmin: boolean;
   readByClient: boolean;
+  /** Клиент убрал сообщение у себя; у админа оно остаётся с пометкой. */
+  clientDeleted?: boolean;
 }
 
 export interface Notification {
