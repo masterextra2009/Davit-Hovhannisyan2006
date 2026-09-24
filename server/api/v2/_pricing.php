@@ -37,13 +37,17 @@ const BUNDLE_MIN_PER_FILE = 20;
  */
 const FIXED_PROMO_CODES = [];
 
-function binding_fee_per_copy(string $binding, int $pages): int
+/**
+ * Отделка за одну копию. Файлик: 5 ₽ за А4, 10 ₽ за А3 — лист А3 кладут
+ * в большой файл (решение Давида 24.09.2026).
+ */
+function binding_fee_per_copy(string $binding, int $pages, bool $a3 = false): int
 {
     switch ($binding) {
         case 'staple':
             return 15;
         case 'file':
-            return 5;
+            return $a3 ? 10 : 5;
         case 'spring_metal':
             return $pages <= 50 ? 350 : 450;
         case 'spring_plastic':
@@ -129,7 +133,13 @@ function order_price(array $files, ?string $binding, int $discountPercent, int $
     }
     if ($files && $binding !== null && $binding !== 'none') {
         $copies = max(1, (int) ($files[0]['fileCopies'] ?? 1));
-        $subtotal += binding_fee_per_copy($binding, $totalPages) * $copies;
+        $hasA3 = false;
+        foreach ($files as $f) {
+            if (($f['format'] ?? 'a4') === 'a3') {
+                $hasA3 = true;
+            }
+        }
+        $subtotal += binding_fee_per_copy($binding, $totalPages, $hasA3) * $copies;
     }
     $total = $discountPercent > 0 ? (int) round($subtotal * (1 - $discountPercent / 100)) : $subtotal;
     return max(0, $total) + max(0, $serviceExtra);

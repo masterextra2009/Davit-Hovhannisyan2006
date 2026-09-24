@@ -300,9 +300,11 @@ function a3FilePrice(file: PrintFile): number {
 // заявленный максимум, выше пока не предлагается, держим ставку "до 90" на
 // случай большего объёма); пластик — до 50 стр. 250₽, 51-90 стр. 350₽,
 // свыше 90 стр. 450₽.
-function bindingFeePerCopy(binding: 'none' | 'staple' | 'file' | 'spring_plastic' | 'spring_metal' | 'hard_cover', totalPages: number): number {
+// Файлик: 5₽ за А4, 10₽ за А3 (большой файл) — решение Давида 24.09.2026,
+// то же на сервере (_pricing.php).
+function bindingFeePerCopy(binding: 'none' | 'staple' | 'file' | 'spring_plastic' | 'spring_metal' | 'hard_cover', totalPages: number, a3 = false): number {
   if (binding === 'staple') return 15;
-  if (binding === 'file') return 5;
+  if (binding === 'file') return a3 ? 10 : 5;
   if (binding === 'spring_metal') return totalPages <= 50 ? 350 : 450;
   if (binding === 'spring_plastic') return totalPages <= 50 ? 250 : totalPages <= 90 ? 350 : 450;
   if (binding === 'hard_cover') return 450;
@@ -3481,7 +3483,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     }, 0);
     const totalPagesForBinding = uploadedFiles.reduce((acc, f) => acc + (f.pageCount || 1), 0);
     const orderCopiesForBinding = uploadedFiles[0]?.fileCopies || 1;
-    const bindingFee = binding !== 'none' ? bindingFeePerCopy(binding, totalPagesForBinding) * orderCopiesForBinding : 0;
+    const bindingFee = binding !== 'none' ? bindingFeePerCopy(binding, totalPagesForBinding, uploadedFiles.some(f => f.format === 'a3')) * orderCopiesForBinding : 0;
     const subtotalWithBinding = subtotal + bindingFee;
     const totalCost = finalDiscount ? Math.round(subtotalWithBinding * (1 - finalDiscount / 100)) : subtotalWithBinding;
 
@@ -5180,7 +5182,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               {binding === 'file' && isLast && (
                                 <div className="absolute inset-0 bg-sky-200/20 dark:bg-sky-400/10 border-2 border-sky-400/40 rounded-xl z-20 pointer-events-none shadow-inner" style={{ backdropFilter: 'blur(1px)' }}>
                                   <div className="absolute top-2 right-2 w-3.5 h-3.5 rounded-full border border-sky-500/20 flex items-center justify-center bg-white/70 shadow-xs text-sky-650 font-bold text-[9px] animate-pulse">
-                                    5₽
+                                    {uploadedFiles.some(f => f.format === 'a3') ? 10 : 5}₽
                                   </div>
                                 </div>
                               )}
@@ -5588,7 +5590,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             }, 0);
                             const totalPagesForBinding = uploadedFiles.reduce((acc, f) => acc + (f.pageCount || 1), 0);
                             const orderCopiesForBinding = uploadedFiles[0]?.fileCopies || 1;
-                            const bindingFee = binding !== 'none' ? bindingFeePerCopy(binding, totalPagesForBinding) * orderCopiesForBinding : 0;
+                            const bindingFee = binding !== 'none' ? bindingFeePerCopy(binding, totalPagesForBinding, uploadedFiles.some(f => f.format === 'a3')) * orderCopiesForBinding : 0;
                             const subtotalWithBinding = subtotal + bindingFee;
                             const discount = activePromo ? getActiveDiscountPercent(activePromo) : 0;
                             const total = Math.round(subtotalWithBinding * (1 - discount / 100));
@@ -8447,7 +8449,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         {binding === 'file' && isTopPage && (
                           <div className="absolute inset-0 bg-sky-200/15 dark:bg-sky-400/5 border-2 border-sky-400/30 rounded-xl z-20 pointer-events-none shadow-inner" style={{ backdropFilter: 'blur(0.5px)' }}>
                             <div className="absolute top-2 right-2 w-4 h-4 rounded-full border border-sky-500/15 flex items-center justify-center bg-white/90 shadow-md text-sky-600 font-extrabold text-[10px]">
-                              5₽
+                              {uploadedFiles.some(f => f.format === 'a3') ? 10 : 5}₽
                             </div>
                           </div>
                         )}

@@ -436,7 +436,7 @@ export function calculateOrderCost(
   if (binding && binding !== 'none') {
     let bindingFee = 0;
     if (binding === 'staple') bindingFee = 15;
-    else if (binding === 'file') bindingFee = 5;
+    else if (binding === 'file') bindingFee = isA3 ? 10 : 5; // А3 — большой файл
     // Прайс из "Витрины услуг" (см. bindingFeePerCopy в Dashboard.tsx) —
     // металл: до 50 стр. 350₽, 51-90 стр. 450₽; пластик: до 50 стр. 250₽,
     // 51-90 стр. 350₽, свыше 90 стр. 450₽.
