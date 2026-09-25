@@ -33,6 +33,7 @@ import { UserAvatar } from './UserAvatar';
 import { StickerView } from './StickerView';
 import { EmojiPicker } from './EmojiPicker';
 import JSZip from 'jszip';
+import { PlayStatsCard } from './PlayStatsCard';
 
 // Подписи размеров фотобумаги для карточки файла в заказе — должны совпадать
 // с ключами photoSize, которые клиент выбирает в Dashboard.tsx (иначе в
@@ -141,23 +142,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const hasPrinterApp = typeof window !== 'undefined' && !!(window as any).printerAPI;
   const [adminUpdateStatus, setAdminUpdateStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [adminUpdateError, setAdminUpdateError] = useState('');
-
-  // Счётчики обращений к ИИ-чату / озвучке / проверке фото — считает сам
-  // usage-counter.php на Beget (простой файловый счётчик, без Firebase),
-  // здесь просто читаем готовые цифры для показа в аналитике. Отдельно
-  // сегодняшние (обнуляются каждый день) и общие с момента подключения
-  // счётчика (никогда не обнуляются) — раньше показывался только общий.
-  const [usageStats, setUsageStats] = useState<{
-    ai_chat_today: number; ai_chat_total: number;
-    voice_today: number; voice_total: number;
-    photo_check_today: number; photo_check_total: number;
-  } | null>(null);
-  useEffect(() => {
-    fetch('https://sever-18.ru/api/usage-stats.php')
-      .then(r => (r.ok ? r.json() : null))
-      .then(data => { if (data) setUsageStats(data); })
-      .catch(() => {});
-  }, []);
 
   // Реферальная программа: как только у приглашённого (user.referredBy)
   // появляется первый оплаченный заказ, пригласивший автоматически получает
@@ -3795,36 +3779,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                   <MiniSparkline data={chatHistory7d} colorClass="bg-sky-500" />
                 </div>
 
-                <div className="glass-panel p-5 rounded-3xl col-span-full">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="space-y-1 flex-1">
-                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">ИИ и Проверка фото · сегодня</span>
-                      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-                        <p className="text-2xl font-black text-slate-800 dark:text-white">{usageStats ? usageStats.ai_chat_today : '—'} <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">запросов в ИИ-чат</span></p>
-                        <div className="text-xs text-slate-400">Озвучка (голос): <span className="font-bold text-slate-600 dark:text-slate-300">{usageStats ? usageStats.voice_today : '—'}</span></div>
-                        <div className="text-xs text-slate-400">Проверка фото на документы: <span className="font-bold text-slate-600 dark:text-slate-300">{usageStats ? usageStats.photo_check_today : '—'}</span></div>
-                      </div>
-                    </div>
-                    <div className="p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-500 rounded-2xl">
-                      <BarChart3 className="w-5 h-5" />
-                    </div>
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-1.5">
-                    Сегодняшние цифры обнуляются каждую полночь (по Москве). Всего с момента подключения счётчика:{' '}
-                    <span className="font-bold text-slate-500 dark:text-slate-400">
-                      {usageStats ? usageStats.ai_chat_total : '—'} в ИИ-чат
-                    </span>
-                    {' · '}
-                    <span className="font-bold text-slate-500 dark:text-slate-400">
-                      {usageStats ? usageStats.voice_total : '—'} озвучка
-                    </span>
-                    {' · '}
-                    <span className="font-bold text-slate-500 dark:text-slate-400">
-                      {usageStats ? usageStats.photo_check_total : '—'} проверка фото
-                    </span>
-                    .
-                  </div>
-                </div>
+                {/* Установки из Google Play — вместо «ИИ и проверка фото · сегодня»
+                    (выбор Давида 26.09.2026, вариант 5 «Полоса»). */}
+                <PlayStatsCard />
 
               </div>
 
