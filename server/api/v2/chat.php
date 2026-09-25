@@ -57,6 +57,9 @@ switch ($action) {
     case 'read':
         require_method('POST');
         mark_read($user, $isAdmin);
+    case 'unread':
+        require_method('GET');
+        count_unread($user, $isAdmin);
     case 'typing':
         require_method('POST');
         require_admin($isAdmin);
@@ -262,6 +265,24 @@ function preview(string $text): string
 }
 
 // ─────────────────────────── Прочитано / печатает ───────────────────────────
+
+/**
+ * Сколько ответов мастерской клиент ещё не прочитал — для значка на вкладке
+ * «Чат» в приложении (просьба Давида 26.09.2026). Отдельный лёгкий запрос:
+ * приложение спрашивает его раз в 5 секунд, а list тащил бы всю переписку
+ * вместе с фото и голосовыми. Админу — всегда 0: у него своя админка.
+ */
+function count_unread(array $user, bool $isAdmin)
+{
+    if ($isAdmin) {
+        respond(['count' => 0]);
+    }
+    $st = db()->prepare("SELECT COUNT(*) FROM chat_messages
+                         WHERE user_id = ? AND sender_role = 'admin' AND read_by_client = 0
+                           AND client_deleted_at IS NULL");
+    $st->execute([$user['id']]);
+    respond(['count' => (int) $st->fetchColumn()]);
+}
 
 function mark_read(array $user, bool $isAdmin)
 {
