@@ -329,6 +329,12 @@ export const visits = {
   /** Одно посещение на вкладку — как и раньше, отмечаем раз за сессию браузера. */
   track: () => request('misc.php?action=visit', { method: 'POST', body: {} }),
   stats: () => request<{ total: number; history: { date: string; count: number }[] }>('misc.php?action=visits'),
+  /** Установки из Google Play (обновляются раз в сутки). configured: false — статистика ещё не подключена. */
+  playStats: () =>
+    request<
+      | { configured: false }
+      | { configured: true; total: number; today: number; week: number; rating: number | null; updatedAt: string }
+    >('misc.php?action=play-stats'),
 };
 
 // ─────────────────────────── Файлы ───────────────────────────

@@ -19,6 +19,9 @@ declare(strict_types=1);
 //   POST visit                         — без входа, раз в сессию браузера
 //   GET  visits                        — админ: всего и по дням
 //
+// Установки из Google Play (карточка в аналитике админки):
+//   GET  play-stats                    — админ: всего / сегодня / неделя / оценка
+//
 // Права повторяют firestore.rules: услуги читают вошедшие, правит админ;
 // отзыв заводит клиент о себе, читает и удаляет только админ.
 
@@ -67,6 +70,10 @@ switch ($action) {
         require_method('GET');
         require_admin($isAdmin);
         show_visits();
+    case 'play-stats':
+        require_method('GET');
+        require_admin($isAdmin);
+        show_play_stats();
     default:
         fail('Неизвестное действие', 404);
 }
@@ -251,5 +258,34 @@ function show_visits()
         'ok' => true,
         'total' => (int) ($data['total'] ?? 0),
         'history' => array_map(fn($d, $c) => ['date' => $d, 'count' => (int) $c], array_keys($history), $history),
+    ]);
+}
+
+// ─────────────────────────── Google Play ───────────────────────────
+
+/**
+ * Цифры установок из Google Play для карточки в админке.
+ *
+ * Google сам отдаёт статистику только отчётом в своё облако, раз в сутки.
+ * Забирает её отдельный ежедневный скрипт и кладёт готовые цифры в
+ * .sever18-private/play-stats.json — здесь их только читаем, чтобы открытие
+ * админки не ходило каждый раз в Google. Пока скрипт не подключён (нет
+ * доступа к отчёту), файла нет — отвечаем configured: false, и карточка
+ * показывает «статистика не подключена», а не выдуманные нули.
+ */
+function show_play_stats()
+{
+    $file = SITE_DIR . '/../.sever18-private/play-stats.json';
+    $data = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+    if (!is_array($data)) {
+        respond(['configured' => false]);
+    }
+    respond([
+        'configured' => true,
+        'total' => (int) ($data['total'] ?? 0),
+        'today' => (int) ($data['today'] ?? 0),
+        'week' => (int) ($data['week'] ?? 0),
+        'rating' => isset($data['rating']) ? (float) $data['rating'] : null,
+        'updatedAt' => (string) ($data['updatedAt'] ?? ''),
     ]);
 }
