@@ -1553,18 +1553,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       chatMessages: [...database.chatMessages, newMsg]
     });
 
-    // Отправляем Telegram-уведомление клиенту если он подключил Telegram
-    const client = database.users.find(u => u.id === activeChatUserId);
-    if (client?.telegramChatId || client?.telegramUsername) {
-      fetch('https://sever-18.ru/api/telegram_notify.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: activeChatUserId,
-          text: `💬 <b>Фото-Север</b>\n\n${adminChatInput.trim()}\n\n<i>Ответить можно в личном кабинете: https://sever-18.ru</i>`
-        })
-      }).catch(() => {});
-    }
+    // Telegram клиенту отсюда больше не шлём: сервер (api/v2/chat.php)
+    // отправляет его сам, как только сообщение записано. Второй вызов через
+    // старый telegram_notify.php давал клиенту два одинаковых сообщения.
 
     // Ответ ушёл — «печатает» у клиента гаснет сразу, не дожидаясь 6 секунд.
     lastTypingSignalRef.current = 0;
@@ -1593,21 +1584,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       readByClient: false
     };
 
+    // Telegram «🖼 Стикер» сервер шлёт сам (api/v2/chat.php).
     onUpdateDatabase({
       chatMessages: [...database.chatMessages, newMsg]
     });
-
-    const client = database.users.find(u => u.id === activeChatUserId);
-    if (client?.telegramChatId || client?.telegramUsername) {
-      fetch('https://sever-18.ru/api/telegram_notify.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: activeChatUserId,
-          text: `💬 <b>Фото-Север</b>\\n\\nОтправлен стикер: ${sticker.label}\\n\\n<i>Ответить можно в личном кабинете: https://sever-18.ru</i>`
-        })
-      }).catch(() => {});
-    }
   };
 
   // Edit / update client contact
