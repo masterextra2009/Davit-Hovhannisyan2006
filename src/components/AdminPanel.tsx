@@ -124,6 +124,14 @@ interface AdminPanelProps {
   }) => void;
 }
 
+/** Символ по физической клавише (KeyO → O, Digit1 → 1, Minus → -), без учёта раскладки. */
+function scannerCharFromCode(code: string): string | null {
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^(Digit|Numpad)\d$/.test(code)) return code.slice(-1);
+  if (code === 'Minus' || code === 'NumpadSubtract') return '-';
+  return null;
+}
+
 export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: AdminPanelProps) {
   // Navigation
   const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services' | 'promos' | 'print-app'>('orders');
@@ -1177,10 +1185,13 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       }
 
       const now = Date.now();
-      if (now - lastKeyAt > 120) buffer = '';
+      // Bluetooth-сканер шлёт символы с рывками (задержки радио), поэтому
+      // запас 250 мс. Спутать с человеком всё равно нельзя: срабатывает
+      // только точный номер ORD-цифры и сразу Enter/Tab.
+      if (now - lastKeyAt > 250) buffer = '';
       lastKeyAt = now;
 
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' || e.key === 'Tab') {
         const code = buffer.trim().toUpperCase();
         buffer = '';
         if (!/^ORD-\d+$/.test(code)) return;
@@ -1193,7 +1204,12 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         return;
       }
 
-      if (e.key.length === 1) buffer += e.key;
+      // Сканер (и USB, и Bluetooth) нажимает клавиши, а буквы из них делает
+      // раскладка Windows: на русской вместо ORD-1042 приходит ЩКВ-1042.
+      // Поэтому берём не букву, а саму клавишу (e.code) — она от раскладки
+      // не зависит.
+      const ch = scannerCharFromCode(e.code) ?? (e.key.length === 1 ? e.key : null);
+      if (ch) buffer += ch;
     };
 
     window.addEventListener('keydown', handleKey);
