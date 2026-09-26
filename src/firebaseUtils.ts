@@ -3,53 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getLocalDateKey, trackAnalyticsEvent, getCurrentUser } from './utils';
-import {
-  auth,
-  db,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  updateProfile,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithCustomToken,
-  signInAnonymously,
-  linkWithCredential,
-  EmailAuthProvider,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  collection,
-  getDocs,
-  query,
-  where,
-  onSnapshot,
-  addDoc,
-  deleteDoc,
-  increment,
-  runTransaction
-} from './firebase';
-import type { User as FirebaseAuthUser } from 'firebase/auth';
-import { User, Order, ChatMessage, Notification, Service, Feedback, Promo, DatabaseState } from './types';
+import { trackAnalyticsEvent, getCurrentUser } from './utils';
+import { User, Order, ChatMessage, Notification, Feedback, DatabaseState } from './types';
 import * as v2 from './api/v2';
 
 /**
- * ПЕРЕЕЗД С FIREBASE НА СВОЙ СЕРВЕР.
+ * Данные сайта — только на своём сервере (api/v2, клиент — src/api/v2.ts).
  *
- * Каждая функция ниже умеет работать двумя способами: по-старому через
- * Firebase и по-новому через наш сервер (api/v2, клиент — src/api/v2.ts).
- * Выбор делает один флаг, и по умолчанию он ВЫКЛЮЧЕН: боевой сайт работает
- * как раньше. Включается сборкой (VITE_BACKEND=v2) или вручную в браузере
- * (localStorage sever18_backend=v2) — так проверяем на копии /proverka/,
- * не трогая работающий сайт.
- *
- * Компоненты (Dashboard, AdminPanel, AuthScreen) при этом не меняются вовсе:
- * они как звали эти функции, так и зовут.
+ * До 26.09.2026 каждая функция здесь умела работать и по-старому, через
+ * Firebase (Google, серверы за рубежом), — на время переезда. Переезд
+ * закончен, ветки Firebase и сама библиотека удалены. Имена функций
+ * («…ToFirebase») оставлены прежними, чтобы не переписывать компоненты.
  */
-const useV2 = () => v2.isV2Enabled();
 const CONSENT_VERSION = v2.CONSENT_VERSION;
 
 /**
@@ -63,139 +28,12 @@ export function setCachedUser(user: User | null): void {
   cachedUser = user;
 }
 
-// Автоматический приветственный промокод для тех, кто регистрируется в
-// период акции 22.07.2026–02.08.2026 (обе даты включительно). После конца
-// периода — как обычно, никаких автоматических промокодов при регистрации
-// (ручной подарок промокода из админки, см. handleGiftPromoSubmit в
-// AdminPanel.tsx, продолжает работать всегда).
-const WELCOME_PROMO_START = new Date('2026-07-22T00:00:00');
-const WELCOME_PROMO_END = new Date('2026-08-03T00:00:00'); // граница — начало 03.08, т.е. весь день 02.08 ещё считается
-function getWelcomePromoFields(): Partial<User> {
-  const now = new Date();
-  if (now < WELCOME_PROMO_START || now >= WELCOME_PROMO_END) return {};
-  const expires = new Date();
-  expires.setDate(expires.getDate() + 30);
-  return {
-    promoCode: 'ПРИВЕТСТВЕННЫЙ',
-    promoDiscount: 15,
-    promoGiftedSeen: false,
-    promoExpiresAt: expires.toISOString(),
-  };
-}
-
-// Реферальная программа: у каждого клиента есть свой код (первые 6 символов
-// его Firebase UID — уникальность уже гарантирована самим UID, отдельная
-// проверка не нужна), которым он делится с друзьями. Награда пригласившему
-// выдаётся не здесь, а автоматически в AdminPanel.tsx после первого
-// оплаченного заказа приглашённого (см. useEffect там) — так работает и для
-// заказов "оплата при получении", отмеченных вручную, и для оплаты через
-// ЮKassa, не завязываясь на конкретный путь оплаты.
-export function generateReferralCode(uid: string): string {
-  return uid.slice(0, 6).toUpperCase();
-}
-
-// Обратный индекс код->userId в отдельной коллекции (см. firestore.rules) —
-// query по users.referralCode невозможен: правила запрещают клиенту читать
-// чужие профили, а Firestore не разрешает query, для которого нельзя
-// гарантировать доступ к каждому результату по правилам /users/{userId}.
-async function resolveReferralFields(referralCodeInput?: string): Promise<Partial<User>> {
-  if (!referralCodeInput || !referralCodeInput.trim()) return {};
-  const code = referralCodeInput.trim().toUpperCase();
-  try {
-    const snap = await getDoc(doc(db, 'referralCodes', code));
-    if (!snap.exists()) return {};
-    const referrerId = (snap.data() as { userId: string }).userId;
-    const expires = new Date();
-    expires.setDate(expires.getDate() + 30);
-    return {
-      referredBy: referrerId,
-      promoCode: 'ДРУГ10',
-      promoDiscount: 10,
-      promoGiftedSeen: false,
-      promoExpiresAt: expires.toISOString(),
-    };
-  } catch {
-    return {};
-  }
-}
-
-// Регистрирует свой код в обратном индексе (см. выше) — вызывается при
-// генерации кода на всех путях регистрации. Тихо глотает ошибку: это не
-// критично для самой регистрации, а без индекса просто не сработает
-// применение кода у тех, кто попробует его ввести (не аварийный случай).
-export async function registerReferralCode(code: string, userId: string): Promise<void> {
-  try {
-    await setDoc(doc(db, 'referralCodes', code), { userId });
-  } catch (e) {
-    console.warn('Failed to register referral code:', e);
-  }
-}
-
-// На нестабильной (особенно мобильной) сети запрос может зависнуть без ошибки
-// и без ответа — обрываем его по таймауту, чтобы UI не застревал навсегда.
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
-  ]);
-}
-
-// Standardized operation type matching rules
-export enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-export interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
-    providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
-    }[];
-  };
-}
-
-// Global firestore error logger as requested
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData?.map(provider => ({
-        providerId: provider.providerId,
-        email: provider.email,
-      })) || []
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error details: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
-
 /**
  * Register a user via Firebase Auth and create their Firestore document profile
  */
 export async function registerUserWithFirebase(email: string, password: string,fullName: string, phone: string, role: 'client' | 'admin' = 'client', referralCodeInput?: string, marketingConsent = false): Promise<User> {
   const trimmedEmail = email.trim();
-  if (useV2()) {
-    const input = {
+  const input = {
       email: trimmedEmail,
       password,
       fullName: fullName.trim(),
@@ -217,83 +55,6 @@ export async function registerUserWithFirebase(email: string, password: string,f
     setCachedUser(user);
     trackAnalyticsEvent('registration');
     return user;
-  }
-  try {
-    // Если в этой же вкладке уже есть анонимная гостевая сессия ("Загрузить
-    // файл" без регистрации, см. signInAsGuest) — апгрейдим её на месте
-    // (linkWithCredential), а не создаём отдельный новый аккаунт. Firebase
-    // при этом СОХРАНЯЕТ uid, значит все заказы гостя (userId == uid)
-    // остаются на месте и сразу видны в новом аккаунте — переносить их
-    // отдельно не нужно.
-    const wasAnonymous = auth.currentUser?.isAnonymous === true;
-    let fbUser;
-    if (wasAnonymous) {
-      try {
-        const credential = EmailAuthProvider.credential(trimmedEmail, password);
-        const linkedCredential = await linkWithCredential(auth.currentUser!, credential);
-        fbUser = linkedCredential.user;
-      } catch (err: any) {
-        if (err?.code === 'auth/credential-already-in-use' || err?.code === 'auth/email-already-in-use') {
-          throw new Error('Этот email уже зарегистрирован — войдите в существующий аккаунт вместо регистрации нового.');
-        }
-        throw err;
-      }
-    } else {
-      const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
-      fbUser = userCredential.user;
-    }
-
-    // Update the Auth display name
-    await updateProfile(fbUser, { displayName: fullName });
-
-    const normalizedEmail = trimmedEmail.toLowerCase();
-    const isExplicitAdmin = fbUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' ||
-                            fbUser.uid === 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23' ||
-                            normalizedEmail === 'photo-sever@yandex.ru';
-
-    const referralFields = isExplicitAdmin ? {} : await resolveReferralFields(referralCodeInput);
-
-    // При апгрейде гостя (wasAnonymous) uid тот же, а значит в Firestore уже
-    // может лежать документ гостевого профиля с настоящей датой первого
-    // визита — не затирать её текущим временем регистрации.
-    const userDocRef = doc(db, 'users', fbUser.uid);
-    let originalCreatedAt: string | undefined;
-    if (wasAnonymous) {
-      try {
-        const existingDoc = await getDoc(userDocRef);
-        if (existingDoc.exists()) {
-          originalCreatedAt = (existingDoc.data() as User).createdAt;
-        }
-      } catch (e) {
-        console.warn('Failed to read existing guest profile before upgrade:', e);
-      }
-    }
-
-    const newUser: User = {
-      id: fbUser.uid,
-      email: trimmedEmail,
-      fullName: fullName.trim(),
-      phone: phone.trim(),
-      role: isExplicitAdmin ? 'admin' : role,
-      createdAt: originalCreatedAt || new Date().toISOString(),
-      referralCode: generateReferralCode(fbUser.uid),
-      ...(isExplicitAdmin ? {} : (Object.keys(referralFields).length ? referralFields : getWelcomePromoFields())),
-    };
-
-    // Write profile document in Firestore
-    try {
-      await setDoc(userDocRef, newUser);
-    } catch (e) {
-      handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
-    }
-    await registerReferralCode(newUser.referralCode!, fbUser.uid);
-
-    trackAnalyticsEvent('registration');
-    return newUser;
-  } catch (error) {
-    console.error('Firebase Auth registration error:', error);
-    throw error;
-  }
 }
 
 /**
@@ -301,136 +62,9 @@ export async function registerUserWithFirebase(email: string, password: string,f
  */
 export async function signInUserWithFirebase(email: string, password: string): Promise<User> {
   const trimmedEmail = email.trim();
-  if (useV2()) {
-    const user = await v2.login(trimmedEmail, password);
+  const user = await v2.login(trimmedEmail, password);
     setCachedUser(user);
     return user;
-  }
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
-    const fbUser = userCredential.user;
-
-    // Load their profile from users collection
-    const userDocRef = doc(db, 'users', fbUser.uid);
-    let userDoc;
-    try {
-      userDoc = await getDoc(userDocRef);
-    } catch (e) {
-      handleFirestoreError(e, OperationType.GET, `users/${fbUser.uid}`);
-    }
-
-    if (userDoc && userDoc.exists()) {
-      const userData = userDoc.data() as User;
-      const isExplicitAdmin = fbUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' ||
-                              fbUser.uid === 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23' ||
-                              trimmedEmail.toLowerCase() === 'photo-sever@yandex.ru';
-      if (isExplicitAdmin && userData.role !== 'admin') {
-        userData.role = 'admin';
-        try {
-          await setDoc(userDocRef, userData, { merge: true });
-        } catch (e) {
-          console.warn('Failed to auto-upgrade to admin role in firestore:', e);
-        }
-      }
-      return userData;
-    } else {
-      // Automatic profile repair if auth exists but firestore is empty
-      // We seed them as client by default (except special pattern)
-      const isInitialAdmin = trimmedEmail.toLowerCase() === 'photo-sever@yandex.ru' ||
-                             fbUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' ||
-                             fbUser.uid === 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23';
-      const recoveredUser: User = {
-        id: fbUser.uid,
-        email: fbUser.email || trimmedEmail,
-        fullName: fbUser.displayName || trimmedEmail.split('@')[0],
-        role: isInitialAdmin ? 'admin' : 'client',
-        createdAt: new Date().toISOString(),
-        phone: '',
-          referralCode: generateReferralCode(fbUser.uid),
-      };
-
-      try {
-        await setDoc(userDocRef, recoveredUser);
-      } catch (e) {
-        handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
-      }
-      await registerReferralCode(recoveredUser.referralCode!, fbUser.uid);
-      return recoveredUser;
-    }
-  } catch (error: any) {
-    // Log standard user login rejections (mismatched password or not signed up) as warning/info
-    console.warn('Firebase Auth sign in attempt info:', error?.message || error);
-    throw error;
-  }
-}
-
-// Google-аккаунты без своей фотографии отдают через Firebase Auth не пустой
-// photoURL, а ссылку на общую заглушку (силуэт человека, унаследованный от
-// старого дефолтного аватара YouTube/Google+) — она содержит "default-user"
-// в пути. Если довериться такому photoURL напрямую, в шапке и профиле вместо
-// нормального фолбэка (инициалы на градиенте из UserAvatar) показывается
-// эта чужеродная иконка. Отсеиваем такие ссылки на входе.
-function isGooglePlaceholderAvatar(url: string): boolean {
-  return url.includes('default-user');
-}
-
-/**
- * Создаёт/обновляет профиль в Firestore на основе Google-аккаунта Firebase.
- */
-async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> {
-  const userDocRef = doc(db, 'users', fbUser.uid);
-  let userDoc;
-  try {
-    userDoc = await getDoc(userDocRef);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.GET, `users/${fbUser.uid}`);
-  }
-
-  const isExplicitAdmin = fbUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' ||
-                          fbUser.uid === 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23' ||
-                          (fbUser.email || '').toLowerCase() === 'photo-sever@yandex.ru';
-
-  if (userDoc && userDoc.exists()) {
-    const userData = userDoc.data() as User;
-    if (isExplicitAdmin && userData.role !== 'admin') {
-      userData.role = 'admin';
-    }
-    if (fbUser.photoURL && !isGooglePlaceholderAvatar(fbUser.photoURL) && userData.avatarUrl !== fbUser.photoURL) {
-      userData.avatarUrl = fbUser.photoURL;
-    } else if (userData.avatarUrl && isGooglePlaceholderAvatar(userData.avatarUrl)) {
-      // Убираем заглушку, сохранённую до этого фикса.
-      userData.avatarUrl = undefined;
-    }
-    try {
-      await setDoc(userDocRef, userData, { merge: true });
-    } catch (e) {
-      console.warn('Failed to sync Google profile to firestore:', e);
-    }
-    return userData;
-  }
-
-  // First time this Google account signs in — create their profile
-  const newUser: User = {
-    id: fbUser.uid,
-    email: fbUser.email || '',
-    fullName: fbUser.displayName || (fbUser.email ? fbUser.email.split('@')[0] : 'Пользователь Google'),
-    phone: '',
-    role: isExplicitAdmin ? 'admin' : 'client',
-    createdAt: new Date().toISOString(),
-    avatarUrl: (fbUser.photoURL && !isGooglePlaceholderAvatar(fbUser.photoURL)) ? fbUser.photoURL : undefined,
-    isSocial: true,
-    referralCode: generateReferralCode(fbUser.uid),
-    ...(isExplicitAdmin ? {} : getWelcomePromoFields()),
-  };
-
-  try {
-    await setDoc(userDocRef, newUser);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
-  }
-  await registerReferralCode(newUser.referralCode!, fbUser.uid);
-  trackAnalyticsEvent('registration');
-  return newUser;
 }
 
 /**
@@ -459,17 +93,12 @@ async function upsertGoogleUserProfile(fbUser: FirebaseAuthUser): Promise<User> 
  * and wasn't applied here since it can't be safely tested from this repo.)
  */
 export async function signInWithGoogleFirebase(): Promise<User> {
-  if (useV2()) {
-    // На своём сервере это не всплывающее окно, а обычный переход на страницу
+  // На своём сервере это не всплывающее окно, а обычный переход на страницу
     // Google и возврат обратно с билетом (?auth_ticket=…), который меняется на
     // вход уже в App.tsx. Поэтому здесь страница просто уходит, и обещание
     // никогда не выполняется — это нормально.
     v2.startSocialLogin('google');
     return new Promise<User>(() => {});
-  }
-  const provider = new GoogleAuthProvider();
-  const result = await signInWithPopup(auth, provider);
-  return upsertGoogleUserProfile(result.user);
 }
 
 /**
@@ -482,151 +111,33 @@ export async function signInWithGoogleFirebase(): Promise<User> {
  * месте (linkWithCredential) — заказы остаются на том же uid.
  */
 export async function signInAsGuest(): Promise<User> {
-  if (useV2()) {
-    const user = await v2.guest(CONSENT_VERSION);
+  const user = await v2.guest(CONSENT_VERSION);
     setCachedUser(user);
     return user;
-  }
-  const userCredential = await signInAnonymously(auth);
-  const fbUser = userCredential.user;
-
-  const newUser: User = {
-    id: fbUser.uid,
-    email: '',
-    fullName: '',
-    phone: '',
-    role: 'client',
-    createdAt: new Date().toISOString(),
-    isGuest: true,
-    referralCode: generateReferralCode(fbUser.uid),
-  };
-
-  const userDocRef = doc(db, 'users', fbUser.uid);
-  try {
-    await setDoc(userDocRef, newUser);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
-  }
-
-  return newUser;
-}
-
-/**
- * Данные, которые присылает виджет "Log in with Telegram" в колбэк onauth.
- */
-export interface TelegramAuthData {
-  id: number;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  photo_url?: string;
-  auth_date: number;
-  hash: string;
-}
-
-/**
- * Sign in via the Telegram Login Widget: verifies the signed payload on our
- * server (telegram-verify.php), mints a Firebase custom token there, then
- * completes the real Firebase sign-in with it.
- */
-export async function signInWithTelegram(telegramData: TelegramAuthData): Promise<User> {
-  const res = await withTimeout(
-    fetch('https://sever-18.ru/api/telegram-verify.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(telegramData),
-    }),
-    15000
-  );
-  const data = await res.json();
-  if (!res.ok || !data.token) {
-    throw new Error(data.error || 'Не удалось подтвердить вход через Telegram');
-  }
-
-  const userCredential = await signInWithCustomToken(auth, data.token);
-  const fbUser = userCredential.user;
-
-  const userDocRef = doc(db, 'users', fbUser.uid);
-  let userDoc;
-  try {
-    userDoc = await getDoc(userDocRef);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.GET, `users/${fbUser.uid}`);
-  }
-
-  const fullName = [data.firstName, data.lastName].filter(Boolean).join(' ').trim() || data.username || 'Пользователь Telegram';
-
-  if (userDoc && userDoc.exists()) {
-    const userData = userDoc.data() as User;
-    userData.telegramChatId = String(telegramData.id);
-    userData.telegramUsername = data.username || userData.telegramUsername;
-    if (data.photoUrl && userData.avatarUrl !== data.photoUrl) {
-      userData.avatarUrl = data.photoUrl;
-    }
-    try {
-      await setDoc(userDocRef, userData, { merge: true });
-    } catch (e) {
-      console.warn('Failed to sync Telegram profile to firestore:', e);
-    }
-    return userData;
-  }
-
-  const newUser: User = {
-    id: fbUser.uid,
-    email: '',
-    fullName,
-    phone: '',
-    role: 'client',
-    createdAt: new Date().toISOString(),
-    avatarUrl: data.photoUrl || undefined,
-    isSocial: true,
-    telegramChatId: String(telegramData.id),
-    telegramUsername: data.username,
-    referralCode: generateReferralCode(fbUser.uid),
-  };
-
-  try {
-    await setDoc(userDocRef, newUser);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.CREATE, `users/${fbUser.uid}`);
-  }
-  await registerReferralCode(newUser.referralCode!, fbUser.uid);
-  return newUser;
 }
 
 /**
  * Log out user from Firebase Auth
  */
 export async function signOutUserWithFirebase(): Promise<void> {
-  if (useV2()) {
-    await v2.logout();
+  await v2.logout();
     setCachedUser(null);
     return;
-  }
-  await signOut(auth);
 }
 
 /**
  * Deletes a single order document from Firestore
  */
 export async function deleteOrderFromFirebase(orderId: string): Promise<void> {
-  if (useV2()) {
-    await v2.orders.remove(orderId);
+  await v2.orders.remove(orderId);
     return;
-  }
-  try {
-    await deleteDoc(doc(db, 'orders', orderId));
-  } catch (e) {
-    handleFirestoreError(e, OperationType.DELETE, `orders/${orderId}`);
-  }
 }
 
 /**
  * Deletes user profile and related resources from Firestore
  */
 export async function deleteUserAccountWithFirebase(userId: string): Promise<void> {
-  if (useV2()) {
-    // «Удалить СЕБЯ» (auth.php delete-account) смотрит на того, кто прислал
+  // «Удалить СЕБЯ» (auth.php delete-account) смотрит на того, кто прислал
     // запрос, и userId не читает — позвать его из админки для клиента значит
     // удалить самого администратора. Поэтому чужой аккаунт админ удаляет
     // отдельным действием users.php delete (24.09.2026).
@@ -638,66 +149,6 @@ export async function deleteUserAccountWithFirebase(userId: string): Promise<voi
     // Клиент удаляет себя сам; сервер обезличивает профиль и обрывает входы.
     await v2.deleteAccount();
     return;
-  }
-  const user = auth.currentUser;
-
-  // handleFirestoreError() ниже перебрасывает исключение дальше — раньше
-  // это было нормально для обычных сохранений, но здесь, при самоудалении
-  // профиля, одна заблокированная запись (например, уже оплаченный заказ —
-  // правила Firestore намеренно не дают клиенту его удалить) обрывала весь
-  // процесс до шага 5, и сам аккаунт (Firebase Auth) вообще не удалялся —
-  // клиент получал ошибку и оставался "подвисшим" с частично стёртым
-  // профилем. Такие документы просто пропускаем и продолжаем дальше.
-  const safeDelete = async (path: string, id: string) => {
-    try {
-      await deleteDoc(doc(db, path, id));
-    } catch (e) {
-      console.warn(`deleteUserAccountWithFirebase: не удалось удалить ${path}/${id}`, e);
-    }
-  };
-
-  // 1. Delete Firestore user document
-  await safeDelete('users', userId);
-
-  // 2. Query and delete user orders
-  try {
-    const ordersSnap = await getDocs(query(collection(db, 'orders'), where('userId', '==', userId)));
-    for (const d of ordersSnap.docs) {
-      await safeDelete('orders', d.id);
-    }
-  } catch (e) {
-    console.warn('deleteUserAccountWithFirebase: не удалось получить список orders', e);
-  }
-
-  // 3. Query and delete user chats
-  try {
-    const chatsSnap = await getDocs(query(collection(db, 'chatMessages'), where('userId', '==', userId)));
-    for (const d of chatsSnap.docs) {
-      await safeDelete('chatMessages', d.id);
-    }
-  } catch (e) {
-    console.warn('deleteUserAccountWithFirebase: не удалось получить список chatMessages', e);
-  }
-
-  // 4. Query and delete user notifications
-  try {
-    const alertsSnap = await getDocs(query(collection(db, 'notifications'), where('userId', '==', userId)));
-    for (const d of alertsSnap.docs) {
-      await safeDelete('notifications', d.id);
-    }
-  } catch (e) {
-    console.warn('deleteUserAccountWithFirebase: не удалось получить список notifications', e);
-  }
-
-  // 5. Finally delete Auth session if matching
-  if (user && user.uid === userId) {
-    try {
-      await user.delete();
-    } catch (e) {
-      console.warn('Could not delete auth user directly (reauthentication required), signing out instead.', e);
-      await signOut(auth);
-    }
-  }
 }
 
 /**
@@ -709,8 +160,7 @@ export async function deleteUserAccountWithFirebase(userId: string): Promise<voi
  * заказа не заблокировалось из-за проблемы со счётчиком.
  */
 export async function getNextOrderNumber(): Promise<number> {
-  if (useV2()) {
-    // Сервер сам выдаёт следующий номер и держит его за этим клиентом
+  // Сервер сам выдаёт следующий номер и держит его за этим клиентом
     // (orders.php?action=reserve), возвращая готовый «ORD-1042».
     const { orderId } = await v2.orders.reserve();
     const digits = parseInt(String(orderId).replace(/\D+/g, ''), 10);
@@ -718,22 +168,13 @@ export async function getNextOrderNumber(): Promise<number> {
       throw new Error('Сервер вернул неожиданный номер заказа');
     }
     return digits;
-  }
-  const counterRef = doc(db, 'counters', 'orders');
-  return runTransaction(db, async (transaction) => {
-    const snap = await transaction.get(counterRef);
-    const current = snap.exists() && typeof snap.data().next === 'number' ? snap.data().next : 1000;
-    transaction.set(counterRef, { next: current + 1 }, { merge: true });
-    return current;
-  });
 }
 
 /**
  * Handle Order updates
  */
 export async function saveOrderToFirebase(order: Order): Promise<void> {
-  if (useV2()) {
-    // Клиент оформляет заказ (create — сервер сам поставит дату, статус и
+  // Клиент оформляет заказ (create — сервер сам поставит дату, статус и
     // пересчитает сумму), админ правит уже существующий (save).
     const current = cachedUser ?? (await v2.me());
     if (current?.role === 'admin') {
@@ -742,53 +183,29 @@ export async function saveOrderToFirebase(order: Order): Promise<void> {
       await v2.orders.create(order);
     }
     return;
-  }
-  const ref = doc(db, 'orders', order.id);
-  try {
-    await setDoc(ref, order);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.WRITE, `orders/${order.id}`);
-  }
 }
 
 export async function updateOrderInFirebase(orderId: string, updates: Partial<Order>): Promise<void> {
-  if (useV2()) {
-    // У нашего сервера нет «дописать пару полей»: он принимает заказ целиком
+  // У нашего сервера нет «дописать пару полей»: он принимает заказ целиком
     // (так надёжнее — сумму и права он пересчитывает сам). Поэтому берём
     // текущий заказ и отдаём его обратно с изменениями.
     const { order } = await v2.orders.get(orderId);
     await v2.orders.save({ ...order, ...updates } as Order);
     return;
-  }
-  const ref = doc(db, 'orders', orderId);
-  try {
-    await updateDoc(ref, updates);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.UPDATE, `orders/${orderId}`);
-  }
 }
 
 /**
  * Handle Chat updates
  */
 export async function sendChatMessageToFirebase(msg: ChatMessage): Promise<void> {
-  if (useV2()) {
-    // Кто отправитель и когда — ставит сервер; от нас только текст и, если
+  // Кто отправитель и когда — ставит сервер; от нас только текст и, если
     // пишет админ, чей это диалог.
     await v2.chat.send(msg.message, msg.senderRole === 'admin' ? msg.userId : undefined);
     return;
-  }
-  const ref = doc(db, 'chatMessages', msg.id);
-  try {
-    await setDoc(ref, msg);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.WRITE, `chatMessages/${msg.id}`);
-  }
 }
 
 export async function updateChatMessageInFirebase(msgId: string, updates: Partial<ChatMessage>): Promise<void> {
-  if (useV2()) {
-    // Единственное, что сайт правит в чужом сообщении, — «прочитано». На
+  // Единственное, что сайт правит в чужом сообщении, — «прочитано». На
     // сервере это отдельное действие и сразу на весь диалог.
     if (updates.readByClient) {
       await v2.chat.markRead();
@@ -804,13 +221,6 @@ export async function updateChatMessageInFirebase(msgId: string, updates: Partia
       }
     }
     return;
-  }
-  const ref = doc(db, 'chatMessages', msgId);
-  try {
-    await updateDoc(ref, updates);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.UPDATE, `chatMessages/${msgId}`);
-  }
 }
 
 /**
@@ -819,32 +229,16 @@ export async function updateChatMessageInFirebase(msgId: string, updates: Partia
  * обновления страницы возвращались обратно вместе со значком непрочитанных.
  */
 export async function deleteChatMessageInFirebase(msgId: string): Promise<void> {
-  if (useV2()) {
-    await v2.chat.remove(msgId);
+  await v2.chat.remove(msgId);
     v2.chatCache.forget([msgId]);
     return;
-  }
-  try {
-    await deleteDoc(doc(db, 'chatMessages', msgId));
-  } catch (e) {
-    handleFirestoreError(e, OperationType.DELETE, `chatMessages/${msgId}`);
-  }
 }
 
 /** Вся переписка с одним клиентом (аккаунт и заказы остаются). */
 export async function clearChatHistoryInFirebase(dialogUserId: string, msgIds: string[]): Promise<void> {
-  if (useV2()) {
-    await v2.chat.clear(dialogUserId);
+  await v2.chat.clear(dialogUserId);
     v2.chatCache.forgetUser(dialogUserId);
     return;
-  }
-  for (const id of msgIds) {
-    try {
-      await deleteDoc(doc(db, 'chatMessages', id));
-    } catch (e) {
-      handleFirestoreError(e, OperationType.DELETE, `chatMessages/${id}`);
-    }
-  }
 }
 
 /**
@@ -853,77 +247,39 @@ export async function clearChatHistoryInFirebase(dialogUserId: string, msgIds: s
  * не сюда, а обычным сообщением в chatMessages).
  */
 export async function sendFeedbackToFirebase(feedback: Feedback): Promise<void> {
-  if (useV2()) {
-    await v2.feedback.send(feedback.message, {
+  await v2.feedback.send(feedback.message, {
       isBugReport: feedback.isBugReport,
       screenshotUrl: feedback.screenshotUrl,
     });
     return;
-  }
-  const ref = doc(db, 'feedback', feedback.id);
-  try {
-    await setDoc(ref, feedback);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.WRITE, `feedback/${feedback.id}`);
-  }
 }
 
 export async function deleteFeedbackFromFirebase(feedbackId: string): Promise<void> {
-  if (useV2()) {
-    await v2.feedback.remove(feedbackId);
+  await v2.feedback.remove(feedbackId);
     return;
-  }
-  try {
-    await deleteDoc(doc(db, 'feedback', feedbackId));
-  } catch (e) {
-    handleFirestoreError(e, OperationType.DELETE, `feedback/${feedbackId}`);
-  }
 }
 
 /**
  * Handle Notifications
  */
 export async function sendNotificationToFirebase(alert: Notification): Promise<void> {
-  if (useV2()) {
-    await v2.notifications.create({
+  await v2.notifications.create({
       title: alert.title,
       body: alert.body,
       type: alert.type,
       userId: alert.userId,
     });
     return;
-  }
-  const ref = doc(db, 'notifications', alert.id);
-  try {
-    await setDoc(ref, alert);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.WRITE, `notifications/${alert.id}`);
-  }
 }
 
 export async function updateNotificationInFirebase(alertId: string, updates: Partial<Notification>): Promise<void> {
-  if (useV2()) {
-    if (updates.read) await v2.notifications.markRead(alertId);
+  if (updates.read) await v2.notifications.markRead(alertId);
     return;
-  }
-  const ref = doc(db, 'notifications', alertId);
-  try {
-    await updateDoc(ref, updates);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.UPDATE, `notifications/${alertId}`);
-  }
 }
 
 export async function deleteNotificationFromFirebase(alertId: string): Promise<void> {
-  if (useV2()) {
-    await v2.notifications.remove(alertId);
+  await v2.notifications.remove(alertId);
     return;
-  }
-  try {
-    await deleteDoc(doc(db, 'notifications', alertId));
-  } catch (e) {
-    handleFirestoreError(e, OperationType.DELETE, `notifications/${alertId}`);
-  }
 }
 
 /**
@@ -943,186 +299,23 @@ export async function trackSiteVisit(): Promise<void> {
     if (alreadyTracked) return;
     sessionStorage.setItem('sever18_visit_tracked', '1');
 
-    if (useV2()) {
-      await v2.visits.track();
+    await v2.visits.track();
       return;
-    }
-    const today = getLocalDateKey();
-    const statsRef = doc(db, 'stats', 'visits');
-    // ВАЖНО: setDoc(..., {merge:true}) НЕ разворачивает ключ-строку с точкой
-    // ('history.2026-07-19') в путь до вложенного поля — в отличие от
-    // updateDoc(), он пишет её как один буквальный ключ верхнего уровня.
-    // Из-за этого запись годами тихо падала с permission-denied (в правилах
-    // разрешены только поля total/history, а получалось total + "history.…").
-    // Настоящий вложенный merge — через вложенный объект, а не через
-    // строку-путь с точкой.
-    await setDoc(statsRef, {
-      total: increment(1),
-      history: { [today]: increment(1) },
-    }, { merge: true });
   } catch (err) {
     // Тихо игнорируем — счётчик посещений не должен ломать загрузку сайта
     console.info('Site visit tracking skipped:', err);
   }
 }
 
-/**
- * onSnapshot умирает НАВСЕГДА при первой же ошибке (сетевой сбой, временный
- * permission-denied и т.п.) — Firestore SDK сам не переподписывается для
- * большинства типов ошибок. До этой обёртки любой единичный сбой означал,
- * что вкладка переставала получать live-обновления (новые заказы, статусы,
- * сообщения чата) до ручной перезагрузки страницы — именно это и было
- * первопричиной жалобы "надо постоянно обновлять, чтобы что-то увидеть".
- * Оборачиваем каждую подписку: при ошибке логируем и через паузу тихо
- * пересоздаём слушатель заново, вместо того чтобы просто "умирать".
- */
-function resilientOnSnapshot<T>(
-  target: any,
-  onNext: (snap: T) => void,
-  path: string
-): () => void {
-  let stopped = false;
-  let unsub: (() => void) | null = null;
-  let retryTimer: ReturnType<typeof setTimeout> | null = null;
-
-  const start = () => {
-    if (stopped) return;
-    unsub = onSnapshot(target as any, onNext as any, (err) => {
-      console.error(`Firestore live-listener error on "${path}", reconnecting in 4s:`, err);
-      unsub = null;
-      if (!stopped) {
-        retryTimer = setTimeout(start, 4000);
-      }
-    });
-  };
-  start();
-
-  return () => {
-    stopped = true;
-    if (retryTimer) clearTimeout(retryTimer);
-    if (unsub) unsub();
-  };
-}
-
 export function subscribeToFirebaseCollections(
   currentUser: User,
   onSync: (state: Partial<DatabaseState>) => void
 ): () => void {
-  if (useV2()) {
-    // Опрос вместо живой подписки. Удалённые записи приходят отдельным
+  // Опрос вместо живой подписки. Удалённые записи приходят отдельным
     // списком: опрос «что нового» их не увидит — их в базе уже нет.
     return v2.subscribeByPolling(currentUser, (updates, deleted) => {
       onSync(applyDeletions(updates, deleted));
     });
-  }
-  const unsubscribes: (() => void)[] = [];
-
-  const isAdminUser = currentUser.role === 'admin';
-
-  // 1. Listen to users
-  if (isAdminUser) {
-    const qUsers = collection(db, 'users');
-    const unsub = resilientOnSnapshot(qUsers, (snap: any) => {
-      const users: User[] = [];
-      snap.forEach((doc: any) => users.push(doc.data() as User));
-      onSync({ users });
-    }, 'users');
-    unsubscribes.push(unsub);
-  } else {
-    // Client only listens to their own profile changes
-    const unsub = resilientOnSnapshot(doc(db, 'users', currentUser.id), (docSnap: any) => {
-      if (docSnap.exists()) {
-        onSync({ users: [docSnap.data() as User] });
-      }
-    }, `users/${currentUser.id}`);
-    unsubscribes.push(unsub);
-  }
-
-  // 2. Listen to Orders
-  const colOrders = collection(db, 'orders');
-  const qOrders = isAdminUser
-    ? colOrders
-    : query(colOrders, where('userId', '==', currentUser.id));
-
-  const unsubOrders = resilientOnSnapshot(qOrders, (snap: any) => {
-    const orders: Order[] = [];
-    snap.forEach((doc: any) => orders.push(doc.data() as Order));
-    onSync({ orders: orders.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()) });
-  }, 'orders');
-  unsubscribes.push(unsubOrders);
-
-  // 3. Listen to Chat Messages
-  const colChats = collection(db, 'chatMessages');
-  const qChats = isAdminUser
-    ? colChats
-    : query(colChats, where('userId', '==', currentUser.id));
-
-  const unsubChats = resilientOnSnapshot(qChats, (snap: any) => {
-    const chatMessages: ChatMessage[] = [];
-    snap.forEach((doc: any) => chatMessages.push(doc.data() as ChatMessage));
-    onSync({ chatMessages: chatMessages.sort((b, a) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) });
-  }, 'chatMessages');
-  unsubscribes.push(unsubChats);
-
-  // 4. Listen to Notifications
-  const colAlerts = collection(db, 'notifications');
-  const qAlerts = isAdminUser
-    ? colAlerts
-    : query(colAlerts, where('userId', '==', currentUser.id));
-
-  const unsubAlerts = resilientOnSnapshot(qAlerts, (snap: any) => {
-    const notifications: Notification[] = [];
-    snap.forEach((doc: any) => notifications.push(doc.data() as Notification));
-    onSync({ notifications: notifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) });
-  }, 'notifications');
-  unsubscribes.push(unsubAlerts);
-
-  // 5. Listen to Services Showcase (visible to any signed-in user, editable by admin only)
-  const unsubServices = resilientOnSnapshot(collection(db, 'services'), (snap: any) => {
-    const services: Service[] = [];
-    snap.forEach((doc: any) => services.push(doc.data() as Service));
-    onSync({ services: services.sort((a, b) => a.order - b.order) });
-  }, 'services');
-  unsubscribes.push(unsubServices);
-
-  // 5b. Новости и акции — их читают и клиенты в приложении, и админка.
-  // Правит только админ (см. firestore.rules).
-  const unsubPromos = resilientOnSnapshot(collection(db, 'promos'), (snap: any) => {
-    const promos: Promo[] = [];
-    snap.forEach((doc: any) => promos.push({ id: doc.id, ...(doc.data() as any) } as Promo));
-    onSync({ promos: promos.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')) });
-  }, 'promos');
-  unsubscribes.push(unsubPromos);
-
-  // 6. Listen to client Feedback (admin only — clients can create but not read)
-  if (isAdminUser) {
-    const unsubFeedback = resilientOnSnapshot(collection(db, 'feedback'), (snap: any) => {
-      const feedback: Feedback[] = [];
-      snap.forEach((doc: any) => feedback.push(doc.data() as Feedback));
-      onSync({ feedback: feedback.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) });
-    }, 'feedback');
-    unsubscribes.push(unsubFeedback);
-  }
-
-  // 7. Listen to Site Visit Stats (admin only — public writes, admin-only reads)
-  if (isAdminUser) {
-    const unsubStats = resilientOnSnapshot(doc(db, 'stats', 'visits'), (docSnap: any) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data() as any;
-        const historyMap: Record<string, number> = data.history || {};
-        const siteVisitsHistory = Object.keys(historyMap)
-          .sort()
-          .map(date => ({ date, count: historyMap[date] }));
-        onSync({ siteVisits: data.total || 0, siteVisitsHistory });
-      }
-    }, 'stats/visits');
-    unsubscribes.push(unsubStats);
-  }
-
-  // Return a master cleanup unsubscriber
-  return () => {
-    unsubscribes.forEach(un => un());
-  };
 }
 
 /**
@@ -1151,158 +344,12 @@ function applyDeletions(
   return out;
 }
 
-export async function seedInitialDataIfRequired(): Promise<void> {
-  // На своём сервере витрину услуг заводит админка, а при переезде она
-  // приедет вместе с остальными данными — засевать нечего.
-  if (useV2()) return;
-  const currentUser = auth.currentUser;
-  if (!currentUser) {
-    console.log('Skipping Firestore seeding: no authenticated session.');
-    return;
-  }
-
-  const email = currentUser.email?.toLowerCase();
-  const isAdmin = email === 'photo-sever@yandex.ru' || currentUser.uid === 'u-admin-seed' || currentUser.uid === 'u1_admin_seed' || currentUser.uid === 'pRIp0NUg6lSR2ujVhywFkQ5TIW22' || currentUser.uid === 'YbYV6lLNlnVeJ0SKSr3ufzNzNx23';
-  if (!isAdmin) {
-    console.log('Skipping Firestore seeding: user is not an administrator.');
-    return;
-  }
-
-  // Check if users collection is empty
-  try {
-    const snap = await getDocs(collection(db, 'users'));
-    if (snap.empty) {
-      console.log('Firestore is empty. Seeding initial records...');
-
-      // 1. Initial users
-      const SEED_USERS: User[] = [
-        {
-          id: 'u1_admin_seed',
-          email: 'admin@print.ru',
-          fullName: 'Дмитрий (Администратор)',
-          role: 'admin',
-          createdAt: '2026-05-01T10:00:00Z',
-          phone: '+7 (900) 123-45-67',
-        },
-        {
-          id: 'u2_ivan_seed',
-          email: 'ivan@mail.ru',
-          fullName: 'Иван Ivanov',
-          role: 'client',
-          createdAt: '2026-06-01T12:00:00Z',
-          phone: '+7 (911) 222-33-44',
-        }
-      ];
-
-      for (const u of SEED_USERS) {
-        await setDoc(doc(db, 'users', u.id), u);
-      }
-
-      // 2. Initial orders
-      const SEED_ORDERS: Order[] = [
-        {
-          id: 'ORD-1001',
-          userId: 'u2_ivan_seed',
-          userName: 'Иван Ivanov',
-          userEmail: 'ivan@mail.ru',
-          orderDate: '2026-06-05T14:20:00Z',
-          status: 'printed',
-          totalCost: 450,
-          paymentStatus: 'paid',
-          paymentMethod: 'СБП (Карта)',
-          transactionId: 'TXN-772199827',
-          copies: 2,
-          paperType: 'standard',
-          printColor: 'bw',
-          notes: 'Распечатать с двух сторон для отчета в папку.',
-          files: [
-            {
-              id: 'f101',
-              name: 'Report_Final_Archive.zip',
-              size: 15420100,
-              type: 'application/zip',
-              uploadedAt: '2026-06-05T14:15:00Z',
-              formatGroup: 'archive',
-            }
-          ],
-          completedAt: '2026-06-05T16:00:00Z',
-        }
-      ];
-
-      for (const o of SEED_ORDERS) {
-        await setDoc(doc(db, 'orders', o.id), o);
-      }
-
-      // 3. Initial Chat
-      const SEED_CHATS: ChatMessage[] = [
-        {
-          id: 'c1',
-          userId: 'u2_ivan_seed',
-          senderId: 'u2_ivan_seed',
-          senderRole: 'client',
-          senderName: 'Иван Ivanov',
-          message: 'Привет! Загрузил архив с отчетом. Подскажите, успеете распечатать к 16:00?',
-          timestamp: '2026-06-05T14:22:00Z',
-          readByAdmin: true,
-          readByClient: true,
-        }
-      ];
-
-      for (const c of SEED_CHATS) {
-        await setDoc(doc(db, 'chatMessages', c.id), c);
-      }
-      
-      console.log('Seeding completed successfully!');
-    }
-  } catch (err) {
-    console.error('Failed to seed default data', err);
-  }
-}
-
 /**
  * Automatically sync updates to Firebase based on dirty checking
  */
 export async function syncLocalUpdatesToFirebase(updates: Partial<DatabaseState>, currentDatabase: DatabaseState) {
-  if (useV2()) {
-    await syncLocalUpdatesToServer(updates, currentDatabase);
+  await syncLocalUpdatesToServer(updates, currentDatabase);
     return;
-  }
-  try {
-    if (updates.users) {
-      for (const u of updates.users) {
-        const existing = currentDatabase.users.find(x => x.id === u.id);
-        if (!existing || JSON.stringify(existing) !== JSON.stringify(u)) {
-          await setDoc(doc(db, 'users', u.id), u);
-        }
-      }
-    }
-    if (updates.orders) {
-      for (const o of updates.orders) {
-        const existing = currentDatabase.orders.find(x => x.id === o.id);
-        if (!existing || JSON.stringify(existing) !== JSON.stringify(o)) {
-          await saveOrderToFirebase(o);
-        }
-      }
-    }
-    if (updates.chatMessages) {
-      for (const c of updates.chatMessages) {
-        const existing = currentDatabase.chatMessages.find(x => x.id === c.id);
-        if (!existing || JSON.stringify(existing) !== JSON.stringify(c)) {
-          await sendChatMessageToFirebase(c);
-        }
-      }
-    }
-    if (updates.notifications) {
-      for (const n of updates.notifications) {
-        const existing = currentDatabase.notifications.find(x => x.id === n.id);
-        if (!existing || JSON.stringify(existing) !== JSON.stringify(n)) {
-          await sendNotificationToFirebase(n);
-        }
-      }
-    }
-  } catch (err) {
-    console.error('Failed syncing state changes to Firestore', err);
-  }
 }
 
 /**
@@ -1353,44 +400,15 @@ async function syncLocalUpdatesToServer(updates: Partial<DatabaseState>, current
   }
 }
 
-// Публичный VAPID-ключ (не секрет, безопасно хранить в клиентском коде) —
-// в паре с приватным ключом на сервере (Cloud Functions) для отправки push.
-const VAPID_PUBLIC_KEY = 'BAWT1sZ2a1ES2-anphGlydEvZNAA4xM6ty-g-_I9um9VWexVqAlbNZPYKMh8sMKIAgW6WA2iJP1T09wF4mtpo1M';
-
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i++) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
 /**
  * Подписывает браузер на push-уведомления и сохраняет подписку в профиле
  * пользователя — дальше Cloud Function сама шлёт push при смене статуса
  * заказа или новом сообщении в чате.
  */
 export async function subscribeToPushNotifications(userId: string): Promise<void> {
-  if (useV2()) {
-    // Ключ у нас свой и новый, поэтому подписку на старый ключ надо сначала
+  // Ключ у нас свой и новый, поэтому подписку на старый ключ надо сначала
     // отменить — иначе браузер вернёт прежнюю, и уведомления не дойдут.
     await v2.subscribeBrowserPush();
     return;
-  }
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    throw new Error('Push-уведомления не поддерживаются этим браузером');
-  }
-  const registration = await navigator.serviceWorker.ready;
-  let subscription = await registration.pushManager.getSubscription();
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-    });
-  }
-  await setDoc(doc(db, 'users', userId), { pushSubscription: subscription.toJSON() }, { merge: true });
 }
 

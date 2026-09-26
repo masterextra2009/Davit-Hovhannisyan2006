@@ -19,6 +19,12 @@ function erase_user(string $id): void
         $pdo->prepare('UPDATE orders SET user_name = ?, user_email = ?, user_phone = NULL WHERE user_id = ?')
             ->execute(['Удалённый аккаунт', '', $id]);
         $pdo->prepare('DELETE FROM sessions WHERE user_id = ?')->execute([$id]);
+        $pdo->prepare('DELETE FROM push_devices WHERE user_id = ?')->execute([$id]);
+        // Вход через соцсеть тоже отвязываем: иначе этот Google/Telegram
+        // навсегда числится за удалённым аккаунтом, и новый вход им падает
+        // на «Не удалось создать аккаунт» (так было 26.09.2026).
+        $pdo->prepare('DELETE FROM user_identities WHERE user_id = ?')->execute([$id]);
+        $pdo->prepare('DELETE FROM telegram_link_codes WHERE user_id = ?')->execute([$id]);
         $pdo->prepare(
             "UPDATE users SET email = NULL, full_name = '', phone = NULL, avatar_url = NULL,
                     password_hash = NULL, telegram_chat_id = NULL, telegram_username = NULL,

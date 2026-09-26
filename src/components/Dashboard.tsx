@@ -86,11 +86,10 @@ import {
   getClientTierForUser, isWorkingHours, showBrowserNotification, trackAnalyticsEvent,
   formatServicePrice, sortServicesByGroup
 } from '../utils';
-import { db, doc, setDoc, storage, ref, uploadBytes, getDownloadURL, auth } from '../firebase';
 import { isVoice, parseVoice, formatVoiceLength } from '../utils/chatVoice';
 import { PromoTicket } from './PromoTicket';
 import * as v2 from '../api/v2';
-import { saveOrderToFirebase, subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, generateReferralCode, registerReferralCode, registerUserWithFirebase, updateChatMessageInFirebase } from '../firebaseUtils';
+import { saveOrderToFirebase, subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, registerUserWithFirebase, updateChatMessageInFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Synthesized high-quality feedback sound chimes using Web Audio API
@@ -713,12 +712,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // Показываем честную подсказку вместо того, чтобы человек ждал автоматики.
   const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-  // Firestore-правила сверяют userId/senderId записей именно с request.auth.uid
-  // текущей сессии — читаем его напрямую из Firebase Auth на момент записи,
-  // а не из React-пропа user.id, на случай если тот успел устареть (например,
-  // после входа через Google без полной перезагрузки страницы) и вызвать
-  // "Missing or insufficient permissions" при создании заказа/сообщения.
-  const getLiveUserId = () => auth.currentUser?.uid || user.id;
+  // Номер клиента для новых записей (заказ, сообщение) — из профиля: сервер
+  // всё равно берёт его из входа, а не из присланного.
+  const getLiveUserId = () => user.id;
 
   // Navigation
   // На каком экране клиент был — храним в sessionStorage, чтобы обновление
@@ -1039,13 +1035,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       // Аватар: на своём сервере это обычная загрузка файла со временной
       // ссылкой (хранилище Firebase уезжает вместе с остальным).
       let downloadUrl: string;
-      if (v2.isV2Enabled()) {
-        downloadUrl = (await v2.files.upload(file)).url;
-      } else {
-        const fileRef = ref(storage, `avatars/${user.id}_${Date.now()}_${file.name}`);
-        await uploadBytes(fileRef, file);
-        downloadUrl = await getDownloadURL(fileRef);
-      }
+      downloadUrl = (await v2.files.upload(file)).url;
       
       const updatedUsers = database.users.map(u => {
         if (u.id === user.id) {
@@ -1199,16 +1189,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       sessionStorage.setItem(`doc_check_pending_${orderId}`, JSON.stringify({ image: docCheckImage, docType: docCheckType }));
       await withTimeout(saveOrderToFirebase(order), 15000);
       trackAnalyticsEvent('order_created');
-      const data = v2.isV2Enabled()
-        ? await withTimeout(v2.payments.create(orderId), 20000)
-        : await withTimeout(
-            fetch('https://sever-18.ru/api/payment-create.php', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ orderId, amount: DOC_CHECK_PAID_PRICE, email: user.email }),
-            }).then(r => r.json()),
-            15000
-          );
+      const data = await withTimeout(v2.payments.create(orderId), 20000);
       if (data.paymentUrl && data.paymentId) {
         await withTimeout(saveOrderToFirebase({ ...order, transactionId: data.paymentId }), 15000);
         window.location.href = data.paymentUrl;
@@ -1244,10 +1225,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // постоянного профиля (см. карточку "Пригласите друга" ниже).
   useEffect(() => {
     if (!user.isGuest && !user.referralCode) {
-      const code = generateReferralCode(user.id);
-      const updatedUsers = database.users.map(u => (u.id === user.id ? { ...u, referralCode: code } : u));
-      onUpdateDatabase({ users: updatedUsers });
-      registerReferralCode(code, user.id);
+      // Код заводит сервер (referrals.php?action=info) — только тогда ссылка
+      // «?ref=…» даёт другу скидку. Раньше сайт придумывал код сам и писал его
+      // в Firestore, а сервер о нём не знал: у 27 из 69 клиентов (26.09.2026)
+      // ссылка-приглашение не работала.
+      v2.referrals.info()
+        .then(({ code }) => {
+          if (!code) return;
+          const updatedUsers = database.users.map(u => (u.id === user.id ? { ...u, referralCode: code } : u));
+          onUpdateDatabase({ users: updatedUsers });
+        })
+        .catch(() => {});
     }
   }, [user.id, user.isGuest, user.referralCode]);
 
@@ -1257,17 +1245,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     
     const setOnlineState = async (online: boolean) => {
       try {
-        if (v2.isV2Enabled()) {
-          // На своём сервере это отдельный сигнал: по нему сервер решает,
+        // На своём сервере это отдельный сигнал: по нему сервер решает,
           // слать ли push (тому, кто смотрит на экран, не шлём).
           await v2.push.heartbeat(online);
           return;
-        }
-        const userDocRef = doc(db, 'users', user.id);
-        await setDoc(userDocRef, { 
-          isOnline: online, 
-          lastActiveAt: new Date().toISOString() 
-        }, { merge: true });
       } catch (err) {
         // Silent recovery
       }
@@ -1320,21 +1301,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const handleConnectTelegram = async () => {
     setTelegramLinking(true);
     try {
-      // Генерируем уникальный код
-      const code = 'u_' + user.id.slice(-6) + '_' + Math.random().toString(36).slice(2, 7);
-
-      // Сохраняем код на сервере
-      await withTimeout(
-        fetch('https://sever-18.ru/api/telegram_link.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, userId: user.id })
-        }),
-        15000
-      );
+      // Одноразовый код выдаёт сервер и только на свой аккаунт (telegram.php):
+      // старый telegram_link.php брал номер клиента из запроса, и привязать
+      // свой Telegram можно было к чужому аккаунту.
+      const { url } = await withTimeout(v2.telegram.linkCode(), 15000);
 
       // Открываем бота с кодом — клиент просто нажмёт Отправить
-      window.open(`https://t.me/photosever_bot?start=${code}`, '_blank');
+      window.open(url, '_blank');
     } catch {
       setShowInAppPush('Ошибка подключения. Попробуйте ещё раз.');
     } finally {
@@ -1952,13 +1925,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     setBugReportUploading(true);
     try {
       let downloadUrl: string;
-      if (v2.isV2Enabled()) {
-        downloadUrl = (await v2.files.upload(file)).url;
-      } else {
-        const fileRef = ref(storage, `bug-reports/${user.id}_${Date.now()}_${file.name}`);
-        await uploadBytes(fileRef, file);
-        downloadUrl = await getDownloadURL(fileRef);
-      }
+      downloadUrl = (await v2.files.upload(file)).url;
       setBugReportScreenshotUrl(downloadUrl);
     } catch (err) {
       console.error('Error uploading bug report screenshot:', err);
@@ -2764,51 +2731,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       // На своём сервере загрузка требует входа, а папку выбирает сам сервер
       // по аккаунту — номер владельца в запросе больше не участвует (раньше
       // его можно было подменить на чужой).
-      if (v2.isV2Enabled()) {
-        const uploaded = await withTimeout(v2.files.upload(file), 120000);
+      const uploaded = await withTimeout(v2.files.upload(file), 120000);
         // Именно здесь файл помечается загруженным. Без этой строки он
         // навсегда оставался в состоянии «Загрузка…», и кнопки оформления
         // заказа не включались — файл-то формально ещё не готов.
         patchFileState(fileId, { url: uploaded.url });
         return;
-      }
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('userId', user.id);
-
-      const response = await withTimeout(
-        fetch('https://sever-18.ru/api/upload.php', {
-          method: 'POST',
-          body: formData,
-          redirect: 'follow'
-        }),
-        60000
-      );
-
-      if (!response.ok) {
-        // Сервер объясняет отказ по-русски в теле ответа ({success:false,
-        // error:"..."} — см. api/upload.php): "Файл загружен частично",
-        // "Файл превышает upload_max_filesize", "Не указан идентификатор
-        // пользователя" и т.д. Раньше мы выбрасывали это объяснение не читая и
-        // показывали клиенту голое "Сервер вернул ошибку: 400" — по такому
-        // сообщению нельзя ни понять причину, ни подсказать, что делать.
-        let serverMessage = '';
-        try {
-          const errData = await response.json();
-          serverMessage = typeof errData?.error === 'string' ? errData.error : '';
-        } catch {
-          // Тело не JSON (например, страница ошибки сервера) — тогда остаётся код.
-        }
-        throw new Error(serverMessage || ('сервер ответил кодом ' + response.status));
-      }
-
-      const data = await response.json();
-      if (!data.success || !data.url) {
-        throw new Error(data.error || 'Не удалось загрузить файл');
-      }
-
-      patchFileState(fileId, { url: data.url });
     } catch (error: any) {
       console.error('Server upload error for fileId ' + fileId + ':', error);
       const isTimeout = error instanceof Error && error.message === 'timeout';
@@ -3638,16 +3566,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         // Оплату создаёт наш сервер: он сам берёт сумму из заказа и знает
         // новые ключи ЮKassa. Старый api/payment-create.php остался с
         // отозванным ключом — через него страница оплаты не открывалась.
-        const data = v2.isV2Enabled()
-          ? await withTimeout(v2.payments.create(orderId), 20000)
-          : await withTimeout(
-              fetch('https://sever-18.ru/api/payment-create.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId, amount: finalTotalCost, email: user.email }),
-              }).then(r => r.json()),
-              15000
-            );
+        const data = await withTimeout(v2.payments.create(orderId), 20000);
 
         if (data.paymentUrl && data.paymentId) {
           const updated = { ...pendingOrder, transactionId: data.paymentId };
@@ -6011,20 +5930,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 onClick={async () => {
                                   setRetryPayingOrderId(ord.id);
                                   try {
-                                    const data = v2.isV2Enabled()
-                                      ? await withTimeout(v2.payments.create(ord.id), 20000)
-                                      : await withTimeout(
-                                          fetch('https://sever-18.ru/api/payment-create.php', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                              orderId: ord.id,
-                                              amount: ord.totalCost,
-                                              email: user.email,
-                                            }),
-                                          }).then(r => r.json()),
-                                          15000
-                                        );
+                                    const data = await withTimeout(v2.payments.create(ord.id), 20000);
                                     if (data.paymentUrl) {
                                       window.location.href = data.paymentUrl;
                                     } else {

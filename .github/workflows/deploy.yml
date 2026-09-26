@@ -15,12 +15,8 @@ jobs:
           npm ci
           npm install @tailwindcss/oxide-linux-x64-gnu --no-save
       - name: Build
-        # Боевой сайт работает на нашем сервере (api/v2), а не на Google
-        # Firebase — данные клиентов должны храниться в России (152-ФЗ).
-        # Откат: поменять здесь v2 на firebase и запушить — следующая
-        # публикация соберётся по-старому, ничего больше трогать не нужно.
-        env:
-          VITE_BACKEND: v2
+        # Сайт работает только на нашем сервере (api/v2): Firebase удалён из
+        # сайта 26.09.2026, отката на него больше нет (152-ФЗ — данные в России).
         run: npm run build
       - name: Deploy via SFTP (password)
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4

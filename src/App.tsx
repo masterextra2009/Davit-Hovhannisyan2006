@@ -8,7 +8,7 @@ import { isVoice } from './utils/chatVoice';
 import { User, DatabaseState } from './types';
 import {
   getInitialDatabase, saveDatabase,
-  getCurrentUser, saveCurrentUser,
+  saveCurrentUser,
   playNotificationSound, showBrowserNotification
 } from './utils';
 import { LandingPage } from './components/LandingPage';
@@ -32,10 +32,8 @@ function AppSectionLoader() {
   );
 }
 import { FileText } from 'lucide-react';
-import { auth, onAuthStateChanged, db, enableNetwork } from './firebase';
 import {
   subscribeToFirebaseCollections,
-  seedInitialDataIfRequired,
   syncLocalUpdatesToFirebase,
   deleteUserAccountWithFirebase,
   signOutUserWithFirebase,
@@ -123,8 +121,7 @@ export default function App() {
     // этом браузере: спрашиваем сервер один раз при открытии страницы.
     // Заодно здесь же заканчивается вход через соцсеть — она возвращает
     // человека на сайт со ссылкой ?auth_ticket=…
-    if (v2.isV2Enabled()) {
-      let cancelled = false;
+    let cancelled = false;
       (async () => {
         try {
           const params = new URLSearchParams(window.location.search);
@@ -152,30 +149,6 @@ export default function App() {
         }
       })();
       return () => { cancelled = true; };
-    }
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
-      if (!fbUser) {
-        setUser(null);
-        saveCurrentUser(null);
-      } else {
-        // Run seed check when an authenticated user session is active
-        seedInitialDataIfRequired();
-
-        // Gracefully request notification permissions
-        if ('Notification' in window && Notification.permission === 'default') {
-          Notification.requestPermission().catch(() => {});
-        }
-      }
-    });
-
-    // Session recovery from storage
-    const sessionUser = getCurrentUser();
-    if (sessionUser) {
-      setUser(sessionUser);
-    }
-
-    return () => unsubscribeAuth();
   }, []);
 
   // Sync collections in real-time if a session is alive
@@ -250,11 +223,11 @@ export default function App() {
       // current user's own doc (e.g. admin gifting a promo code) never reach
       // the components that actually read `user.promoCode` etc., since they'd
       // stay frozen at whatever `user` was at login until a manual refresh.
-      // auth.currentUser check guards against a snapshot callback that was
+      // v2.getToken() check guards against a sync callback that was
       // already in flight resolving AFTER sign-out — without it, a stale
       // update here could re-set the logged-out user right back, making
       // "Выйти" appear to require a second click to actually stick.
-      if (syncedUpdates.users && auth.currentUser) {
+      if (syncedUpdates.users && v2.getToken()) {
         const refreshedSelf = syncedUpdates.users.find(u => u.id === user.id);
         if (refreshedSelf) {
           setUser(refreshedSelf);
@@ -265,28 +238,8 @@ export default function App() {
       setHasSyncedFromServer(true);
     });
 
-    // Явно подталкиваем Firestore переподключиться, когда вкладка снова
-    // становится видимой (была свёрнута/в фоне долгое время — браузер мог
-    // придушить сетевую активность) или когда у устройства вернулся интернет
-    // после разрыва — не полагаемся только на то, что SDK сам вовремя это
-    // заметит. Дополняет reconnect-логику внутри onSnapshot-обёртки в
-    // firebaseUtils.ts (та чинит уже случившийся обрыв, эта — упреждает его).
-    const nudgeReconnect = () => {
-      // На своём сервере будить нечего: живого соединения нет, есть опрос,
-      // который сам просыпается при возврате на вкладку.
-      if (v2.isV2Enabled()) return;
-      enableNetwork(db).catch(() => {});
-    };
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') nudgeReconnect();
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('online', nudgeReconnect);
-
     return () => {
       unsubscribeCollection();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('online', nudgeReconnect);
     };
     // Зависим только от id/role, а не от всего объекта user — user
     // пересоздаётся при каждом обновлении профиля (например, пинг

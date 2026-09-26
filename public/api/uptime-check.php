@@ -10,10 +10,21 @@
 //
 // State is kept in a local file so we only alert once when a problem
 // starts and once when it clears, instead of spamming every run.
+//
+// Сообщение админу шлётся изнутри сервера (api/v2/_telegram.php → notify_admin),
+// а не через старый открытый api/telegram_admin_notify.php, которым мог
+// писать админу от имени бота кто угодно. Пробное сообщение — только из
+// консоли сервера: php uptime-check.php --test (раньше — ?test из браузера,
+// то есть тоже кем угодно).
+
+if (!defined('SITE_DIR')) {
+    define('SITE_DIR', __DIR__ . '/..');
+}
+require __DIR__ . '/v2/_telegram.php';
 
 $url = 'https://sever-18.ru/';
 $stateFile = __DIR__ . '/.uptime-state.txt';
-$isTest = isset($_GET['test']);
+$isTest = PHP_SAPI === 'cli' && in_array('--test', $argv ?? [], true);
 
 $ch = curl_init($url);
 curl_setopt_array($ch, [
@@ -37,16 +48,7 @@ if (!$isUp) {
 }
 
 function sendTelegramAlert(string $text): void {
-    $ch = curl_init('https://sever-18.ru/api/telegram_admin_notify.php');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-        CURLOPT_POSTFIELDS => json_encode(['text' => $text]),
-        CURLOPT_TIMEOUT => 10,
-    ]);
-    curl_exec($ch);
-    curl_close($ch);
+    notify_admin(tg_escape($text));
 }
 
 if ($isTest) {
