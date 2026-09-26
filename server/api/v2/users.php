@@ -6,6 +6,7 @@ declare(strict_types=1);
 //   GET  list          — клиенту свой профиль, админу все
 //   POST save {user}   — сохранить профиль
 //   POST delete {id}   — админ удаляет клиента (обезличивание, см. _erase.php)
+//   POST email {id, subject, message} — админ пишет клиенту на почту
 //
 // Сайт привык писать профиль целиком (setDoc(users/{id}, user)), поэтому и
 // здесь принимается весь объект. Но сохраняются только разрешённые поля, и
@@ -36,8 +37,39 @@ switch ($_GET['action'] ?? '') {
         require_method('POST');
         require_admin($isAdmin);
         admin_delete_user($user);
+    case 'email':
+        require_method('POST');
+        require_admin($isAdmin);
+        admin_email_user();
     default:
         fail('Неизвестное действие', 404);
+}
+
+/**
+ * Письмо клиенту из админки (кнопка «Написать на почту»). Раньше — старый
+ * открытый api/send-email.php, которому адрес получателя присылал браузер:
+ * через него можно было слать письма от мастерской кому угодно. Здесь адрес
+ * берётся из профиля клиента в базе.
+ */
+function admin_email_user()
+{
+    require_once __DIR__ . '/_mail.php';
+    $id = str_field('id', 64);
+    $subject = str_field('subject', 200);
+    $message = str_field('message', 10000);
+    if ($subject === '' || $message === '') {
+        fail('Нужны тема и текст письма');
+    }
+    $st = db()->prepare('SELECT email FROM users WHERE id = ? AND deleted_at IS NULL');
+    $st->execute([$id]);
+    $email = (string) $st->fetchColumn();
+    if ($email === '') {
+        fail('У клиента нет почты', 404);
+    }
+    if (!send_mail($email, $subject, $message)) {
+        fail('Почтовый сервер не принял письмо', 502);
+    }
+    respond(['ok' => true]);
 }
 
 /** Админ удаляет клиента из клиентской базы. Админов и себя так не удалить. */

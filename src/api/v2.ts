@@ -308,6 +308,9 @@ export const users = {
   save: (user: Partial<User> & { id: string }) => request<{ user: User }>('users.php?action=save', { body: { user } }),
   /** Админ удаляет клиента: профиль обезличивается, заказы остаются без имени. */
   remove: (id: string) => request('users.php?action=delete', { body: { id } }),
+  /** Админ пишет клиенту на почту; адрес сервер берёт из профиля. */
+  email: (id: string, subject: string, message: string) =>
+    request('users.php?action=email', { body: { id, subject, message } }),
 };
 
 // ─────────────────────────── Услуги, отзывы, посещения ───────────────────────────

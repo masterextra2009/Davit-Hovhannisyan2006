@@ -555,19 +555,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     setEmailSendResult(null);
     const minDelay = new Promise(resolve => setTimeout(resolve, 1800));
     try {
-      const [res] = await Promise.all([
-        fetch('https://sever-18.ru/api/send-email.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: emailComposeUser.email,
-            subject: emailSubject.trim(),
-            message: emailBody.trim(),
-          }),
-        }),
+      // Письмо шлёт сервер (users.php?action=email), адрес — из профиля клиента.
+      await Promise.all([
+        v2.users.email(emailComposeUser.id, emailSubject.trim(), emailBody.trim()),
         minDelay,
       ]);
-      if (!res.ok) throw new Error('send failed');
       setEmailSendResult('ok');
     } catch {
       await minDelay;
