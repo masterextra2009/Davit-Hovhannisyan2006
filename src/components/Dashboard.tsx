@@ -1243,6 +1243,20 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // Гостю код не создаём — ему всё равно некуда получать бонус без
   // постоянного профиля (см. карточку "Пригласите друга" ниже).
   useEffect(() => {
+    if (!user.isGuest && !user.referralCode && v2.isV2Enabled()) {
+      // Код заводит сервер (referrals.php?action=info) — только тогда ссылка
+      // «?ref=…» даёт другу скидку. Раньше сайт придумывал код сам и писал его
+      // в Firestore, а сервер о нём не знал: у 27 из 69 клиентов (26.09.2026)
+      // ссылка-приглашение не работала.
+      v2.referrals.info()
+        .then(({ code }) => {
+          if (!code) return;
+          const updatedUsers = database.users.map(u => (u.id === user.id ? { ...u, referralCode: code } : u));
+          onUpdateDatabase({ users: updatedUsers });
+        })
+        .catch(() => {});
+      return;
+    }
     if (!user.isGuest && !user.referralCode) {
       const code = generateReferralCode(user.id);
       const updatedUsers = database.users.map(u => (u.id === user.id ? { ...u, referralCode: code } : u));

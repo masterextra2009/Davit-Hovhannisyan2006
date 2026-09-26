@@ -20,7 +20,7 @@
          oauth.telegram.org, без встроенного скрипта и iframe, поэтому
          telegram.org тут вообще не нужен. Вместо 'unsafe-inline' в
          script-src — точечные sha256-хэши 3 инлайн-<script> этого файла
-         (gtag+Яндекс.Метрика вместе, Schema.org JSON-LD, регистрация SW).
+         (Яндекс.Метрика, Schema.org JSON-LD, регистрация SW).
          Если поменяешь текст ЛЮБОГО из этих 3 блоков — его хэш надо пересчитать,
          иначе браузер молча откажется его выполнять. Пересчитать все разом
          (сначала вырезаем HTML-комментарии — иначе случайное упоминание тега
@@ -35,23 +35,19 @@
          media-src data: — голосовые из приложения приходят внутри сообщения
          как «data:audio/mp4;base64,…» (src/utils/chatVoice.ts); без data:
          админка их показывает, но не проигрывает. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-DXJbZRiV19JsmRd7H1utgQvPzzGAkyZ9WfH/xlpePgI=' 'sha256-acJD1jpaERPIdYrlLkZASM0Pv01j3spKvMkm4sA1dRg=' 'sha256-XW0nDz7rjb7r8wOiGxmIK+h4Ms27sM/upTOjYZKsWrY=' https://www.googletagmanager.com https://mc.yandex.ru https://mc.yandex.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://gen-lang-client-0575610984.firebaseapp.com https://mc.yandex.ru https://mc.yandex.com wss://mc.yandex.ru wss://mc.yandex.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://*.ingest.de.sentry.io; media-src 'self' blob: data:; frame-src 'self' https://yandex.ru https://mc.yandex.ru https://mc.yandex.com https://gen-lang-client-0575610984.firebaseapp.com; object-src 'none'; base-uri 'self'; form-action 'self'" />
-    <!-- Google tag + Yandex.Metrika — загрузка отложена до события load страницы
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ncZ744mazVRwwUawAhk1+8dBBlgaABOznLIOQAFgKEI=' 'sha256-acJD1jpaERPIdYrlLkZASM0Pv01j3spKvMkm4sA1dRg=' 'sha256-XW0nDz7rjb7r8wOiGxmIK+h4Ms27sM/upTOjYZKsWrY=' https://mc.yandex.ru https://mc.yandex.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://gen-lang-client-0575610984.firebaseapp.com https://mc.yandex.ru https://mc.yandex.com wss://mc.yandex.ru wss://mc.yandex.com https://*.ingest.de.sentry.io; media-src 'self' blob: data:; frame-src 'self' https://yandex.ru https://mc.yandex.ru https://mc.yandex.com https://gen-lang-client-0575610984.firebaseapp.com; object-src 'none'; base-uri 'self'; form-action 'self'" />
+    <!-- Yandex.Metrika — загрузка отложена до события load страницы
          (обычно 1-2 сек после первой отрисовки), чтобы не тратить время самой
-         первой загрузки на аналитику. Счётчики работают точно так же, просто
-         начинают считать события чуть позже. -->
+         первой загрузки на аналитику. Счётчик работает точно так же, просто
+         начинает считать события чуть позже.
+         Google Analytics убран 26.09.2026 (решение Давида): он отправлял данные
+         посетителей в Google за рубеж (152-ФЗ, трансграничная передача), а
+         Метрика считает то же самое и хранит данные в России. dataLayer
+         оставлен — через него Метрика получает события электронной торговли. -->
     <script>
       window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
 
       function initDeferredAnalytics() {
-        var gtagScript = document.createElement('script');
-        gtagScript.async = true;
-        gtagScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-G4DGTTZ0VC';
-        document.head.appendChild(gtagScript);
-        gtag('js', new Date());
-        gtag('config', 'G-G4DGTTZ0VC');
-
         (function(m,e,t,r,i,k,a){
             m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
             m[i].l=1*new Date();
