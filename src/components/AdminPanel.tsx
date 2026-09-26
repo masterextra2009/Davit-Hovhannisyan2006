@@ -1653,8 +1653,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const isWorkable = (o: Order) => !o.rejected && !isAbandonedUnpaid(o);
 
   const pendingCount = database.orders.filter(o => o.status === 'pending' && isWorkable(o)).length;
-  const inPrintCount = database.orders.filter(o => o.status === 'printing' && isWorkable(o)).length;
-  const readyCount = database.orders.filter(o => o.status === 'ready' && isWorkable(o)).length;
   const unpaidCount = database.orders.filter(o => o.status !== 'printed' && !o.rejected && isAbandonedUnpaid(o)).length;
   // Брак/отказ — независимый от status флаг (см. types.ts), заказ может
   // сломаться на любой стадии. Раньше он просто оставался висеть в своей
@@ -1712,16 +1710,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
   const printedCount = database.orders.filter(o => o.status === 'printed').length;
   const completedPercent = database.orders.length > 0 ? Math.round((printedCount / database.orders.length) * 100) : 0;
-  const activeOrdersCount = pendingCount + inPrintCount + readyCount;
-  const printingPercent = activeOrdersCount > 0 ? Math.round((inPrintCount / activeOrdersCount) * 100) : 0;
 
-  // Ежедневная сводка по чату — сколько сообщений от клиентов пришло сегодня,
-  // от скольких разных клиентов, и сколько всего пока не прочитано (readByAdmin).
-  const todayClientMessages = database.chatMessages.filter(
-    m => m.senderRole === 'client' && getLocalDateKey(new Date(m.timestamp)) === getLocalDateKey()
-  );
-  const todayUniqueChatClients = new Set(todayClientMessages.map(m => m.userId)).size;
-  // Непрочитанные считаем по ВСЕМ сообщениям.
+  // Карточки «В печатной работе» и «Сводка по чату» убраны из аналитики
+  // (Давид 26.09.2026) — вместе с их подсчётами.
+
+  // Непрочитанные сообщения чата считаем по ВСЕМ сообщениям.
   //
   // Раньше здесь стоял фильтр по списку клиентов, и поставлен он был не зря:
   // сообщение от удалённого пользователя светило бы бейджиком «1» вечно, ведь
@@ -1735,10 +1728,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   // прятать его больше незачем. А с фильтром сообщение от администратора,
   // писавшего из мобильного приложения, не поднимало бейджик вовсе.
   const unreadChatCount = database.chatMessages.filter(m => m.senderRole === 'client' && !m.readByAdmin).length;
-  const chatHistory7d = useMemo(() => buildLast7Days(
-    database.chatMessages.filter(m => m.senderRole === 'client'),
-    m => m.timestamp
-  ), [database.chatMessages]);
 
   // File Format Analytics Count
   let fileFormatGroupsStats = {
@@ -3572,7 +3561,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <div className="space-y-6">
               
               {/* Top stats grid widgets */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                 
                 <div className="glass-panel p-5 rounded-3xl">
                   <div className="flex justify-between items-start">
@@ -3623,22 +3612,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 </div>
 
                 <div className="glass-panel p-5 rounded-3xl">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">В Печатной Работе</span>
-                      <p className="text-2xl font-black text-indigo-755 dark:text-indigo-400">{inPrintCount} задач</p>
-                    </div>
-                    <div className="relative flex items-center justify-center">
-                      <MiniRing percent={printingPercent} colorClass="stroke-indigo-500" />
-                      <Printer className="w-4 h-4 absolute text-indigo-600 dark:text-indigo-400 animate-pulse" />
-                    </div>
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-2">
-                    Заказов ожидает: {pendingCount} проверку
-                  </div>
-                </div>
-
-                <div className="glass-panel p-5 rounded-3xl">
                   <div className="flex justify-between items-start mb-3">
                     <div className="space-y-1">
                       <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Заходы на Сайт</span>
@@ -3683,23 +3656,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       );
                     })}
                   </div>
-                </div>
-
-                <div className="glass-panel p-5 rounded-3xl">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Сводка по чату</span>
-                      <p className="text-2xl font-black text-slate-800 dark:text-white">{todayClientMessages.length}</p>
-                      <div className="text-[11px] text-slate-400">Сообщений сегодня • от {todayUniqueChatClients} клиентов</div>
-                      {unreadChatCount > 0 && (
-                        <div className="text-[11px] text-rose-500 font-bold">{unreadChatCount} непрочитанных</div>
-                      )}
-                    </div>
-                    <div className="p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-500 rounded-2xl">
-                      <MessageSquare className="w-5 h-5" />
-                    </div>
-                  </div>
-                  <MiniSparkline data={chatHistory7d} colorClass="bg-sky-500" />
                 </div>
 
                 {/* Установки из Google Play — вместо «ИИ и проверка фото · сегодня»
