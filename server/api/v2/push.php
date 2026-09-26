@@ -31,8 +31,7 @@ switch ($_GET['action'] ?? '') {
     case 'register':
         register_token($user);
     case 'unregister':
-        db()->prepare('UPDATE users SET expo_push_token = NULL WHERE id = ?')->execute([$user['id']]);
-        respond(['ok' => true]);
+        unregister_token($user);
     case 'subscribe':
         subscribe_browser($user);
     case 'unsubscribe':
@@ -58,6 +57,32 @@ function register_token(array $user)
     db()->prepare('UPDATE users SET expo_push_token = NULL WHERE expo_push_token = ? AND id <> ?')
         ->execute([$token, $user['id']]);
     db()->prepare('UPDATE users SET expo_push_token = ? WHERE id = ?')->execute([$token, $user['id']]);
+    // Телефонов у аккаунта может быть несколько — уведомления идут на все
+    // (schema-012). Строка телефона переезжает к тому, кто вошёл последним.
+    $now = now_utc();
+    db()->prepare('INSERT INTO push_devices (token, user_id, created_at, last_seen_at) VALUES (?, ?, ?, ?) AS new
+                   ON DUPLICATE KEY UPDATE user_id = new.user_id, last_seen_at = new.last_seen_at')
+        ->execute([$token, $user['id'], $now, $now]);
+    respond(['ok' => true]);
+}
+
+/**
+ * Выход из аккаунта в приложении. Новое приложение присылает адрес своего
+ * телефона — убираем только его, остальные телефоны клиента продолжают
+ * получать уведомления. Старые версии адрес не присылают — тогда, как и
+ * раньше, отвязываем все телефоны аккаунта.
+ */
+function unregister_token(array $user)
+{
+    $token = (string) (body()['token'] ?? '');
+    if ($token !== '') {
+        db()->prepare('DELETE FROM push_devices WHERE token = ? AND user_id = ?')->execute([$token, $user['id']]);
+        db()->prepare('UPDATE users SET expo_push_token = NULL WHERE id = ? AND expo_push_token = ?')
+            ->execute([$user['id'], $token]);
+    } else {
+        db()->prepare('DELETE FROM push_devices WHERE user_id = ?')->execute([$user['id']]);
+        db()->prepare('UPDATE users SET expo_push_token = NULL WHERE id = ?')->execute([$user['id']]);
+    }
     respond(['ok' => true]);
 }
 

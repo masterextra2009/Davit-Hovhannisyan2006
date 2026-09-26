@@ -42,14 +42,14 @@ function push_to_user(string $userId, string $title, string $body, array $extra 
     if ($userId === '') {
         return;
     }
-    $st = db()->prepare('SELECT id, expo_push_token, push_subscription, is_online, last_active_at
+    $st = db()->prepare('SELECT id, push_subscription, is_online, last_active_at
                          FROM users WHERE id = ? AND deleted_at IS NULL');
     $st->execute([$userId]);
     $user = $st->fetch();
     if (!$user) {
         return;
     }
-    expo_send([$user['id'] => $user['expo_push_token']], $title, $body, $extra);
+    expo_send(device_tokens([$user['id']]), $title, $body, $extra);
     if (!recently_online($user)) {
         browser_send($user, $title, $body);
     }
@@ -58,18 +58,17 @@ function push_to_user(string $userId, string $title, string $body, array $extra 
 /** Уведомление всем администраторам (новое сообщение клиента в чате). */
 function push_to_admins(string $title, string $body, string $tag = ''): void
 {
-    $rows = db()->query("SELECT id, expo_push_token, push_subscription, is_online, last_active_at FROM users
-                         WHERE role = 'admin' AND deleted_at IS NULL
-                           AND (expo_push_token IS NOT NULL OR push_subscription IS NOT NULL)")->fetchAll();
-    $targets = [];
+    $rows = db()->query("SELECT id, push_subscription, is_online, last_active_at FROM users
+                         WHERE role = 'admin' AND deleted_at IS NULL")->fetchAll();
+    $ids = [];
     foreach ($rows as $u) {
         if (recently_online($u)) {
             continue;
         }
-        $targets[$u['id']] = $u['expo_push_token'];
+        $ids[] = $u['id'];
         browser_send($u, $title, $body, $tag);
     }
-    expo_send($targets, $title, $body);
+    expo_send(device_tokens($ids), $title, $body);
 }
 
 /**
@@ -82,15 +81,30 @@ function push_broadcast_clients(string $title, string $body): int
     // Только те, кто согласился получать новости и акции: это реклама,
     // и без согласия её слать нельзя (38-ФЗ, ст. 18). Уведомления о
     // заказе и ответы в чате идут другим путём и сюда не попадают.
-    $rows = db()->query("SELECT id, expo_push_token FROM users
-                         WHERE role <> 'admin' AND deleted_at IS NULL AND expo_push_token IS NOT NULL
-                           AND marketing_consent = 1")->fetchAll();
-    $targets = [];
-    foreach ($rows as $u) {
-        $targets[$u['id']] = $u['expo_push_token'];
+    $ids = db()->query("SELECT DISTINCT u.id FROM users u JOIN push_devices d ON d.user_id = u.id
+                        WHERE u.role <> 'admin' AND u.deleted_at IS NULL
+                          AND u.marketing_consent = 1")->fetchAll(PDO::FETCH_COLUMN);
+    expo_send(device_tokens($ids), $title, $body);
+    return count($ids);
+}
+
+/**
+ * Адреса всех телефонов этих людей (schema-012: у аккаунта их может быть
+ * несколько — уведомление идёт на каждый).
+ *
+ * @param string[] $userIds
+ * @return string[]
+ */
+function device_tokens(array $userIds): array
+{
+    $userIds = array_values(array_unique(array_filter($userIds, fn($id) => is_string($id) && $id !== '')));
+    if (!$userIds) {
+        return [];
     }
-    expo_send($targets, $title, $body);
-    return count($targets);
+    $st = db()->prepare('SELECT token FROM push_devices WHERE user_id IN ('
+        . implode(',', array_fill(0, count($userIds), '?')) . ')');
+    $st->execute($userIds);
+    return $st->fetchAll(PDO::FETCH_COLUMN);
 }
 
 /**
@@ -124,22 +138,21 @@ function recently_online(array $user): bool
 
 /**
  * Отправка пачками по 100 адресов. Ответ Expo разбираем: адрес умершего
- * приложения (DeviceNotRegistered) убираем из профиля, чтобы не долбиться в
- * него при каждом заказе.
+ * приложения (DeviceNotRegistered) убираем, чтобы не долбиться в него при
+ * каждом заказе.
  *
- * @param array<string,string|null> $targets id пользователя → адрес телефона
+ * @param string[] $targets адреса телефонов
  */
 function expo_send(array $targets, string $title, string $body, array $extra = []): void
 {
-    $targets = array_filter($targets, fn($t) => is_string($t) && $t !== '');
+    $targets = array_values(array_unique(array_filter($targets, fn($t) => is_string($t) && $t !== '')));
     if (!$targets) {
         return;
     }
     $title = mb_substr($title, 0, 100);
     $body = mb_substr($body, 0, 180);
 
-    foreach (array_chunk($targets, EXPO_BATCH, true) as $chunk) {
-        $userIds = array_keys($chunk);
+    foreach (array_chunk($targets, EXPO_BATCH) as $chunk) {
         $messages = [];
         foreach ($chunk as $token) {
             $messages[] = array_merge(['to' => $token, 'title' => $title, 'body' => $body, 'sound' => 'default'], $extra);
@@ -174,8 +187,9 @@ function expo_send(array $targets, string $title, string $body, array $extra = [
                 continue;
             }
             error_log('api/v2 push: ' . (string) ($ticket['message'] ?? 'ошибка доставки'));
-            if (($ticket['details']['error'] ?? '') === 'DeviceNotRegistered' && isset($userIds[$i])) {
-                db()->prepare('UPDATE users SET expo_push_token = NULL WHERE id = ?')->execute([$userIds[$i]]);
+            if (($ticket['details']['error'] ?? '') === 'DeviceNotRegistered' && isset($chunk[$i])) {
+                db()->prepare('DELETE FROM push_devices WHERE token = ?')->execute([$chunk[$i]]);
+                db()->prepare('UPDATE users SET expo_push_token = NULL WHERE expo_push_token = ?')->execute([$chunk[$i]]);
             }
         }
     }

@@ -19,6 +19,7 @@ function erase_user(string $id): void
         $pdo->prepare('UPDATE orders SET user_name = ?, user_email = ?, user_phone = NULL WHERE user_id = ?')
             ->execute(['Удалённый аккаунт', '', $id]);
         $pdo->prepare('DELETE FROM sessions WHERE user_id = ?')->execute([$id]);
+        $pdo->prepare('DELETE FROM push_devices WHERE user_id = ?')->execute([$id]);
         $pdo->prepare(
             "UPDATE users SET email = NULL, full_name = '', phone = NULL, avatar_url = NULL,
                     password_hash = NULL, telegram_chat_id = NULL, telegram_username = NULL,
