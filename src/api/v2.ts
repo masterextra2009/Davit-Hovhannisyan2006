@@ -340,6 +340,13 @@ export const visits = {
     >('misc.php?action=play-stats'),
 };
 
+// ─────────────────────────── Telegram ───────────────────────────
+
+export const telegram = {
+  /** Одноразовая ссылка на бота: клиент открывает её и жмёт «Отправить» — Telegram привязан. */
+  linkCode: () => request<{ url: string }>('telegram.php?action=link-code', { body: {} }),
+};
+
 // ─────────────────────────── Файлы ───────────────────────────
 
 export const files = {

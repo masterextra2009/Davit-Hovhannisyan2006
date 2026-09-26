@@ -1320,21 +1320,13 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   const handleConnectTelegram = async () => {
     setTelegramLinking(true);
     try {
-      // Генерируем уникальный код
-      const code = 'u_' + user.id.slice(-6) + '_' + Math.random().toString(36).slice(2, 7);
-
-      // Сохраняем код на сервере
-      await withTimeout(
-        fetch('https://sever-18.ru/api/telegram_link.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, userId: user.id })
-        }),
-        15000
-      );
+      // Одноразовый код выдаёт сервер и только на свой аккаунт (telegram.php):
+      // старый telegram_link.php брал номер клиента из запроса, и привязать
+      // свой Telegram можно было к чужому аккаунту.
+      const { url } = await withTimeout(v2.telegram.linkCode(), 15000);
 
       // Открываем бота с кодом — клиент просто нажмёт Отправить
-      window.open(`https://t.me/photosever_bot?start=${code}`, '_blank');
+      window.open(url, '_blank');
     } catch {
       setShowInAppPush('Ошибка подключения. Попробуйте ещё раз.');
     } finally {
