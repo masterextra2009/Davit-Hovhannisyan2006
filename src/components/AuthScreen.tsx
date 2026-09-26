@@ -297,7 +297,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
   // iframe), Telegram возвращает его на сайт с теми же полями (id, hash и
   // т.д.) прямо в адресной строке — их и проверяет тот же telegram-verify.php,
   // что и раньше. Никакого стороннего JS на странице — eval вообще не нужен.
-  const TELEGRAM_BOT_ID = '8854566946'; // @photosever_bot — не секрет, публичный ID бота (не путать с токеном)
+  const TELEGRAM_BOT_ID = '8854566946'; // @fotosever_bot — не секрет, публичный ID бота (не путать с токеном)
   const telegramReturnUrl = window.location.origin + window.location.pathname;
   const telegramLoginUrl = `https://oauth.telegram.org/auth?bot_id=${TELEGRAM_BOT_ID}&origin=${encodeURIComponent(window.location.origin)}&embed=0&request_access=write&return_to=${encodeURIComponent(telegramReturnUrl)}`;
 
@@ -781,6 +781,15 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
 
                 <a
                   href={telegramLoginUrl}
+                  onClick={(e) => {
+                    // На новом сервере вход через Telegram идёт через oauth.php
+                    // (как Google). Старая ссылка вела в telegram-verify.php и
+                    // входила в Firebase — после переезда это вход «мимо» базы.
+                    if (!v2.isV2Enabled()) return;
+                    e.preventDefault();
+                    setSocialLoading('telegram');
+                    v2.startSocialLogin('telegram');
+                  }}
                   className="btn-holo-glass w-full h-[46px] flex justify-center items-center gap-2 px-3 rounded-full text-xs font-bold text-slate-900 transition-all hover:-translate-y-0.5 active:translate-y-0"
                   title="Войти через Telegram"
                 >
