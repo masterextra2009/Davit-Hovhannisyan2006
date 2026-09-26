@@ -236,6 +236,9 @@ function finish(string $provider, array $profile, string $source)
     if ($userId !== null) {
         $pdo->prepare('UPDATE user_identities SET last_login_at = ? WHERE provider = ? AND provider_uid = ?')
             ->execute([now_utc(), $provider, $profile['uid']]);
+        if ($provider === 'telegram') {
+            telegram_notify_on_login($userId, (string) $profile['uid']);
+        }
         $pdo->prepare('INSERT INTO auth_tickets (ticket_hash, user_id, source, expires_at) VALUES (?, ?, ?, ?)')
             ->execute([hash('sha256', $ticket), $userId, $source, expires_in(OAUTH_TTL_MIN)]);
     } else {
@@ -319,6 +322,9 @@ function exchange()
         ]);
         $pdo->prepare('INSERT INTO user_identities (provider, provider_uid, user_id, email, last_login_at) VALUES (?, ?, ?, ?, ?)')
             ->execute([$provider, (string) $profile['uid'], $id, $profile['email'] ?? null, now_utc()]);
+        if ($provider === 'telegram') {
+            telegram_notify_on_login($id, (string) $profile['uid']);
+        }
 
         $consent = $pdo->prepare(
             'INSERT INTO consents (user_id, kind, granted, doc_version, source, ip) VALUES (?, ?, 1, ?, ?, ?)'
@@ -453,6 +459,23 @@ function provider_config(string $provider): ?array
         return null;
     }
     return $cfg;
+}
+
+/**
+ * Вошёл через Telegram — уведомления туда включаем сразу (Давид 26.09.2026),
+ * без второй кнопки «Подключить Telegram». Номер пользователя Telegram и есть
+ * адрес личного чата с ботом, а право писать ему Telegram спрашивает при
+ * входе (request_access=write). Уже подключённый Telegram не трогаем — там
+ * клиент мог сам выключить уведомления.
+ */
+function telegram_notify_on_login(string $userId, string $telegramId): void
+{
+    if (!preg_match('/^\d{1,20}$/', $telegramId)) {
+        return;
+    }
+    db()->prepare('UPDATE users SET telegram_chat_id = ?, telegram_notifications_enabled = 1
+                    WHERE id = ? AND telegram_chat_id IS NULL')
+        ->execute([$telegramId, $userId]);
 }
 
 /** Забирает одноразовую метку входа (после этого она больше не действует). */
