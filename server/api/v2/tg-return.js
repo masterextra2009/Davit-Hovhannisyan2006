@@ -13,7 +13,11 @@
     while (s.length % 4) s += '=';
     var data = JSON.parse(decodeURIComponent(escape(atob(s))));
     if (!data || typeof data !== 'object' || !data.hash) {
-      box.textContent = 'Вход через Telegram отменён. Закройте это окно и попробуйте ещё раз.';
+      // tgAuthResult=false (в base64 «ZmFsc2U») — Telegram сам ответил «не
+      // вошёл»: чаще всего на его странице не нажали «Accept» после
+      // подтверждения в приложении, или браузер (инкогнито, VPN) не дал
+      // Telegram запомнить вход. Проверено 26.09.2026.
+      box.textContent = 'Telegram не подтвердил вход. Попробуйте ещё раз: после подтверждения в приложении Telegram вернитесь в браузер и нажмите «Accept». В режиме инкогнито и с VPN вход может не пройти.';
       return;
     }
     var q = new URLSearchParams(location.search);
