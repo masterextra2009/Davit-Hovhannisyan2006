@@ -24,7 +24,6 @@ import {
 } from '../utils';
 import * as v2 from '../api/v2';
 import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase, deleteChatMessageInFirebase, clearChatHistoryInFirebase, updateChatMessageInFirebase } from '../firebaseUtils';
-import { db, doc, setDoc, deleteDoc, getDoc } from '../firebase';
 import { isVoice, parseVoice } from '../utils/chatVoice';
 import VoiceGlass from './VoiceGlass';
 import AdminPushToggle from './AdminPushToggle';
@@ -777,25 +776,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       }
 
       let uploadedUrl: string;
-      if (v2.isV2Enabled()) {
-        // Картинка новости — общая: кладём её в общую папку, чтобы ссылка
+      // Картинка новости — общая: кладём её в общую папку, чтобы ссылка
         // осталась рабочей и в приложении, и через годы (личные файлы заказов
         // так не отдаются — там нужен вход, см. files.php).
         const uploaded = await v2.files.uploadPublic(toSend);
         uploadedUrl = uploaded.url;
-      } else {
-        const formData = new FormData();
-        formData.append('file', toSend);
-        formData.append('userId', adminUser.id);
-        const res = await fetch('https://sever-18.ru/api/upload.php', { method: 'POST', body: formData });
-        // upload.php объясняет отказ по-русски в теле ответа — читаем его,
-        // а не показываем голый номер ошибки.
-        const data = await res.json().catch(() => null);
-        if (!res.ok || !data?.url) {
-          throw new Error(data?.error || ('сервер ответил кодом ' + res.status));
-        }
-        uploadedUrl = data.url;
-      }
 
       setPromoForm(f => ({
         ...f,
@@ -858,24 +843,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       createdAt: new Date().toISOString(),
     };
     // На своём сервере номер и дату ставит сам сервер, поэтому id не шлём.
-    (v2.isV2Enabled()
-      ? v2.promos.save({ ...promoData, id: undefined })
-      : setDoc(doc(db, 'promos', id), promoData)
+    (v2.promos.save({ ...promoData, id: undefined })
     ).catch(console.error);
     setPromoForm({ title: '', body: '', imageUrl: '', to: '', mediaType: '', mediaWidth: 0, mediaHeight: 0, linkUrl: '' });
     setPromoUploadError('');
   };
 
   const handleTogglePromo = (id: string, active: boolean) => {
-    (v2.isV2Enabled()
-      ? v2.promos.toggle(id, active)
-      : setDoc(doc(db, 'promos', id), { active }, { merge: true })
+    (v2.promos.toggle(id, active)
     ).catch(console.error);
   };
 
   const handleDeletePromo = (id: string, title: string) => {
     if (!window.confirm(`Удалить новость «${title}»?`)) return;
-    (v2.isV2Enabled() ? v2.promos.remove(id) : deleteDoc(doc(db, 'promos', id))).catch(console.error);
+    (v2.promos.remove(id)).catch(console.error);
   };
 
   const handleCreateService = () => {
@@ -892,9 +873,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       isActive: true,
       order: (database.services?.length || 0) + 1,
     };
-    (v2.isV2Enabled()
-      ? v2.services.save(newService)
-      : setDoc(doc(db, 'services', newId), newService)
+    (v2.services.save(newService)
     ).catch(console.error);
     setShowAddServiceModal(false);
     setNewServiceForm({ emoji: '🖨️', title: '', description: '', price: '', imageUrl: '', imageScale: 1, iconUrl: '' });
@@ -903,9 +882,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const handleUpdateService = (id: string, field: string, value: any) => {
     const svc = database.services?.find(s => s.id === id);
     if (!svc) return;
-    (v2.isV2Enabled()
-      ? v2.services.save({ ...svc, [field]: value })
-      : setDoc(doc(db, 'services', id), { ...svc, [field]: value }, { merge: true })
+    (v2.services.save({ ...svc, [field]: value })
     ).catch(console.error);
   };
 
@@ -923,9 +900,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     list.splice(toIdx, 0, moved);
     list.forEach((s, i) => {
       if (s.order !== i) {
-        (v2.isV2Enabled()
-          ? v2.services.save({ ...s, order: i })
-          : setDoc(doc(db, 'services', s.id), { ...s, order: i }, { merge: true })
+        (v2.services.save({ ...s, order: i })
         ).catch(console.error);
       }
     });
@@ -933,7 +908,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
   const handleDeleteService = (id: string, title: string) => {
     if (!window.confirm(`Удалить услугу «${title}»?`)) return;
-    (v2.isV2Enabled() ? v2.services.remove(id) : deleteDoc(doc(db, 'services', id))).catch(console.error);
+    (v2.services.remove(id)).catch(console.error);
   };
 
   // 3D-наклон карточки услуги вслед за курсором + усиление свечения —
@@ -996,16 +971,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       // выдаётся при оформлении, отдельной «тетрадки» с ним нет.
       let stats: any = null;
       let counters: any = null;
-      if (v2.isV2Enabled()) {
-        stats = await v2.visits.stats().catch(() => null);
-      } else {
-        const [statsSnap, countersSnap] = await Promise.all([
-          getDoc(doc(db, 'stats', 'visits')),
-          getDoc(doc(db, 'counters', 'orders')),
-        ]);
-        stats = statsSnap.exists() ? statsSnap.data() : null;
-        counters = countersSnap.exists() ? countersSnap.data() : null;
-      }
+      stats = await v2.visits.stats().catch(() => null);
 
       const backup = {
         exportedAt: new Date().toISOString(),
@@ -1472,9 +1438,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     const now = Date.now();
     if (now - lastTypingSignalRef.current < 2500) return;
     lastTypingSignalRef.current = now;
-    (v2.isV2Enabled()
-      ? v2.chat.typing(activeChatUserId, true)
-      : setDoc(doc(db, 'users', activeChatUserId), { adminTypingAt: new Date(now).toISOString() }, { merge: true })
+    (v2.chat.typing(activeChatUserId, true)
     ).catch(() => {});
   };
 
@@ -1504,9 +1468,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
     // Ответ ушёл — «печатает» у клиента гаснет сразу, не дожидаясь 6 секунд.
     lastTypingSignalRef.current = 0;
-    (v2.isV2Enabled()
-      ? v2.chat.typing(activeChatUserId, false)
-      : setDoc(doc(db, 'users', activeChatUserId), { adminTypingAt: '' }, { merge: true })
+    (v2.chat.typing(activeChatUserId, false)
     ).catch(() => {});
 
     setAdminChatInput('');

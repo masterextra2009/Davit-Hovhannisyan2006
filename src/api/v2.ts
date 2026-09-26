@@ -1,10 +1,8 @@
 /**
  * Клиент нашего сервера (api/v2) — замена Firebase.
  *
- * Пока этот файл никуда не подключён: переключение сайта с Firebase на свой
- * сервер идёт отдельным шагом, и включаться оно будет флагом (см. isV2Enabled
- * ниже), чтобы боевой сайт продолжал работать как раньше, пока всё не
- * проверено на копии sever-18.ru/proverka/.
+ * С 26.09.2026 сайт работает только через него: Firebase (Google, серверы
+ * за рубежом) удалён из сайта целиком.
  *
  * Главное отличие от Firebase: живой подписки нет. Вместо неё опрос —
  * «что изменилось с такого-то времени». Сервер вместе с данными возвращает
@@ -45,21 +43,6 @@ export function setToken(token: string): void {
   } catch {
     /* приватный режим браузера — просто останемся без сохранённого входа */
   }
-}
-
-/**
- * Включён ли новый сервер. По умолчанию — нет, то есть сайт работает через
- * Firebase, как и раньше. Включается либо сборкой (VITE_BACKEND=v2), либо
- * вручную в браузере: localStorage.setItem('sever18_backend', 'v2').
- */
-export function isV2Enabled(): boolean {
-  try {
-    if (localStorage.getItem('sever18_backend') === 'v2') return true;
-    if (localStorage.getItem('sever18_backend') === 'firebase') return false;
-  } catch {
-    /* localStorage может быть недоступен — тогда решает только сборка */
-  }
-  return (import.meta as any).env?.VITE_BACKEND === 'v2';
 }
 
 export class ApiError extends Error {

@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
 import { Lock, Mail, User as UserIcon, Phone, ArrowRight, ShieldAlert, CheckCircle, Printer, Gift, Eye, EyeOff } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
-import { signInUserWithFirebase, registerUserWithFirebase, signInWithGoogleFirebase, signInWithTelegram, TelegramAuthData } from '../firebaseUtils';
+import { signInUserWithFirebase, registerUserWithFirebase, signInWithGoogleFirebase } from '../firebaseUtils';
 import { motion } from 'motion/react';
 import * as v2 from '../api/v2';
 
@@ -51,9 +51,9 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     }
   });
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>(resetToken ? 'reset' : 'login');
-  // Кнопку Google показываем, только если этот вход действительно работает:
-  // на Firebase — всегда, на своём сервере — когда вписаны ключи Google.
-  const showGoogleButton = !v2.isV2Enabled() || v2.GOOGLE_LOGIN_READY;
+  // Кнопку Google показываем, только если этот вход действительно работает —
+  // когда на сервере вписаны ключи Google.
+  const showGoogleButton = v2.GOOGLE_LOGIN_READY;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -223,8 +223,7 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
 
     // Раньше здесь не отправлялось ничего: человеку писали «инструкции
     // отправлены», а письма не было. Теперь письмо шлёт наш сервер.
-    if (v2.isV2Enabled()) {
-      setSocialLoading('forgot');
+    setSocialLoading('forgot');
       try {
         await v2.forgotPassword(email.trim());
       } catch (err: any) {
@@ -236,10 +235,6 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
       setIsForgotPasswordSent(true);
       setSuccessMsg('Письмо со ссылкой отправлено. Ссылка работает час.');
       return;
-    }
-
-    setIsForgotPasswordSent(true);
-    setSuccessMsg('Инструкции по восстановлению пароля успешно отправлены на ваш Email.');
   };
 
   // Real Google sign-in via Firebase — a popup window (signInWithPopup), not a
@@ -273,53 +268,9 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
     }
   };
 
-  // Real Telegram sign-in via the official Login Widget
-  const handleTelegramAuth = async (telegramData: TelegramAuthData) => {
-    resetMessages();
-    setSocialLoading('telegram');
-    try {
-      const firebaseUser = await signInWithTelegram(telegramData);
-      setSocialLoading(null);
-      onAuthSuccess(firebaseUser);
-    } catch (err: any) {
-      console.error('Telegram sign-in failed:', err);
-      setErrorMsg('Не удалось войти через Telegram. Попробуйте ещё раз.');
-      setSocialLoading(null);
-    }
-  };
-
-  // Вход через Telegram — без JS-виджета (telegram-widget.js), потому что тот
-  // сам внутри вызывает eval(), а это требует 'unsafe-eval' в CSP script-src —
-  // разрешение не адресное, оно открыло бы eval() для ЛЮБОГО скрипта на
-  // странице, не только telegram.org (заметно ослабляет защиту от XSS).
-  // Вместо этого — официальный redirect-режим того же Telegram Login: обычная
-  // ссылка на oauth.telegram.org, пользователь подтверждает вход там (не в
-  // iframe), Telegram возвращает его на сайт с теми же полями (id, hash и
-  // т.д.) прямо в адресной строке — их и проверяет тот же telegram-verify.php,
-  // что и раньше. Никакого стороннего JS на странице — eval вообще не нужен.
-  const TELEGRAM_BOT_ID = '8854566946'; // @fotosever_bot — не секрет, публичный ID бота (не путать с токеном)
-  const telegramReturnUrl = window.location.origin + window.location.pathname;
-  const telegramLoginUrl = `https://oauth.telegram.org/auth?bot_id=${TELEGRAM_BOT_ID}&origin=${encodeURIComponent(window.location.origin)}&embed=0&request_access=write&return_to=${encodeURIComponent(telegramReturnUrl)}`;
-
-  // После возврата с oauth.telegram.org данные входа приходят в query-параметрах
-  // этой же страницы — подхватываем их один раз при монтировании.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (!params.has('hash') || !params.has('id') || !params.has('auth_date')) return;
-
-    const telegramData: TelegramAuthData = {
-      id: Number(params.get('id')),
-      first_name: params.get('first_name') || '',
-      last_name: params.get('last_name') || undefined,
-      username: params.get('username') || undefined,
-      photo_url: params.get('photo_url') || undefined,
-      auth_date: Number(params.get('auth_date')),
-      hash: params.get('hash') || '',
-    };
-    window.history.replaceState({}, '', window.location.pathname);
-    handleTelegramAuth(telegramData);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Вход через Telegram — через свой сервер (api/v2/oauth.php, как Google):
+  // кнопка ведёт на oauth.php?action=start, он — на oauth.telegram.org и
+  // обратно. Старый путь через telegram-verify.php и Firebase удалён 26.09.2026.
 
   return (
     <div id="auth-screen-root" className="min-h-dvh flex flex-col justify-center items-center py-14 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden select-none" style={isDark ? AUTH_BG_DARK : AUTH_BG_LIGHT}>
@@ -780,12 +731,12 @@ export function AuthScreen({ onAuthSuccess, allUsers, onRegisterUser }: AuthScre
                 )}
 
                 <a
-                  href={telegramLoginUrl}
+                  href="#"
                   onClick={(e) => {
                     // На новом сервере вход через Telegram идёт через oauth.php
                     // (как Google). Старая ссылка вела в telegram-verify.php и
                     // входила в Firebase — после переезда это вход «мимо» базы.
-                    if (!v2.isV2Enabled()) return;
+                    
                     e.preventDefault();
                     setSocialLoading('telegram');
                     v2.startSocialLogin('telegram');

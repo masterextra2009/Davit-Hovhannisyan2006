@@ -6,7 +6,6 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Loader2, Printer, AlertCircle, FileCheck } from 'lucide-react';
 import { motion } from 'motion/react';
-import { db, doc, getDoc } from '../firebase';
 import * as v2 from '../api/v2';
 import { Order } from '../types';
 import { trackAnalyticsEvent } from '../utils';
@@ -64,12 +63,7 @@ export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
         // Заказ берём там, где он теперь живёт: на своём сервере или, пока
         // не переключились, в Firebase. Дальше всё одинаково.
         let loadedOrder: Order | null = null;
-        if (v2.isV2Enabled()) {
-          loadedOrder = (await v2.orders.get(orderId)).order;
-        } else {
-          const snap = await getDoc(doc(db, 'orders', orderId));
-          loadedOrder = snap.exists() ? (snap.data() as Order) : null;
-        }
+        loadedOrder = (await v2.orders.get(orderId)).order;
         if (cancelled) return;
         if (loadedOrder) {
           setOrder(loadedOrder);
