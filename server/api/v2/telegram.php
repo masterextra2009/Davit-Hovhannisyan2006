@@ -4,8 +4,12 @@ declare(strict_types=1);
 // Привязка Telegram клиента к аккаунту (api/v2/telegram.php?action=…).
 //
 //   POST link-code   — вошедший клиент получает одноразовую ссылку на бота
-//                      → {url: https://t.me/photosever_bot?start=КОД}
-//   POST webhook     — Telegram присылает сюда сообщения боту @photosever_bot
+//                      → {url: https://t.me/fotosever_bot?start=КОД}
+//   POST webhook     — Telegram присылает сюда сообщения боту @fotosever_bot
+//                      («Фото-Север», id 8854566946 — тот же, что шлёт все
+//                      уведомления и работает во входе через Telegram). Не
+//                      путать со старым @photosever_bot: привязка к нему не
+//                      давала @fotosever_bot права писать клиенту.
 //
 // Что было не так со старыми api/telegram_link.php + telegram_webhook.php:
 //   • связку «клиент → чат» они писали в файл telegram_chatids.json, а
@@ -23,7 +27,7 @@ declare(strict_types=1);
 require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_telegram.php';
 
-const TG_BOT_USERNAME = 'photosever_bot';
+const TG_BOT_USERNAME = 'fotosever_bot';
 /** Сколько живёт одноразовый код привязки. */
 const TG_LINK_CODE_HOURS = 24;
 
