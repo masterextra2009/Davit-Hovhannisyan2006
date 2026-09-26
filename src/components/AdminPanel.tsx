@@ -629,14 +629,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
   const handleNewServicePhotoUpload = async (file: File) => {
     setNewServiceUploading(true);
-    const formData = new FormData();
-    formData.append('photo', file);
+    // Картинки услуг — в общую папку через files.php (только админ); старый
+    // открытый service-upload.php принимал файлы от кого угодно.
     try {
-      const res = await fetch('https://sever-18.ru/api/service-upload.php', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
+      const data = await v2.files.uploadPublic(file);
       if (data.url) {
         setNewServiceForm(f => ({ ...f, imageUrl: data.url }));
       }
@@ -648,14 +644,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   };
 
   const handleNewServiceIconUpload = async (file: File) => {
-    const formData = new FormData();
-    formData.append('photo', file);
     try {
-      const res = await fetch('https://sever-18.ru/api/service-upload.php', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
+      const data = await v2.files.uploadPublic(file);
       if (data.url) {
         setNewServiceForm(f => ({ ...f, iconUrl: data.url }));
       }
@@ -665,14 +655,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   };
 
   const handleExistingServiceIconUpload = async (id: string, file: File) => {
-    const formData = new FormData();
-    formData.append('photo', file);
     try {
-      const res = await fetch('https://sever-18.ru/api/service-upload.php', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
+      const data = await v2.files.uploadPublic(file);
       if (data.url) {
         handleUpdateService(id, 'iconUrl', data.url);
       }
@@ -4353,14 +4337,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               onChange={async (e) => {
                                 const file = e.target.files?.[0];
                                 if (!file) return;
-                                const formData = new FormData();
-                                formData.append('photo', file);
                                 try {
-                                  const res = await fetch('https://sever-18.ru/api/service-upload.php', {
-                                    method: 'POST',
-                                    body: formData,
-                                  });
-                                  const data = await res.json();
+                                  const data = await v2.files.uploadPublic(file);
                                   if (data.url) {
                                     handleUpdateService(svc.id, 'imageUrl', data.url);
                                   }
