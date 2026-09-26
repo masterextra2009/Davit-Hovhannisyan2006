@@ -461,8 +461,48 @@ function admin_save()
         push_order_status($userId, $id, $status, $justPaid);
     }
 
+    // Telegram клиенту — смена статуса и «брак». Раньше это слала вкладка
+    // админки через старый открытый api/telegram_notify.php; теперь сервер
+    // сам, адрес чата — из базы (как в chat.php).
+    $statusChanged = $old !== null && $status !== $old['status'];
+    $justRejected = $rejected && (int) ($old['rejected'] ?? 0) !== 1;
+    if ($statusChanged || $justRejected) {
+        telegram_order_status($userId, $id, $statusChanged ? $status : null,
+            $justRejected ? (string) $row['rejection_reason'] : null);
+    }
+    if ($justRejected) {
+        push_to_user($userId, 'Заказ отклонён', 'Заказ ' . $id . ': ' . (string) $row['rejection_reason']);
+    }
+
     $st->execute([$id]);
     respond(['ok' => true, 'order' => order_public($st->fetch())]);
+}
+
+/** Подписи статусов для Telegram — те же, что в админке (getStatusLabel в src/utils.ts). */
+const TG_STATUS_LABELS = [
+    'pending' => 'Ожидает проверки',
+    'approved' => 'Одобрен к печати',
+    'printing' => 'Печатается',
+    'ready' => 'Готов к выдаче',
+    'printed' => 'Выдан клиенту',
+];
+
+function telegram_order_status(string $userId, string $orderId, ?string $status, ?string $rejectReason): void
+{
+    $st = db()->prepare('SELECT telegram_chat_id, telegram_notifications_enabled FROM users WHERE id = ?');
+    $st->execute([$userId]);
+    $u = $st->fetch();
+    if (!$u || (int) $u['telegram_notifications_enabled'] !== 1) {
+        return;
+    }
+    if ($status !== null) {
+        notify_user($u['telegram_chat_id'], "🖨 <b>Фото-Север</b>\n\nСтатус заказа " . tg_escape($orderId)
+            . ' изменён: <b>' . tg_escape(TG_STATUS_LABELS[$status] ?? $status) . '</b>');
+    }
+    if ($rejectReason !== null) {
+        notify_user($u['telegram_chat_id'], "⚠️ <b>Фото-Север</b>\n\nЗаказ " . tg_escape($orderId)
+            . ' отклонён: <b>' . tg_escape($rejectReason) . '</b>');
+    }
 }
 
 function admin_delete()

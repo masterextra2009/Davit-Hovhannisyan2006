@@ -312,14 +312,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       chatMessages: [...database.chatMessages, systemChat]
     });
 
-    fetch('https://sever-18.ru/api/telegram_notify.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: targetOrder.userId,
-        text: `⚠️ <b>Фото-Север</b>\n\nЗаказ ${orderId} отклонён: <b>${reason.trim()}</b>`
-      })
-    }).catch(() => {});
+    // Telegram и push о «браке» клиенту шлёт сервер (orders.php, admin_save).
 
     setRejectingOrderId(null);
     setRejectionReasonDraft('');
@@ -1365,15 +1358,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       chatMessages: [...database.chatMessages, systemChat]
     });
 
-    // Уведомляем клиента в Telegram, если он его подключил — доходит, даже если сайт закрыт
-    fetch('https://sever-18.ru/api/telegram_notify.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: targetOrder.userId,
-        text: `🖨 <b>Фото-Север</b>\n\nСтатус заказа ${orderId} изменён: <b>${getStatusLabel(newStatus)}</b>`
-      })
-    }).catch(() => {});
+    // Telegram клиенту о новом статусе шлёт сервер (orders.php, admin_save).
   };
 
   // Payment status overriding manually if cash received
