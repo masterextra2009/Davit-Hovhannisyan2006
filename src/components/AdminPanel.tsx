@@ -1003,14 +1003,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     }
   };
 
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Аватар админа — файлом в общую папку. Раньше картинка шла в профиль
+  // целиком текстом (data:…), а сервер хранит ссылку до 1024 символов —
+  // оставался битый обрывок, и аватар «не сохранялся».
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAdminAvatarUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const data = await v2.files.uploadPublic(file);
+      if (data.url) {
+        setAdminAvatarUrl(data.url);
+      }
+    } catch {
+      alert('Ошибка загрузки фото');
     }
   };
 
