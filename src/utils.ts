@@ -668,6 +668,8 @@ export function printInvoiceHTML(order: Order) {
               <div>Количество копий:</div>
               <div>x ${order.copies}</div>
             </div>
+            ${order.promoCode && order.promoDiscount ? `<div class="total-row"><div>Скидка (промокод ${order.promoCode}):</div><div>−${order.promoDiscount}%</div></div>` : ''}
+            ${order.loyaltyDiscount ? `<div class="total-row"><div>Скидка за уровень:</div><div>−${order.loyaltyDiscount}%</div></div>` : ''}
             <div class="total-row total-final">
               <div>Итого к оплате:</div>
               <div>₽${order.totalCost}</div>
@@ -745,55 +747,6 @@ export function loyaltyTierFor(userId: string, orders: Order[]): LoyaltyTierInfo
   let tier: LoyaltyTierInfo | null = null;
   for (const t of LOYALTY_TIERS) if (paid >= t.from) tier = t;
   return tier;
-}
-
-export interface ClientTier {
-  name: 'Новичок' | 'Постоянный клиент' | 'VIP клиент';
-  tierCode: 'newbie' | 'loyal' | 'vip';
-  icon: 'star' | 'trophy' | 'crown';
-  color: string;
-  badgeClass: string;
-  priority: boolean;
-  minAmount: number;
-}
-
-export function getClientTierForUser(userId: string, orders: Order[]): ClientTier {
-  const userOrders = orders.filter(o => o.userId === userId);
-  const totalAmount = userOrders
-    .filter(o => o.paymentStatus === 'paid' || o.status === 'printed' || o.status === 'ready')
-    .reduce((sum, o) => sum + o.totalCost, 0);
-
-  if (totalAmount >= 50000) {
-    return {
-      name: 'VIP клиент',
-      tierCode: 'vip',
-      icon: 'crown',
-      color: 'text-amber-500',
-      badgeClass: 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black px-2.5 py-0.5 rounded-full text-[11px] uppercase tracking-wide border border-amber-300 shadow-sm flex items-center gap-1 shadow-amber-500/10',
-      priority: true,
-      minAmount: 50000,
-    };
-  } else if (totalAmount >= 5000) {
-    return {
-      name: 'Постоянный клиент',
-      tierCode: 'loyal',
-      icon: 'trophy',
-      color: 'text-amber-400',
-      badgeClass: 'bg-gradient-to-r from-slate-200 to-amber-100 text-slate-800 font-bold px-2.5 py-0.5 rounded-full text-[11px] border border-slate-300 flex items-center gap-1 shadow-sm',
-      priority: false,
-      minAmount: 5000,
-    };
-  } else {
-    return {
-      name: 'Новичок',
-      tierCode: 'newbie',
-      icon: 'star',
-      color: 'text-indigo-400',
-      badgeClass: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 font-bold px-2.5 py-0.5 rounded-full text-[11px] border border-indigo-150 dark:border-indigo-900/50 flex items-center gap-1 shadow-sm',
-      priority: false,
-      minAmount: 0,
-    };
-  }
 }
 
 export function playNotificationSound(type: 'message' | 'ready') {

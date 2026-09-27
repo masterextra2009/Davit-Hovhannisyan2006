@@ -386,8 +386,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         updatedFiles,
         order.photoSize,
         order.binding,
-        order.promoCode,
-        order.promoDiscount
+        // Скидка за уровень пересчитывается так же, как промокод: иначе после
+        // удаления файла из заказа цена подскочила бы без скидки.
+        order.promoCode ?? (order.loyaltyDiscount ? 'уровень' : undefined),
+        order.promoDiscount ?? order.loyaltyDiscount
       );
 
       updatedOrders = database.orders.map(o => {
@@ -2647,6 +2649,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 {order.promoCode}
                               </strong></div>
                             )}
+                            {order.loyaltyDiscount ? (
+                              <div>Скидка за уровень: <strong className="text-emerald-600 dark:text-emerald-400">−{order.loyaltyDiscount}%</strong></div>
+                            ) : null}
                             <div>Итоговая стоимость: <strong className="text-amber-600 dark:text-amber-400">₽{order.totalCost}</strong></div>
                           </div>
 

@@ -83,12 +83,13 @@ import {
   calculateOrderCost, getFileFormatGroup, formatFileSize, 
   formatDateTime, getStatusLabel, getStatusColor, 
   getPaymentStatusLabel, getPaymentStatusColor, printInvoiceHTML,
-  getClientTierForUser, isWorkingHours, showBrowserNotification, trackAnalyticsEvent,
+  isWorkingHours, showBrowserNotification, trackAnalyticsEvent,
   formatServicePrice, sortServicesByGroup
 } from '../utils';
 import { isVoice, parseVoice, formatVoiceLength } from '../utils/chatVoice';
 import { PromoTicket } from './PromoTicket';
 import * as v2 from '../api/v2';
+import { LoyaltyGerb, levelEmblemUrl } from './LoyaltyGerb';
 import { saveOrderToFirebase, subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, registerUserWithFirebase, updateChatMessageInFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -2498,8 +2499,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         updatedFiles,
         order.photoSize,
         order.binding,
-        order.promoCode,
-        order.promoDiscount
+        // Скидка за уровень пересчитывается так же, как промокод: иначе после
+        // удаления файла из заказа цена подскочила бы без скидки.
+        order.promoCode ?? (order.loyaltyDiscount ? 'уровень' : undefined),
+        order.promoDiscount ?? order.loyaltyDiscount
       );
 
       updatedOrders = database.orders.map(o => {
@@ -6463,65 +6466,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             className="hidden"
                           />
 
-                          {/* Visual loyalty rank float indicator */}
-                          <div className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-md ${
-                            getClientTierForUser(user.id, database.orders).tierCode === 'vip' ? 'bg-amber-500 text-white' :
-                            getClientTierForUser(user.id, database.orders).tierCode === 'loyal' ? 'bg-slate-300 text-slate-800' : 'bg-indigo-600 text-white'
-                          }`}>
-                            {getClientTierForUser(user.id, database.orders).tierCode === 'vip' ? <Sparkles className="w-4 h-4 text-emerald-100" /> :
-                             getClientTierForUser(user.id, database.orders).tierCode === 'loyal' ? <Trophy className="w-4 h-4 text-emerald-100" /> : <Star className="w-4 h-4 text-emerald-100" />}
-                          </div>
+                          {/* Эмблема уровня у аватара (уровень — с сервера) */}
+                          {loyalty?.tier && (
+                            <img src={levelEmblemUrl(loyalty.tier.code)} alt={`Уровень «${loyalty.tier.name}»`} className="absolute -bottom-3 -right-4 w-12 h-12 drop-shadow-lg" />
+                          )}
                         </div>
                         <h3 className="text-base font-black text-slate-800 dark:text-white mt-1">{user.fullName}</h3>
                         <p className="text-[11px] text-slate-400 font-bold tracking-wider">{user.role === 'admin' ? 'Администратор' : 'Клиент'}</p>
                       </div>
 
-                      {/* Dynamic Loyalty Goal Meter */}
-                      <div className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-850 space-y-2">
-                        {(() => {
-                          const paidTotal = userOrders.reduce((acc, current) => acc + (current.paymentStatus === 'paid' ? current.totalCost : 0), 0);
-                          const tier = getClientTierForUser(user.id, database.orders);
-                          let nextGoal = 5000;
-                          let progress = (paidTotal / 5000) * 100;
-                          let goalLabel = 'Постоянный клиент';
-                          
-                          if (paidTotal >= 50000) {
-                            nextGoal = 50000;
-                            progress = 100;
-                            goalLabel = 'Максимальный VIP';
-                          } else if (paidTotal >= 5000) {
-                            nextGoal = 50000;
-                            progress = ((paidTotal - 5000) / 45000) * 100;
-                            goalLabel = 'VIP статус (Приоритет печати)';
-                          }
-                          
-                          return (
-                            <>
-                              <div className="flex justify-between items-baseline text-[11px] font-bold">
-                                <span className="text-slate-400 uppercase tracking-widest">Прогресс лояльности:</span>
-                                <span className="text-slate-500 font-black">{paidTotal} ₽ / {nextGoal} ₽</span>
-                              </div>
-                              <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                                <div 
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                    tier.tierCode === 'vip' ? 'bg-gradient-to-r from-amber-500 to-yellow-400' :
-                                    tier.tierCode === 'loyal' ? 'bg-gradient-to-r from-indigo-500 to-amber-400' : 'bg-indigo-600'
-                                  }`}
-                                  style={{ width: `${Math.min(100, Math.max(8, progress))}%` }}
-                                />
-                              </div>
-                              <div className="flex justify-between text-[10px] font-bold text-slate-400">
-                                <span>{tier.name}</span>
-                                {paidTotal < 50000 ? (
-                                  <span className="text-indigo-600 dark:text-indigo-400">До статуса {goalLabel}: {(nextGoal - paidTotal).toLocaleString('ru-RU')} ₽</span>
-                                ) : (
-                                  <span className="text-amber-500 flex items-center gap-1"><Sparkles className="w-3 h-3" /> Приоритетная VIP-печать включена</span>
-                                )}
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
+                      {/* Уровень клиента — «Герб», как в приложении */}
+                      <LoyaltyGerb loyalty={loyalty} />
 
                       <div className="border-t border-slate-150 dark:border-slate-800 pt-5 space-y-3">
                         <div className="flex justify-between items-center text-xs">
@@ -7201,30 +7156,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 )}
               </button>
 
-              {!user.isGuest && (() => {
-                const paidTotal = userOrders.reduce((acc, current) => acc + (current.paymentStatus === 'paid' ? current.totalCost : 0), 0);
-                const tier = getClientTierForUser(user.id, database.orders);
-                const nextGoal = paidTotal >= 5000 ? 50000 : 5000;
-                const progress = paidTotal >= 5000 ? ((paidTotal - 5000) / 45000) * 100 : (paidTotal / 5000) * 100;
-                return (
-                  <div className="glass-panel glass-rim-card rounded-2xl p-4 space-y-2">
-                    <div className="flex justify-between items-baseline text-[11px] font-bold">
-                      <span className="text-slate-400 uppercase tracking-widest">Статус лояльности</span>
-                      <span className="text-slate-500 font-black">{tier.name}</span>
-                    </div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          tier.tierCode === 'vip' ? 'bg-gradient-to-r from-amber-500 to-yellow-400' :
-                          tier.tierCode === 'loyal' ? 'bg-gradient-to-r from-indigo-500 to-amber-400' : 'bg-indigo-600'
-                        }`}
-                        style={{ width: `${Math.min(100, Math.max(8, progress))}%` }}
-                      />
-                    </div>
-                    <p className="text-[10px] text-slate-400">{paidTotal.toLocaleString('ru-RU')} ₽ / {nextGoal.toLocaleString('ru-RU')} ₽</p>
-                  </div>
-                );
-              })()}
+              {!user.isGuest && <LoyaltyGerb loyalty={loyalty} compact />}
             </aside>
           </>)}
 
