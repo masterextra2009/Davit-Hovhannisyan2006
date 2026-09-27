@@ -724,6 +724,29 @@ function getFileFormatGroupLabel(group: FileFormatGroup): string {
   }
 }
 
+/**
+ * Уровни клиента со скидкой (27.09.2026) — те же числа, что LOYALTY_TIERS
+ * в server/api/v2/_pricing.php. Скидку ставит сервер; здесь — только чтобы
+ * показать уровень в админке, где уже есть все заказы.
+ */
+export const LOYALTY_TIERS = [
+  { code: 'bronze', name: 'Бронзовый', from: 2000, percent: 5, chip: 'bg-gradient-to-r from-amber-700 to-orange-400 text-white' },
+  { code: 'silver', name: 'Серебряный', from: 10000, percent: 10, chip: 'bg-gradient-to-r from-slate-400 to-slate-200 text-slate-900' },
+  { code: 'gold', name: 'Золотой', from: 25000, percent: 15, chip: 'bg-gradient-to-r from-amber-500 to-yellow-300 text-slate-950' },
+  { code: 'platinum', name: 'Платиновый', from: 50000, percent: 20, chip: 'bg-gradient-to-r from-cyan-600 to-sky-300 text-slate-950' },
+] as const;
+export type LoyaltyTierInfo = (typeof LOYALTY_TIERS)[number];
+
+/** Уровень клиента по его оплаченным и выданным заказам (как сервер); null — ещё нет. */
+export function loyaltyTierFor(userId: string, orders: Order[]): LoyaltyTierInfo | null {
+  const paid = orders
+    .filter(o => o.userId === userId && (o.paymentStatus === 'paid' || o.status === 'printed'))
+    .reduce((sum, o) => sum + (o.totalCost || 0), 0);
+  let tier: LoyaltyTierInfo | null = null;
+  for (const t of LOYALTY_TIERS) if (paid >= t.from) tier = t;
+  return tier;
+}
+
 export interface ClientTier {
   name: 'Новичок' | 'Постоянный клиент' | 'VIP клиент';
   tierCode: 'newbie' | 'loyal' | 'vip';

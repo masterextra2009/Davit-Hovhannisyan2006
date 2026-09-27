@@ -20,8 +20,24 @@ import {
 import {
   formatFileSize, formatDateTime, getStatusLabel,
   getStatusColor, getPaymentStatusLabel, getPaymentStatusColor,
-  exportToCSV, printInvoiceHTML, calculateOrderCost, getLocalDateKey, sortServicesByGroup
+  exportToCSV, printInvoiceHTML, calculateOrderCost, getLocalDateKey, sortServicesByGroup,
+  loyaltyTierFor
 } from '../utils';
+
+// Уровень клиента значком рядом с именем: видно, кому положена скидка
+// (её ставит сервер сам) и кто из клиентов самый ценный.
+function LoyaltyChip({ userId, orders }: { userId: string; orders: Order[] }) {
+  const tier = loyaltyTierFor(userId, orders);
+  if (!tier) return null;
+  return (
+    <span
+      className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider align-middle ${tier.chip}`}
+      title={`Уровень «${tier.name}»: скидка ${tier.percent}% на заказы`}
+    >
+      {tier.name} −{tier.percent}%
+    </span>
+  );
+}
 import * as v2 from '../api/v2';
 import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase, deleteChatMessageInFirebase, clearChatHistoryInFirebase, updateChatMessageInFirebase } from '../firebaseUtils';
 import { isVoice, parseVoice } from '../utils/chatVoice';
@@ -2334,6 +2350,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               </div>
                               <div className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">
                                 Клиент: <strong>{order.userName}</strong>
+                                <LoyaltyChip userId={order.userId} orders={database.orders} />
                                 {/* Точку-разделитель рисуем только когда почта есть:
                                     у гостя её не спрашивают, и «имя •» с висящей
                                     точкой в конце читалось как обрезанная строка. */}
@@ -3084,6 +3101,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               <div className="flex flex-col">
                                 <span className="font-extrabold text-slate-900 dark:text-slate-200 flex items-center gap-2">
                                   {cli.fullName}
+                                  <LoyaltyChip userId={cli.id} orders={database.orders} />
                                   {isAdmin && (
                                     <span className="bg-red-50 dark:bg-red-950/40 text-red-650 dark:text-red-400 text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-red-200/50 dark:border-red-900/30">
                                       Админ
