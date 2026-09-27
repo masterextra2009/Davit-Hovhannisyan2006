@@ -11,6 +11,7 @@ declare(strict_types=1);
 //   GET  get     &id=ORD-…                → {order}
 //   POST rate    {id, rating, ratingComment}
 //   POST cancel  {id}                     — свой, не оплаченный, не взятый в работу
+//   GET  loyalty [&userId=… — только админ] → {paid, tier, next}  уровень и скидка
 // Админ:
 //   GET  list / get                       — все заказы
 //   POST save    {order}                  — сохранить заказ целиком
@@ -71,6 +72,10 @@ switch ($action) {
     case 'cancel':
         require_method('POST');
         cancel($user);
+    case 'loyalty':
+        require_method('GET');
+        $whoId = $isAdmin && !empty($_GET['userId']) ? (string) $_GET['userId'] : $user['id'];
+        respond(['ok' => true] + loyalty_public(user_paid_total($whoId)));
     case 'save':
         require_method('POST');
         require_admin($isAdmin);
@@ -84,6 +89,40 @@ switch ($action) {
 }
 
 // ─────────────────────────── Клиент ───────────────────────────
+
+/**
+ * Сколько клиент уже заплатил, ₽ — от этого зависит уровень. Считаются
+ * оплаченные онлайн и выданные («printed») заказы: при оплате на месте
+ * отметки «оплачено» нет, но деньги получены, когда заказ выдан.
+ */
+function user_paid_total(string $userId): float
+{
+    $st = db()->prepare(
+        "SELECT COALESCE(SUM(total_cost), 0) FROM orders
+         WHERE user_id = ? AND (payment_status = 'paid' OR status = 'printed')"
+    );
+    $st->execute([$userId]);
+    return (float) $st->fetchColumn();
+}
+
+/** Уровень для экрана: текущий, следующий и сколько до него осталось. */
+function loyalty_public(float $paid): array
+{
+    $tier = loyalty_tier($paid);
+    $next = null;
+    foreach (LOYALTY_TIERS as $t) {
+        if ($paid < $t['from']) {
+            $next = $t;
+            break;
+        }
+    }
+    $pub = fn(?array $t) => $t === null ? null : ['code' => $t['code'], 'name' => $t['name'], 'from' => $t['from'], 'percent' => $t['percent']];
+    return [
+        'paid' => round($paid, 2),
+        'tier' => $pub($tier),
+        'next' => $next === null ? null : $pub($next) + ['left' => round($next['from'] - $paid, 2)],
+    ];
+}
 
 /** Резервирует следующий номер заказа (ORD-1000, ORD-1001, …) — общий для сайта и приложения. */
 function reserve(array $user)
@@ -153,8 +192,11 @@ function create(array $user)
     // или истёкший промокод просто не даёт скидки и в заказ не пишется.
     $promo = str_or_null($o['promoCode'] ?? null, 64);
     $promo = $promo === null ? null : mb_strtoupper($promo);
-    $discount = promo_percent($promo, $user);
-    if ($discount === 0) {
+    // Скидка — бо́льшая из двух: промокод или уровень клиента. Проигравший
+    // промокод в заказ не пишется и не гасится — пригодится в другой раз.
+    $tier = loyalty_tier(user_paid_total($user['id']));
+    [$discount, $discountFrom] = best_discount(promo_percent($promo, $user), $tier['percent'] ?? 0);
+    if ($discountFrom !== 'promo') {
         $promo = null;
     }
     $serviceExtra = 0;
@@ -195,6 +237,9 @@ function create(array $user)
         'binding' => $binding,
         'promo_code' => $promo,
         'promo_discount' => $promo === null ? null : $discount,
+        // На услугу из витрины скидка не действует (order_price) — тогда и
+        // строку «Скидка за уровень» показывать нечему.
+        'loyalty_discount' => $discountFrom === 'loyalty' && $serviceExtra === 0 ? $discount : null,
         'service_id' => $serviceId,
     ];
 
@@ -576,6 +621,7 @@ function order_public(array $r): array
         'binding' => $r['binding'],
         'promoCode' => $r['promo_code'],
         'promoDiscount' => $r['promo_discount'] !== null ? (int) $r['promo_discount'] : null,
+        'loyaltyDiscount' => isset($r['loyalty_discount']) ? (int) $r['loyalty_discount'] : null,
         'serviceId' => $r['service_id'],
         'rejected' => (int) $r['rejected'] === 1 ? true : null,
         'rejectionReason' => $r['rejection_reason'],
