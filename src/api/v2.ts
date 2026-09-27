@@ -202,6 +202,10 @@ export async function logout(): Promise<void> {
 
 // ─────────────────────────── Заказы ───────────────────────────
 
+export type LoyaltyTier = { code: 'bronze' | 'silver' | 'gold' | 'platinum'; name: string; from: number; percent: number };
+/** Ответ orders.php?action=loyalty: сколько оплачено, текущий уровень (null — ещё нет) и следующий. */
+export type Loyalty = { paid: number; tier: LoyaltyTier | null; next: (LoyaltyTier & { left: number }) | null };
+
 export const orders = {
   /** Номер заказа бронируется ДО загрузки файлов — как и раньше. */
   reserve: () => request<{ orderId: string }>('orders.php?action=reserve', { body: {} }),
@@ -213,6 +217,9 @@ export const orders = {
   rate: (id: string, rating: number, ratingComment?: string) =>
     request('orders.php?action=rate', { body: { id, rating, ratingComment } }),
   cancel: (id: string) => request('orders.php?action=cancel', { body: { id } }),
+  /** Уровень клиента и скидка; админ может спросить про любого клиента. */
+  loyalty: (userId?: string) =>
+    request<Loyalty>(`orders.php?action=loyalty${userId ? `&userId=${encodeURIComponent(userId)}` : ''}`),
   save: (order: Order) => request<{ order: Order }>('orders.php?action=save', { body: { order } }),
   remove: (id: string) => request('orders.php?action=delete', { body: { id } }),
 };

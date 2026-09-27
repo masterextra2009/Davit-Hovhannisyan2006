@@ -1785,6 +1785,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     return 0;
   };
 
+  // Уровень клиента и его скидка — с сервера (orders.php?action=loyalty).
+  // Перезапрашиваем, когда меняются заказы: оплата может поднять уровень.
+  const [loyalty, setLoyalty] = useState<v2.Loyalty | null>(null);
+  const paidOrdersKey = database.orders
+    .filter(o => o.userId === user.id && (o.paymentStatus === 'paid' || o.status === 'printed'))
+    .length;
+  useEffect(() => {
+    let alive = true;
+    v2.orders.loyalty().then(l => { if (alive) setLoyalty(l); }).catch(() => {});
+    return () => { alive = false; };
+  }, [user.id, paidOrdersKey]);
+
   // Gift Promo System state
   const [showPromoGiftModal, setShowPromoGiftModal] = useState(false);
   const [show3DMockupModal, setShow3DMockupModal] = useState(false);
@@ -3378,8 +3390,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       return;
     }
 
-    const finalPromo = getActivePromo();
-    const finalDiscount = finalPromo ? getActiveDiscountPercent(finalPromo) : undefined;
+    // Скидка — бо́льшая из двух: промокод или уровень клиента (так же
+    // считает сервер). Если выиграл уровень, промокод не отправляем и не
+    // гасим — он пригодится в другой раз.
+    const activePromoCode = getActivePromo();
+    const promoPct = activePromoCode ? getActiveDiscountPercent(activePromoCode) : 0;
+    const loyaltyPct = loyalty?.tier?.percent || 0;
+    const byLoyalty = loyaltyPct > promoPct;
+    const finalPromo = byLoyalty ? null : activePromoCode;
+    const finalDiscount = byLoyalty ? loyaltyPct : (finalPromo ? promoPct : undefined);
 
     // Считаем итоговую стоимость из per-file настроек
     const photoSizePrices: Record<string, number> = {
@@ -3457,6 +3476,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       notes: notes.trim(),
       binding,
       ...(finalPromo ? { promoCode: finalPromo, promoDiscount: finalDiscount } : {}),
+      ...(byLoyalty && !selectedService ? { loyaltyDiscount: loyaltyPct } : {}),
       ...(selectedService ? { serviceId: selectedService.id } : {}),
     };
 
@@ -5512,7 +5532,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             const orderCopiesForBinding = uploadedFiles[0]?.fileCopies || 1;
                             const bindingFee = binding !== 'none' ? bindingFeePerCopy(binding, totalPagesForBinding, uploadedFiles.some(f => f.format === 'a3')) * orderCopiesForBinding : 0;
                             const subtotalWithBinding = subtotal + bindingFee;
-                            const discount = activePromo ? getActiveDiscountPercent(activePromo) : 0;
+                            const promoPct = activePromo ? getActiveDiscountPercent(activePromo) : 0;
+                            const loyaltyPct = loyalty?.tier?.percent || 0;
+                            const byLoyalty = loyaltyPct > promoPct;
+                            const discount = byLoyalty ? loyaltyPct : promoPct;
                             const total = Math.round(subtotalWithBinding * (1 - discount / 100));
                             const savings = subtotalWithBinding - total;
                             // Итого обязано включать цену выбранной услуги (selectedService) —
@@ -5532,7 +5555,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 )}
                                 {savings > 0 && (
                                   <div className="flex justify-between text-rose-400 font-bold text-[12px]">
-                                    <span>Промокод ({activePromo}):</span>
+                                    <span>{byLoyalty ? `Скидка за уровень (${loyalty?.tier?.name}, −${loyaltyPct}%):` : `Промокод (${activePromo}):`}</span>
                                     <span>−{savings} ₽</span>
                                   </div>
                                 )}

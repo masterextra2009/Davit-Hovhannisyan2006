@@ -142,6 +142,9 @@ export interface Order {
   binding?: 'none' | 'staple' | 'file' | 'spring_plastic' | 'spring_metal' | 'hard_cover';
   promoCode?: string;
   promoDiscount?: number;
+  // Скидка за уровень клиента, % — ставит сервер при оформлении, если она
+  // больше промокода (orders.php, LOYALTY_TIERS в _pricing.php).
+  loyaltyDiscount?: number;
   // Заполняется только для заказов "только услуга" (из витрины услуг, без
   // загруженных файлов) — id услуги в коллекции services, чтобы сервер мог
   // сам проверить актуальную цену вместо доверия totalCost от клиента.
