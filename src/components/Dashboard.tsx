@@ -234,6 +234,59 @@ async function countDocxPages(file: File): Promise<number> {
   return Number.isFinite(pages) && pages > 0 ? pages : 1;
 }
 
+// Что лежит внутри .zip: сколько там файлов для печати и сколько они стоят
+// по умолчанию (20 ₽/фото, 20 ₽×страницы для PDF/.docx, 20 ₽ за прочее).
+// Архив внутри архива раскрываем тоже — 28.09.2026 клиент прислал 4 фото и
+// 4 архива с фото одной пачкой, и каждый архив посчитался как 1 файл за
+// 20 ₽ («8 файлов» вместо реальных десятков фото).
+// Служебный мусор (папка __MACOSX с копиями «._фото.jpg» от Mac, Thumbs.db,
+// скрытые файлы) — не фото для печати, его не считаем.
+async function inspectZipContents(file: Blob, depth = 0): Promise<{ count: number; total: number; allPhotos: boolean }> {
+  const zip = await JSZip.loadAsync(file);
+  const entries = Object.values(zip.files).filter(e => {
+    if (e.dir) return false;
+    const base = e.name.split('/').pop() || '';
+    return !e.name.startsWith('__MACOSX/') && !base.startsWith('.') && base.toLowerCase() !== 'thumbs.db';
+  });
+  let count = 0;
+  let total = 0;
+  let allPhotos = true;
+  for (const entry of entries) {
+    const lower = entry.name.toLowerCase();
+    const group = getFileFormatGroup(entry.name);
+    if (group === 'image') {
+      count += 1;
+      total += 20;
+      continue;
+    }
+    if (lower.endsWith('.zip') && depth < 3) {
+      try {
+        const inner = await inspectZipContents(await entry.async('blob'), depth + 1);
+        count += inner.count;
+        total += inner.total;
+        allPhotos = allPhotos && inner.allPhotos;
+        continue;
+      } catch {
+        // битый/запароленный вложенный архив — считаем как 1 файл ниже
+      }
+    }
+    allPhotos = false;
+    let pages = 1;
+    try {
+      if (lower.endsWith('.pdf')) {
+        pages = await countPdfPages(new File([await entry.async('blob')], entry.name, { type: 'application/pdf' }));
+      } else if (lower.endsWith('.docx')) {
+        pages = await countDocxPages(new File([await entry.async('blob')], entry.name));
+      }
+    } catch {
+      pages = 1;
+    }
+    count += 1;
+    total += 20 * pages;
+  }
+  return { count, total, allPhotos: allPhotos && count > 0 };
+}
+
 // Analyse color fill % from an image URL using Canvas API (0-100)
 // Works precisely for raster images; for PDFs uses the first-page preview.
 async function analyzeColorFill(imageUrl: string): Promise<number> {
@@ -2796,10 +2849,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     // не было выбора размера/цвета печати, теперь у архива-бандла есть один
     // общий размер на все фото внутри (см. isPhotoBundle в модалке настройки
     // ниже); если нужны разные размеры — клиент грузит такие фото отдельно.
-    const allFilesAreImages = Array.from(filesList).every(f => {
-      const fg = getFileFormatGroup(f.name);
-      return fg === 'image' || f.type.startsWith('image/');
-    });
     const willZip = filesList.length > 2;
     const rawFilesForZip: File[] = [];
     // Флаги больше не сбрасываются тут сразу после первой порции файлов — они
@@ -2866,9 +2915,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       // что внутри. Заглядываем внутрь и честно считаем цену по содержимому,
       // как и для авто-собранного архива (20₽/фото, 20₽×страницы для PDF).
       if (formatGroup === 'archive') {
-        JSZip.loadAsync(file).then(async zip => {
-          const entries = Object.values(zip.files).filter(e => !e.dir);
-
+        inspectZipContents(file).then(contents => {
           // Архив из ОДНИХ фото — раньше всегда становился одной строкой с
           // прикидочной ценой без единой настройки печати ("не выдаёт выбора
           // размера фото"). Первая версия исправления распаковывала архив на
@@ -2880,51 +2927,22 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           // общим размером на все фото внутри (выбирается в модалке настройки,
           // см. isPhotoBundle ниже); если нужны разные размеры — клиент
           // грузит такие фото отдельно, вне архива.
-          const allEntriesArePhotos = entries.length > 0 && entries.every(e => getFileFormatGroup(e.name) === 'image');
-
-          if (allEntriesArePhotos) {
+          if (contents.allPhotos) {
             patchFileState(fileId, {
               paperType: 'photo',
               photoSize: '10x15',
               photoBorder: 'borderless',
               printColor: 'color',
-              bundleFileCount: entries.length,
-              bundleFixedPrice: entries.length * 20,
+              bundleFileCount: contents.count,
+              bundleFixedPrice: contents.count * 20,
               pageCount: undefined,
             });
             return;
           }
 
-          let total = 0;
-          for (const entry of entries) {
-            const entryFormatGroup = getFileFormatGroup(entry.name);
-            if (entryFormatGroup === 'image') {
-              total += 20;
-            } else {
-              const isEntryPdf = entry.name.toLowerCase().endsWith('.pdf');
-              const isEntryDocx = entry.name.toLowerCase().endsWith('.docx');
-              let pages = 1;
-              if (isEntryPdf) {
-                try {
-                  const blob = await entry.async('blob');
-                  pages = await countPdfPages(new File([blob], entry.name, { type: 'application/pdf' }));
-                } catch {
-                  pages = 1;
-                }
-              } else if (isEntryDocx) {
-                try {
-                  const blob = await entry.async('blob');
-                  pages = await countDocxPages(new File([blob], entry.name));
-                } catch {
-                  pages = 1;
-                }
-              }
-              total += 20 * pages;
-            }
-          }
           patchFileState(fileId, {
-            bundleFixedPrice: total || 20,
-            bundleFileCount: entries.length || 1,
+            bundleFixedPrice: contents.total || 20,
+            bundleFileCount: contents.count || 1,
             pageCount: undefined,
           });
         }).catch(err => {
@@ -2990,11 +3008,24 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       const bundleId = 'bundle_' + Date.now();
       (async () => {
         let total = 0;
+        // Файлов для печати: .zip в пачке считается по содержимому, а не как 1.
+        let fileCount = 0;
+        let bundleAllPhotos = true;
         for (let i = 0; i < newFiles.length; i++) {
           const meta = newFiles[i];
           if (meta.formatGroup === 'image') {
             total += 20; // фото по умолчанию — 10×15, цвет
+            fileCount += 1;
+          } else if (meta.formatGroup === 'archive') {
+            const contents = await inspectZipContents(rawFilesForZip[i])
+              .catch(() => ({ count: 1, total: 20, allPhotos: false }));
+            total += contents.total || 20;
+            fileCount += contents.count || 1;
+            // 4 фото + архивы с одними фото — всё равно пачка фото, с выбором размера
+            bundleAllPhotos = bundleAllPhotos && contents.allPhotos;
           } else {
+            fileCount += 1;
+            if (!rawFilesForZip[i].type.startsWith('image/')) bundleAllPhotos = false;
             const raw = rawFilesForZip[i];
             const isPdf = raw.type === 'application/pdf' || meta.name.toLowerCase().endsWith('.pdf');
             const isDocx = meta.name.toLowerCase().endsWith('.docx');
@@ -3007,7 +3038,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         const zip = new JSZip();
         rawFilesForZip.forEach((raw, i) => zip.file(newFiles[i].name, raw));
         const zipBlob = await zip.generateAsync({ type: 'blob' });
-        const zipFile = new File([zipBlob], `Архив (${newFiles.length} файлов).zip`, { type: 'application/zip' });
+        const zipFile = new File([zipBlob], `Архив (${fileCount} файлов).zip`, { type: 'application/zip' });
         const bundleEntry: PrintFile = {
           id: bundleId,
           name: zipFile.name,
@@ -3016,15 +3047,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           uploadedAt: new Date().toISOString(),
           formatGroup: 'archive',
           bundleFixedPrice: total,
-          bundleFileCount: newFiles.length,
+          bundleFileCount: fileCount,
           // Пачка из ОДНИХ фото (клиент отметил сразу >2 снимков) — даём
           // общий размер на всё через ту же модалку настройки, что и для
           // загруженного архива (isPhotoBundle), вместо жёстко зашитого
           // 10×15 без права выбора.
-          ...(allFilesAreImages ? { paperType: 'photo', photoSize: '10x15', photoBorder: 'borderless', printColor: 'color' } : {}),
+          ...(bundleAllPhotos ? { paperType: 'photo', photoSize: '10x15', photoBorder: 'borderless', printColor: 'color' } : {}),
         };
         uploadFileToFirebaseStorage(zipFile, bundleId);
-        if (allFilesAreImages) {
+        if (bundleAllPhotos) {
           setPendingUploads(prev => [...prev, bundleEntry]);
         } else {
           setUploadedFiles(prev => [...prev, bundleEntry]);
