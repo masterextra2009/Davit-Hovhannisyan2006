@@ -2104,7 +2104,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <h1 className="text-sm font-black text-white leading-none">АДМИН-ПК</h1>
           </div>
           <div className="flex items-center gap-2">
-            <LiveClock showSeconds={false} />
+            <LiveClock bare showSeconds={false} />
             <ThemeToggle />
             <button
               onClick={onLogout}
@@ -2138,7 +2138,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           </div>
 
           <div className="flex items-center gap-3">
-            <LiveClock />
+            <LiveClock bare />
             <ThemeToggle />
             <div className="text-xs glass-card px-3.5 py-2 rounded-xl text-white font-bold">
               Активных заказов: <strong className="text-emerald-300">{pendingCount}</strong>
