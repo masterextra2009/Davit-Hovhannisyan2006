@@ -2120,7 +2120,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           <div>
             <h1 className="text-xl font-black text-white">
               {activeTab === 'orders' && 'Очередь печати документов'}
-              {activeTab === 'chat' && 'Оперативная чат-линия клиентов'}
+              {activeTab === 'chat' && 'Чат'}
               {activeTab === 'feedback' && 'Пожелания и замечания клиентов'}
               {activeTab === 'users' && 'Управление пользователями и конфиденциальность'}
               {activeTab === 'analytics' && 'Статистика копи-центра в реальном времени'}
@@ -2128,7 +2128,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {activeTab === 'print-app' && 'Обновления и баланс'}
             </h1>
             <p className="text-xs text-white/60 mt-1">
-              {activeTab === 'chat' && 'Контролируйте ветки диалогов всех активных клиентов вашего копи-точки.'}
               {activeTab === 'feedback' && 'Сообщения из формы "Есть пожелание или замечание?" в кабинете клиента.'}
               {activeTab === 'users' && 'Просмотр контактов, редактирование профилей и полное удаление согласно регламенту.'}
               {activeTab === 'analytics' && 'Сводная аналитика выручки, распределение графиков популярности расширений.'}
@@ -3015,9 +3014,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               <div className="glass-panel rounded-3xl p-6 overflow-x-auto">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
                   <div>
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider"><AnimatedTitle>База зарегистрированных пользователей</AnimatedTitle></h3>
-                    <p className="text-[11px] text-white/50 mt-1">Нажмите на строку любого пользователя для просмотра реестра всех его загруженных файлов.</p>
-                  </div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider"><AnimatedTitle>База зарегистрированных пользователей</AnimatedTitle></h3>                  </div>
                   <div className="search-glow-wrap w-full sm:w-72">
                     <div className="search-glow-halo"><div className="search-glow-halo-ring"></div></div>
                     <div className="search-glow-frame">
