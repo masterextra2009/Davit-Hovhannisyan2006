@@ -83,7 +83,9 @@ switch ($action) {
 function list_services(bool $isAdmin)
 {
     $all = $isAdmin && ($_GET['all'] ?? '') !== '';
-    $sql = 'SELECT * FROM services' . ($all ? '' : ' WHERE is_active = 1') . ' ORDER BY sort_order ASC LIMIT 500';
+    // «Фото на документы» — служебная услуга со своим экраном в приложении
+    // (doc-photo.php): в витрине её не показываем, только админу в списке всех.
+    $sql = 'SELECT * FROM services' . ($all ? '' : " WHERE is_active = 1 AND id <> 'doc-photo'") . ' ORDER BY sort_order ASC LIMIT 500';
     respond(['ok' => true, 'services' => array_map('service_public', db()->query($sql)->fetchAll())]);
 }
 

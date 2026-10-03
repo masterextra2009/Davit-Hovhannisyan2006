@@ -24,6 +24,7 @@ require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_telegram.php';
 require __DIR__ . '/_referrals.php';
 require __DIR__ . '/_push.php';
+require_once __DIR__ . '/_doc_photo.php';
 
 const PAYMENT_RETURN_URL = 'https://sever-18.ru/?payment=success&order=';
 const YOOKASSA_API = 'https://api.yookassa.ru/v3/payments';
@@ -198,6 +199,15 @@ function apply_payment(array $order, array $payment, bool $fromWebhook): string
     $upd->execute([$payment['id'], PAYMENT_METHOD_ONLINE, $order['id']]);
     if ($upd->rowCount() === 1) {
         $files = json_decode((string) $order['files'], true) ?: [];
+        // «Фото на документы»: готовое фото лежит вне сайта и попадает в заказ
+        // только сейчас, после оплаты (doc-photo.php).
+        if (($order['service_id'] ?? '') === DOC_PHOTO_SERVICE_ID) {
+            try {
+                $files = doc_photo_attach(array_merge($order, ['payment_status' => 'paid'])) ?? $files;
+            } catch (Throwable $e) {
+                error_log('payments doc_photo_attach: ' . $e->getMessage());
+            }
+        }
         notify_admin("🔔 <b>Новый оплаченный заказ!</b>\n\n"
             . '📋 Заказ: <b>' . tg_escape($order['id']) . "</b>\n"
             . '👤 Клиент: <b>' . tg_escape($order['user_name']) . "</b>\n"

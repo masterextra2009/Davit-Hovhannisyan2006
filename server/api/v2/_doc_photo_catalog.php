@@ -1,0 +1,130 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Каталог «Фото на документы» для приложения (doc-photo.php?action=catalog).
+ *
+ * Добавить документ или поправить размер — здесь, одной строкой; приложение
+ * берёт список с сервера, обновлять его не нужно.
+ *
+ *   w, h       — размер фото в миллиметрах
+ *   head       — высота головы (подбородок–макушка), мм [от, до]
+ *   top        — отступ от верхнего края до макушки, мм [от, до]
+ *   bg         — фон: white | lightgray
+ *   copies     — сколько штук печатаем за 250 ₽ (null — по размеру, см. doc_photo_copies)
+ *   bw         — можно ли чёрно-белое
+ *   rules      — что увидит клиент под названием
+ *   verify     — требования ещё не сверены с официальным источником
+ *
+ * ⚠️ 03.10.2026 размеры записаны по памяти. Перед запуском каждый документ
+ * сверяется с требованиями МВД/консульств; несверенные помечены verify.
+ */
+
+const DOC_PHOTO_PRICE = 250;
+const DOC_PHOTO_PAID_ATTEMPTS = 3;
+const DOC_PHOTO_SERVICE_ID = 'doc-photo';
+
+/** Сколько штук за 250 ₽ — правило Давида 03.10.2026: 3,5×4,5 — 4, 3×4 — 6, 4×6 — 4, 9×12 — 1, прочие — 4. */
+function doc_photo_copies(array $doc): int
+{
+    if (!empty($doc['copies'])) {
+        return (int) $doc['copies'];
+    }
+    $size = $doc['w'] . 'x' . $doc['h'];
+    return ['35x45' => 4, '30x40' => 6, '40x60' => 4, '90x120' => 1][$size] ?? 4;
+}
+
+function doc_photo_catalog(): array
+{
+    $passport = ['head' => [32, 36], 'top' => [4, 6], 'bg' => 'white'];
+    $small = ['w' => 30, 'h' => 40, 'head' => [25, 30], 'top' => [3, 5], 'bg' => 'white'];
+    $visa = ['w' => 35, 'h' => 45, 'head' => [32, 36], 'top' => [3, 5], 'bg' => 'white'];
+
+    $docs = [
+        // Паспорта и гражданство
+        ['id' => 'passport-ru', 'group' => 'Паспорта и гражданство', 'name' => 'Паспорт РФ', 'w' => 35, 'h' => 45] + $passport
+            + ['bw' => false, 'rules' => 'Цветное, строго анфас, без улыбки, без головного убора'],
+        ['id' => 'zagran', 'group' => 'Паспорта и гражданство', 'name' => 'Загранпаспорт (старого образца)', 'w' => 35, 'h' => 45] + $passport
+            + ['bw' => true, 'rules' => 'Матовая бумага, можно ч/б'],
+        ['id' => 'citizenship', 'group' => 'Паспорта и гражданство', 'name' => 'Гражданство РФ (заявление)', 'w' => 35, 'h' => 45, 'copies' => 3] + $passport
+            + ['bw' => true, 'rules' => 'Анфас, без головного убора'],
+        // Мигрантам
+        ['id' => 'vnzh', 'group' => 'Мигрантам', 'name' => 'Вид на жительство (ВНЖ)', 'w' => 35, 'h' => 45, 'copies' => 4] + $passport
+            + ['bw' => true, 'rules' => 'Цветное или ч/б, 4 шт.'],
+        ['id' => 'rvp', 'group' => 'Мигрантам', 'name' => 'РВП', 'w' => 35, 'h' => 45] + $passport
+            + ['bw' => true, 'rules' => 'Цветное или ч/б'],
+        ['id' => 'patent', 'group' => 'Мигрантам', 'name' => 'Патент / разрешение на работу', 'bw' => false, 'rules' => 'Цветное', 'verify' => true] + $small,
+        // Визы
+        ['id' => 'visa-schengen', 'group' => 'Визы', 'name' => 'Шенгенская виза'] + $visa + ['bw' => false, 'rules' => 'Цветное, без улыбки, фон светлый'],
+        ['id' => 'visa-usa', 'group' => 'Визы', 'name' => 'Виза США', 'w' => 50, 'h' => 50, 'head' => [25, 35], 'top' => [4, 8], 'bg' => 'white',
+            'bw' => false, 'rules' => 'Квадрат 5×5, цветное, без очков'],
+        ['id' => 'visa-china', 'group' => 'Визы', 'name' => 'Виза в Китай', 'w' => 33, 'h' => 48, 'head' => [28, 33], 'top' => [3, 5], 'bg' => 'white',
+            'bw' => false, 'rules' => 'Цветное, белый фон, уши открыты'],
+        ['id' => 'visa-uk', 'group' => 'Визы', 'name' => 'Виза в Великобританию', 'w' => 35, 'h' => 45, 'head' => [29, 34], 'top' => [3, 5], 'bg' => 'lightgray',
+            'bw' => false, 'rules' => 'Цветное, светло-серый фон', 'verify' => true],
+        ['id' => 'visa-canada', 'group' => 'Визы', 'name' => 'Виза в Канаду', 'w' => 35, 'h' => 45, 'head' => [31, 36], 'top' => [3, 5], 'bg' => 'white',
+            'bw' => false, 'rules' => 'Цветное', 'verify' => true],
+        ['id' => 'visa-australia', 'group' => 'Визы', 'name' => 'Виза в Австралию'] + $visa + ['bw' => false, 'rules' => 'Цветное', 'verify' => true],
+        ['id' => 'visa-korea', 'group' => 'Визы', 'name' => 'Виза в Корею'] + $visa + ['bw' => false, 'rules' => 'Цветное, белый фон', 'verify' => true],
+        ['id' => 'visa-japan', 'group' => 'Визы', 'name' => 'Виза в Японию', 'w' => 45, 'h' => 45, 'head' => [27, 35], 'top' => [4, 8], 'bg' => 'white',
+            'bw' => false, 'rules' => 'Квадрат 4,5×4,5', 'verify' => true],
+        ['id' => 'visa-india', 'group' => 'Визы', 'name' => 'Виза в Индию', 'w' => 50, 'h' => 50, 'head' => [25, 35], 'top' => [4, 8], 'bg' => 'white',
+            'bw' => false, 'rules' => 'Квадрат 5×5, белый фон', 'verify' => true],
+        ['id' => 'visa-uae', 'group' => 'Визы', 'name' => 'Виза в ОАЭ', 'w' => 43, 'h' => 55, 'head' => [32, 38], 'top' => [4, 7], 'bg' => 'white',
+            'bw' => false, 'rules' => 'Цветное, белый фон', 'verify' => true],
+        ['id' => 'visa-vietnam', 'group' => 'Визы', 'name' => 'Виза во Вьетнам', 'w' => 40, 'h' => 60, 'head' => [30, 36], 'top' => [5, 8], 'bg' => 'white',
+            'bw' => false, 'rules' => 'Цветное, белый фон', 'verify' => true],
+        ['id' => 'visa-thailand', 'group' => 'Визы', 'name' => 'Виза в Таиланд', 'w' => 40, 'h' => 60, 'head' => [30, 36], 'top' => [5, 8], 'bg' => 'white',
+            'bw' => false, 'rules' => 'Цветное, белый фон', 'verify' => true],
+        // Авто и медицина
+        ['id' => 'med-driver', 'group' => 'Авто и медицина', 'name' => 'Медсправка на права', 'bw' => true, 'rules' => 'Цветное или ч/б'] + $small,
+        ['id' => 'medbook', 'group' => 'Авто и медицина', 'name' => 'Медкнижка', 'bw' => true, 'rules' => 'Цветное или ч/б'] + $small,
+        // Служба и работа
+        ['id' => 'military', 'group' => 'Служба и работа', 'name' => 'Военный билет', 'bw' => true, 'rules' => 'Без головного убора, матовое, можно ч/б'] + $small,
+        ['id' => 'pass', 'group' => 'Служба и работа', 'name' => 'Удостоверение / пропуск', 'bw' => true, 'rules' => 'Цветное или ч/б'] + $small,
+        ['id' => 'personal-file-4x6', 'group' => 'Служба и работа', 'name' => 'Личное дело 4×6', 'w' => 40, 'h' => 60, 'head' => [30, 36], 'top' => [5, 8], 'bg' => 'white',
+            'bw' => true, 'rules' => 'Цветное или ч/б'],
+        ['id' => 'personal-file-9x12', 'group' => 'Служба и работа', 'name' => 'Личное дело 9×12', 'w' => 90, 'h' => 120, 'head' => [50, 60], 'top' => [10, 16], 'bg' => 'white',
+            'bw' => true, 'rules' => 'По грудь, цветное или ч/б'],
+        ['id' => 'weapon', 'group' => 'Служба и работа', 'name' => 'Лицензия на оружие', 'bw' => true, 'rules' => 'Цветное или ч/б'] + $small,
+        ['id' => 'hunting', 'group' => 'Служба и работа', 'name' => 'Охотничий билет', 'bw' => true, 'rules' => 'Цветное или ч/б'] + $small,
+        // Учёба
+        ['id' => 'student', 'group' => 'Учёба', 'name' => 'Студенческий, зачётка, читательский', 'bw' => true, 'rules' => 'Цветное или ч/б'] + $small,
+        ['id' => 'school-file', 'group' => 'Учёба', 'name' => 'Школьное личное дело', 'bw' => true, 'rules' => 'Цветное или ч/б'] + $small,
+    ];
+    foreach ($docs as &$d) {
+        $d['copies'] = doc_photo_copies($d);
+        $d['verify'] = !empty($d['verify']);
+    }
+    unset($d);
+    return $docs;
+}
+
+/** Варианты ретуши кнопками. id → что сказать нейросети. */
+function doc_photo_retouch(): array
+{
+    return [
+        ['id' => 'skin', 'name' => 'Чистая кожа', 'default' => true,
+            'prompt' => 'выровняй тон кожи, убери прыщи, покраснения и мелкие пятна, сохранив естественную текстуру кожи'],
+        ['id' => 'shine', 'name' => 'Убрать блеск', 'default' => true,
+            'prompt' => 'убери жирный блеск и блики на лице и лбу'],
+        ['id' => 'eyes', 'name' => 'Мешки под глазами', 'default' => false,
+            'prompt' => 'аккуратно уменьши мешки и тёмные круги под глазами'],
+        ['id' => 'hair', 'name' => 'Пригладить волосы', 'default' => false,
+            'prompt' => 'аккуратно пригладь выбившиеся пряди волос, не меняя причёску'],
+        ['id' => 'glasses', 'name' => 'Блики на очках', 'default' => false,
+            'prompt' => 'убери блики на стёклах очков, не убирая сами очки'],
+        ['id' => 'suit', 'name' => 'Деловой пиджак', 'default' => false,
+            'prompt' => 'замени одежду на тёмный деловой пиджак с белой рубашкой'],
+    ];
+}
+
+function doc_photo_find(string $id): ?array
+{
+    foreach (doc_photo_catalog() as $d) {
+        if ($d['id'] === $id) {
+            return $d;
+        }
+    }
+    return null;
+}
