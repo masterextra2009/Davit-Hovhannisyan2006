@@ -55,9 +55,17 @@ function fail(string $message, int $code = 400)
     respond(['ok' => false, 'error' => $message], $code);
 }
 
-function db(): PDO
+/**
+ * Соединение с базой. $fresh = true — открыть заново: MySQL на хостинге
+ * закрывает простаивающее соединение примерно через полминуты, а обработка
+ * фото нейросетью (doc-photo.php) идёт дольше — без этого «server has gone away».
+ */
+function db(bool $fresh = false): PDO
 {
     static $pdo = null;
+    if ($fresh) {
+        $pdo = null;
+    }
     if ($pdo instanceof PDO) {
         return $pdo;
     }

@@ -154,6 +154,8 @@ function dp_make(array $user)
     $prompt = dp_prompt($doc, $retouchIds);
     $raw = dp_polza_edit($src, $prompt, dp_aspect($doc));
     $result = dp_fit_to_doc($raw, $doc, $color);
+    // нейросеть думала полминуты и больше — база за это время закрыла соединение
+    $pdo = db(true);
 
     $attemptId = new_id(20);
     $privateDir = DOC_PHOTO_PRIVATE_DIR . '/' . $user['id'];
@@ -334,6 +336,9 @@ function dp_fit_to_doc($img, array $doc, string $color)
     if ($color === 'bw') {
         imagefilter($out, IMG_FILTER_GRAYSCALE);
     }
+    // В файл записываем настоящее разрешение — иначе программа печати увидит
+    // «96 dpi» и напечатает фото не того размера.
+    imageresolution($out, $dpi, $dpi);
     return $out;
 }
 
