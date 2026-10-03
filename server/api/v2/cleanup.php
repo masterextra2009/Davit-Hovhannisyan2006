@@ -165,6 +165,40 @@ foreach (glob($uploads . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
     }
 }
 
+// ─────────── 2б. Фото на документы (doc-photo.php) — 30 дней ───────────
+// Галочка согласия в приложении обещает: «Фото удаляется через 30 дней».
+// Чистые результаты нейросети лежат вне сайта (docphoto-private/{клиент}/),
+// превью с водяным знаком — в uploads/{клиент}/docphoto_preview_*.jpg.
+// Фото, которое клиент выбрал для печати, к этому времени уже скопировано в
+// заказ и живёт по его сроку (п. 1 выше).
+const KEEP_DAYS_DOC_PHOTO = 30;
+$docCutoff = time() - KEEP_DAYS_DOC_PHOTO * 86400;
+$docPhotos = 0;
+$privateRoot = SITE_DIR . '/../docphoto-private';
+foreach (glob($privateRoot . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
+    foreach (glob($dir . '/*.jpg') ?: [] as $file) {
+        if (filemtime($file) > $docCutoff) {
+            continue;
+        }
+        $freedBytes += (int) @filesize($file);
+        if (DRY_RUN || @unlink($file)) {
+            $docPhotos++;
+        }
+    }
+    if (!DRY_RUN && ($rest = glob($dir . '/*')) !== false && !$rest) {
+        @rmdir($dir);
+    }
+}
+foreach (glob($uploads . '/*/docphoto_preview_*.jpg') ?: [] as $file) {
+    if (filemtime($file) > $docCutoff) {
+        continue;
+    }
+    $freedBytes += (int) @filesize($file);
+    if (DRY_RUN || @unlink($file)) {
+        $docPhotos++;
+    }
+}
+
 // ─────────────── 3. Просроченные брони и входы ───────────────
 
 $reservations = 0;
@@ -187,10 +221,11 @@ try {
 }
 
 printf(
-    (DRY_RUN ? '[ПРОБНЫЙ ЗАПУСК, ничего не удалено] ' : '') . "Уборка: файлов заказов удалено %d (в %d заказах), осиротевших %d, освобождено %.1f МБ, броней %d, входов %d\n",
+    (DRY_RUN ? '[ПРОБНЫЙ ЗАПУСК, ничего не удалено] ' : '') . "Уборка: файлов заказов удалено %d (в %d заказах), осиротевших %d, фото на документы %d, освобождено %.1f МБ, броней %d, входов %d\n",
     $removedFiles,
     $touchedOrders,
     $orphans,
+    $docPhotos,
     $freedBytes / 1048576,
     $reservations,
     $sessions

@@ -36,7 +36,8 @@ const DP_MAX_UPLOAD = 15 * 1024 * 1024;
 const DP_DAILY_LIMIT = 300;
 /** Не чаще раза в 20 секунд от одного клиента (двойное нажатие, скрипты). */
 const DP_MIN_INTERVAL = 20;
-const DP_CONSENT_VERSION = '1.0 от 03.10.2026';
+// 1.1: в тексте честно названы Polza.ai и Google Gemini (в 1.0 было «не передаётся третьим лицам» — неверно).
+const DP_CONSENT_VERSION = '1.1 от 03.10.2026';
 /** Файл для печати: 600 dpi для маленьких фото, 300 dpi для 9×12 (исходника 2K на 600 не хватит). */
 const DP_DPI_SMALL = 600;
 const DP_DPI_LARGE = 300;
@@ -90,8 +91,9 @@ function dp_catalog(array $user)
 
 function dp_has_consent(string $userId): bool
 {
-    $st = db()->prepare("SELECT granted FROM consents WHERE user_id = ? AND kind = 'ai_photo' ORDER BY id DESC LIMIT 1");
-    $st->execute([$userId]);
+    // Согласие считается только на нынешний текст: после правки текста спрашиваем заново.
+    $st = db()->prepare("SELECT granted FROM consents WHERE user_id = ? AND kind = 'ai_photo' AND doc_version = ? ORDER BY id DESC LIMIT 1");
+    $st->execute([$userId, DP_CONSENT_VERSION]);
     return (int) $st->fetchColumn() === 1;
 }
 
