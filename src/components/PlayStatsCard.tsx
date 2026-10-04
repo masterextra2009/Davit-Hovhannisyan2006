@@ -91,12 +91,11 @@ export function PlayStatsCard() {
       <style>{CSS}</style>
       <div className="psc-grid">
         <div className={`${cell} psc-brand`}>
-          <div className="flex items-center gap-2.5">
+          {/* 04.10.2026 Давид: без зелёного фона — только значок и под ним надпись. */}
+          <div className="flex flex-col items-center gap-1.5">
             <PlayIcon />
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-white leading-tight">
-              Google
-              <br />
-              Play
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-white leading-none whitespace-nowrap">
+              Google Play
             </span>
           </div>
         </div>
@@ -145,7 +144,7 @@ export function PlayStatsCard() {
 const CSS = `
 .psc-grid { display: grid; grid-template-columns: auto repeat(4, 1fr); }
 .psc-cell + .psc-cell { border-left: 1px solid rgba(148,163,184,.18); }
-.psc-brand { background: linear-gradient(145deg, rgba(1,135,95,.28), rgba(66,133,244,.16)); }
+.psc-brand { align-items: center; }
 @media (max-width: 640px) {
   .psc-grid { grid-template-columns: 1fr 1fr; }
   .psc-brand { grid-column: 1 / -1; }
