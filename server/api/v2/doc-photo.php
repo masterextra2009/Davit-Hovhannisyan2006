@@ -306,7 +306,7 @@ function dp_polza_edit_result(array $r)
     $url = $data['data'][0]['url'] ?? ($data['data'][0] ?? null);
     if ($code < 200 || $code >= 300 || ($data['status'] ?? '') === 'failed' || !is_string($url) || $url === '') {
         error_log('doc-photo: polza ответил ' . $code . ': ' . mb_substr((string) $raw, 0, 300));
-        fail('Нейросеть не справилась с этим фото. Попробуйте другое — светлее и анфас.', 502);
+        fail('Не получилось обработать это фото. Попробуйте другое — светлее и анфас.', 502);
     }
     $ch = curl_init($url);
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_FOLLOWLOCATION => true]);
