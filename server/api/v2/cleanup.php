@@ -168,7 +168,7 @@ foreach (glob($uploads . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
 // ─────────── 2б. Фото на документы (doc-photo.php) — 30 дней ───────────
 // Галочка согласия в приложении обещает: «Фото удаляется через 30 дней».
 // Чистые результаты нейросети лежат вне сайта (docphoto-private/{клиент}/),
-// превью с водяным знаком — в uploads/{клиент}/docphoto_preview_*.jpg.
+// превью с водяным знаком — в uploads/{клиент}/docphoto_preview_*.jpg, «как было» — docphoto_before_*.jpg.
 // Фото, которое клиент выбрал для печати, к этому времени уже скопировано в
 // заказ и живёт по его сроку (п. 1 выше).
 const KEEP_DAYS_DOC_PHOTO = 30;
@@ -189,7 +189,7 @@ foreach (glob($privateRoot . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
         @rmdir($dir);
     }
 }
-foreach (glob($uploads . '/*/docphoto_preview_*.jpg') ?: [] as $file) {
+foreach (glob($uploads . '/*/docphoto_{preview,before}_*.jpg', GLOB_BRACE) ?: [] as $file) {
     if (filemtime($file) > $docCutoff) {
         continue;
     }

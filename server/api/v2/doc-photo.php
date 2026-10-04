@@ -14,7 +14,7 @@ declare(strict_types=1);
  *
  *   GET  catalog                                    → документы, ретушь, цена, сколько осталось
  *   POST consent                                    → согласие на обработку фото нейросетью
- *   POST make     (multipart: file, docId, color, retouch, orderId?) → {attemptId, previewUrl, …}
+ *   POST make     (multipart: file, docId, color, retouch, orderId?) → {attemptId, previewUrl, beforeUrl?, …}
  *   POST order    {attemptId?, docId, color}        → заказ 250 ₽ (оплата — обычный payments.php)
  *   POST choose   {orderId, attemptId}              → какую попытку печатать (оплаченный заказ)
  *   GET  attempts &orderId=…                        → попытки заказа с превью
@@ -41,6 +41,13 @@ const DP_CONSENT_VERSION = '1.1 от 03.10.2026';
 /** Файл для печати: 600 dpi для маленьких фото, 300 dpi для 9×12 (исходника 2K на 600 не хватит). */
 const DP_DPI_SMALL = 600;
 const DP_DPI_LARGE = 300;
+/**
+ * Окно ретуши «Сканер» (04.10.2026): клиент видит, как было и как стало, —
+ * для этого его снимок накладывается на результат точно по глазам. Глаза ищет
+ * дешёвая модель в два прохода (весь снимок → вырезка вокруг лица); проверено:
+ * ошибка 1–4 px, ~0,1 ₽ на фото. Первый проход идёт одновременно с ретушью.
+ */
+const DP_EYES_MODEL = 'google/gemini-3.1-flash-lite';
 
 $user = require_user();
 $action = $_GET['action'] ?? '';
@@ -153,9 +160,17 @@ function dp_make(array $user)
     }
 
     $src = dp_read_upload();
+    $srcJpeg = dp_jpeg($src, 95);
     $prompt = dp_prompt($doc, $retouchIds);
-    $raw = dp_polza_edit($src, $prompt, dp_aspect($doc));
+    // Ретушь и поиск глаз на снимке клиента — одновременно, чтобы не ждать дольше.
+    $done = dp_curl_parallel([
+        'edit' => dp_polza_edit_request($srcJpeg, $prompt, dp_aspect($doc)),
+        'eyes' => dp_eyes_request($srcJpeg),
+    ]);
+    $raw = dp_polza_edit_result($done['edit']);
     $result = dp_fit_to_doc($raw, $doc, $color);
+    $before = dp_make_before($src, $done['eyes'], $result);
+    imagedestroy($src);
     // нейросеть думала полминуты и больше — база за это время закрыла соединение
     $pdo = db(true);
 
@@ -168,6 +183,7 @@ function dp_make(array $user)
     imagejpeg($result, doc_photo_private_path($user['id'], $attemptId), 100);
     $previewPath = dp_save_preview($result, $user['id'], $attemptId);
     imagedestroy($result);
+    $beforePath = $before ? dp_save_before($before, $user['id'], $attemptId) : null;
 
     $pdo->prepare('INSERT INTO doc_photo_attempts (id, user_id, order_id, doc_id, color, retouch, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
         ->execute([$attemptId, $user['id'], $orderId === '' ? null : $orderId, $doc['id'], $color, implode(',', $retouchIds), now_utc()]);
@@ -177,6 +193,7 @@ function dp_make(array $user)
         'ok' => true,
         'attemptId' => $attemptId,
         'previewUrl' => dp_signed($previewPath, 24 * 7),
+        'beforeUrl' => $beforePath ? dp_signed($beforePath, 24 * 7) : null,
         'attemptsLeft' => $left,
         'free' => $orderId === '',
     ], 201);
@@ -257,13 +274,9 @@ function dp_aspect(array $doc): string
     return $best;
 }
 
-/** Обработка нейросетью через polza.ai (Media API). Возвращает GD-картинку. */
-function dp_polza_edit($img, string $prompt, string $aspect)
+/** Запрос к нейросети polza.ai (Media API) — curl-ручка, запускается через dp_curl_parallel. */
+function dp_polza_edit_request(string $jpeg, string $prompt, string $aspect)
 {
-    ob_start();
-    imagejpeg($img, null, 95);
-    $jpeg = (string) ob_get_clean();
-    imagedestroy($img);
     $payload = json_encode([
         'model' => DP_MODEL,
         'input' => [
@@ -274,18 +287,13 @@ function dp_polza_edit($img, string $prompt, string $aspect)
         ],
         'async' => false,
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    $ch = curl_init('https://polza.ai/api/v1/media');
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $payload,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => DP_TIMEOUT,
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . dp_polza_key()],
-    ]);
-    $raw = curl_exec($ch);
-    $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    $err = curl_error($ch);
-    curl_close($ch);
+    return dp_polza_post('/api/v1/media', $payload, DP_TIMEOUT);
+}
+
+/** Ответ нейросети → GD-картинка (или понятная ошибка клиенту). */
+function dp_polza_edit_result(array $r)
+{
+    [$raw, $code, $err] = [$r['raw'], $r['code'], $r['err']];
     if ($raw === false) {
         error_log('doc-photo: связь с polza.ai: ' . $err);
         fail('Не получилось обработать фото. Попробуйте ещё раз.', 502);
@@ -473,6 +481,8 @@ function dp_attempts(array $user)
     $list = array_map(fn($a) => [
         'attemptId' => $a['id'],
         'previewUrl' => dp_signed('uploads/' . $user['id'] . '/docphoto_preview_' . $a['id'] . '.jpg', 24 * 7),
+        'beforeUrl' => is_file(SITE_DIR . '/uploads/' . $user['id'] . '/docphoto_before_' . $a['id'] . '.jpg')
+            ? dp_signed('uploads/' . $user['id'] . '/docphoto_before_' . $a['id'] . '.jpg', 24 * 7) : null,
         'chosen' => $a['id'] === ($dp['attemptId'] ?? ''),
         'free' => $a['order_id'] === null,
     ], $st->fetchAll());
@@ -507,6 +517,189 @@ function dp_signed(string $path, int $hours): string
     $exp = time() + $hours * 3600;
     return 'https://sever-18.ru/api/v2/files.php?action=get&path=' . rawurlencode($path)
         . '&exp=' . $exp . '&sig=' . doc_photo_sign($path, $exp);
+}
+
+function dp_jpeg($img, int $q): string
+{
+    ob_start();
+    imagejpeg($img, null, $q);
+    return (string) ob_get_clean();
+}
+
+function dp_polza_post(string $path, string $payload, int $timeout)
+{
+    $ch = curl_init('https://polza.ai' . $path);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => $timeout,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . dp_polza_key()],
+    ]);
+    return $ch;
+}
+
+/** Несколько запросов разом. → [ключ => ['raw' => ответ|false, 'code' => HTTP-код, 'err' => текст]] */
+function dp_curl_parallel(array $handles): array
+{
+    $mh = curl_multi_init();
+    foreach ($handles as $ch) {
+        curl_multi_add_handle($mh, $ch);
+    }
+    do {
+        $st = curl_multi_exec($mh, $running);
+        if ($running) {
+            curl_multi_select($mh, 1.0);
+        }
+    } while ($running && $st === CURLM_OK);
+    $out = [];
+    foreach ($handles as $k => $ch) {
+        $err = curl_error($ch);
+        $out[$k] = [
+            'raw' => $err === '' ? (string) curl_multi_getcontent($ch) : false,
+            'code' => (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE),
+            'err' => $err,
+        ];
+        curl_multi_remove_handle($mh, $ch);
+        curl_close($ch);
+    }
+    curl_multi_close($mh);
+    return $out;
+}
+
+// ─────────────────────────── «Как было» для окна ретуши ───────────────────────────
+
+/** Запрос «где зрачки» к дешёвой модели. */
+function dp_eyes_request(string $jpeg)
+{
+    $payload = json_encode([
+        'model' => DP_EYES_MODEL,
+        'temperature' => 0,
+        'messages' => [['role' => 'user', 'content' => [
+            ['type' => 'text', 'text' => 'Find the centers of the two pupils of the person. Answer ONLY JSON {"left":[y,x],"right":[y,x]} '
+                . 'with coordinates normalized 0-1000 (y from top, x from left); "left" is the eye on the left side of the image.'],
+            ['type' => 'image_url', 'image_url' => ['url' => 'data:image/jpeg;base64,' . base64_encode($jpeg)]],
+        ]]],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    return dp_polza_post('/api/v1/chat/completions', $payload, 40);
+}
+
+/** Ответ модели → [[x,y],[x,y]] в пикселях картинки w×h, или null, если ответ странный. */
+function dp_eyes_parse(array $r, int $w, int $h): ?array
+{
+    if ($r['raw'] === false || $r['code'] < 200 || $r['code'] >= 300) {
+        error_log('doc-photo: поиск глаз не ответил: ' . $r['code'] . ' ' . $r['err']);
+        return null;
+    }
+    $text = (string) (json_decode((string) $r['raw'], true)['choices'][0]['message']['content'] ?? '');
+    if (!preg_match('/\{.*\}/s', $text, $m) || !is_array($j = json_decode($m[0], true))) {
+        return null;
+    }
+    $eyes = [];
+    foreach (['left', 'right'] as $k) {
+        $p = $j[$k] ?? null;
+        if (!is_array($p) || count($p) !== 2 || !is_numeric($p[0]) || !is_numeric($p[1])) {
+            return null;
+        }
+        $eyes[] = [(float) $p[1] / 1000 * $w, (float) $p[0] / 1000 * $h];
+    }
+    $d = hypot($eyes[1][0] - $eyes[0][0], $eyes[1][1] - $eyes[0][1]);
+    // глаза слева направо и не слиплись в одну точку
+    return $eyes[0][0] < $eyes[1][0] && $d > 0.02 * $w ? $eyes : null;
+}
+
+/**
+ * Снимок клиента, повёрнутый и отмасштабированный так, чтобы глаза легли
+ * точно на глаза результата, — того же размера, что результат. Не вышло — null:
+ * окно ретуши тогда просто покажет готовое фото.
+ */
+function dp_make_before($src, array $eyesReply, $result)
+{
+    $sw = imagesx($src);
+    $sh = imagesy($src);
+    $a = dp_eyes_parse($eyesReply, $sw, $sh);
+    if (!$a) {
+        return null;
+    }
+    // второй проход — по вырезке вокруг лица: так точнее
+    $d = hypot($a[1][0] - $a[0][0], $a[1][1] - $a[0][1]);
+    $cx = ($a[0][0] + $a[1][0]) / 2;
+    $cy = ($a[0][1] + $a[1][1]) / 2;
+    $bx = (int) max(0, $cx - 2 * $d);
+    $by = (int) max(0, $cy - 1.6 * $d);
+    $bw = (int) min($sw - $bx, 4 * $d);
+    $bh = (int) min($sh - $by, 4 * $d);
+    $crop = imagecrop($src, ['x' => $bx, 'y' => $by, 'width' => $bw, 'height' => $bh]);
+    // результат ищем по копии высотой 900 — модели этого хватает, а запрос легче
+    $rw = imagesx($result);
+    $rh = imagesy($result);
+    $small = imagescale($result, (int) round($rw * 900 / $rh), 900, IMG_BICUBIC);
+    $done = dp_curl_parallel([
+        'crop' => dp_eyes_request(dp_jpeg($crop, 92)),
+        'res' => dp_eyes_request(dp_jpeg($small, 90)),
+    ]);
+    $a2 = dp_eyes_parse($done['crop'], $bw, $bh);
+    $b = dp_eyes_parse($done['res'], imagesx($small), 900);
+    imagedestroy($crop);
+    imagedestroy($small);
+    if (!$b) {
+        return null;
+    }
+    if ($a2) {
+        $a = [[$a2[0][0] + $bx, $a2[0][1] + $by], [$a2[1][0] + $bx, $a2[1][1] + $by]];
+    }
+    $k = $rh / 900;
+    $b = [[$b[0][0] * $k, $b[0][1] * $k], [$b[1][0] * $k, $b[1][1] * $k]];
+
+    // поворот и масштаб: отрезок «глаз—глаз» снимка → такой же на результате
+    $va = [$a[1][0] - $a[0][0], $a[1][1] - $a[0][1]];
+    $vb = [$b[1][0] - $b[0][0], $b[1][1] - $b[0][1]];
+    $scale = hypot($vb[0], $vb[1]) / hypot($va[0], $va[1]);
+    $angle = atan2($vb[1], $vb[0]) - atan2($va[1], $va[0]);
+    if ($scale < 0.05 || $scale > 20 || abs($angle) > deg2rad(35)) {
+        return null; // явно ошибка модели
+    }
+    // imagerotate крутит против часовой; ось y у картинки вниз — отсюда минус
+    $rot = abs($angle) > 0.002 ? imagerotate($src, -rad2deg($angle), imagecolorallocate($src, 255, 255, 255)) : $src;
+    $nw = imagesx($rot);
+    $nh = imagesy($rot);
+    $c = cos($angle);
+    $s = sin($angle);
+    $ex = $a[0][0] - $sw / 2;
+    $ey = $a[0][1] - $sh / 2;
+    $ax = $c * $ex - $s * $ey + $nw / 2; // левый глаз на повёрнутом снимке
+    $ay = $s * $ex + $c * $ey + $nh / 2;
+    $tx = $b[0][0] - $scale * $ax;
+    $ty = $b[0][1] - $scale * $ay;
+
+    $out = imagecreatetruecolor($rw, $rh);
+    imagefill($out, 0, 0, imagecolorallocate($out, 255, 255, 255));
+    // копируется только видимая часть повёрнутого снимка — без выхода за края
+    $x0 = max(0.0, -$tx / $scale);
+    $y0 = max(0.0, -$ty / $scale);
+    $x1 = min((float) $nw, ($rw - $tx) / $scale);
+    $y1 = min((float) $nh, ($rh - $ty) / $scale);
+    if ($x1 - $x0 >= 2 && $y1 - $y0 >= 2) {
+        imagecopyresampled($out, $rot,
+            (int) round($tx + $x0 * $scale), (int) round($ty + $y0 * $scale), (int) $x0, (int) $y0,
+            (int) round(($x1 - $x0) * $scale), (int) round(($y1 - $y0) * $scale), (int) ($x1 - $x0), (int) ($y1 - $y0));
+    }
+    if ($rot !== $src) {
+        imagedestroy($rot);
+    }
+    return $out;
+}
+
+/** «Как было» — тем же размером, что превью, без водяного знака (это снимок самого клиента). */
+function dp_save_before($img, string $userId, string $attemptId): string
+{
+    $h = 900;
+    $p = imagescale($img, (int) round(imagesx($img) * $h / imagesy($img)), $h, IMG_BICUBIC);
+    imagedestroy($img);
+    $name = 'docphoto_before_' . $attemptId . '.jpg';
+    imagejpeg($p, SITE_DIR . '/uploads/' . $userId . '/' . $name, 82);
+    imagedestroy($p);
+    return 'uploads/' . $userId . '/' . $name;
 }
 
 function dp_polza_key(): string
