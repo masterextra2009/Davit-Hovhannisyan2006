@@ -3652,7 +3652,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           return todayData?.count || 0;
                         })()}
                       </p>
-                      <div className="text-[11px] text-slate-400">Сегодня • Всего: {database.siteVisits || 0}</div>
+                      <div className="text-[11px] text-slate-400">Сегодня</div>
                       <div className="text-[11px] text-slate-400">
                         {(() => {
                           const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
