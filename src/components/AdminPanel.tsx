@@ -3665,12 +3665,23 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <Users className="w-5 h-5" />
                     </div>
                   </div>
-                  {/* График последних 7 дней */}
+                  {/* График последних 7 дней: по календарю, сегодня справа. Сервер
+                      присылает дни от новых к старым, и прежний slice(-7) брал
+                      самые старые — 05.10.2026 на графике висели 19–25 сентября,
+                      а сегодняшнего столбика не было. День без заходов = 0. */}
                   <div className="flex items-end gap-1 h-10 mt-2">
-                    {(database.siteVisitsHistory || []).slice(-7).map((h: any, i: number) => {
-                      const max = Math.max(...(database.siteVisitsHistory || []).slice(-7).map((x: any) => x.count || 0), 1);
+                    {(() => {
+                      const byDate = new Map((database.siteVisitsHistory || []).map((h: any) => [h.date, h.count || 0]));
+                      return Array.from({ length: 7 }, (_, k) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() - (6 - k));
+                        const date = getLocalDateKey(d);
+                        return { date, count: byDate.get(date) || 0 };
+                      });
+                    })().map((h, i, week) => {
+                      const max = Math.max(...week.map(x => x.count), 1);
                       const height = Math.max(4, Math.round((h.count / max) * 40));
-                      const isToday = h.date === getLocalDateKey();
+                      const isToday = i === week.length - 1;
                       return (
                         <div key={i} className="flex-1 flex flex-col items-center gap-0.5" title={`${h.date}: ${h.count} визитов`}>
                           <div
