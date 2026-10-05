@@ -382,6 +382,22 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
+/**
+ * Текст для клиента, когда оплата не открылась. Раньше любой отказ сервера
+ * выглядел как «Ошибка соединения. Проверьте интернет» — 05.10.2026 клиент
+ * 20 раз подряд проверял исправный интернет, а серверу не хватало телефона
+ * для чека. Теперь: отказ сервера — его словами, обрыв — про интернет.
+ * null — клиент сам закрыл окошко с телефоном, говорить нечего.
+ */
+function paymentErrorText(err: unknown): string | null {
+  if (err instanceof Error && err.message === 'cancelled') return null;
+  if (err instanceof Error && err.message === 'timeout') {
+    return 'Не удалось открыть оплату — слишком слабое соединение. Проверьте интернет и попробуйте ещё раз.';
+  }
+  if (err instanceof v2.ApiError) return err.message;
+  return 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.';
+}
+
 // Черновик незавершённой загрузки — переживает обновление страницы (F5)
 const UPLOAD_DRAFT_KEY = 'print_shop_upload_draft';
 function loadUploadDraft(): PrintFile[] {
@@ -1919,6 +1935,38 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   // Payment popup state
   const [payingOrder, setPayingOrder] = useState<Order | null>(null);
+
+  // Окошко «Телефон для чека»: у клиента без почты и телефона ЮKassa не
+  // выдаёт чек, и сервер не создаёт оплату (need: 'contact'). Спрашиваем
+  // номер прямо здесь и повторяем оплату с ним — сервер сохранит его в профиль.
+  const [phoneAsk, setPhoneAsk] = useState<{ error?: string; resolve: (phone: string | null) => void } | null>(null);
+  const [phoneAskValue, setPhoneAskValue] = useState('');
+  const askPhone = (error?: string) => new Promise<string | null>(resolve => {
+    setPhoneAsk({ error, resolve });
+  });
+  const closePhoneAsk = (phone: string | null) => {
+    phoneAsk?.resolve(phone);
+    setPhoneAsk(null);
+  };
+
+  // Заказ уже записан, а оплата не открылась — сообщение висит над списком
+  // заказов, пока клиент его не закроет (короткий toast он бы не успел прочесть).
+  const [payNotice, setPayNotice] = useState<string | null>(null);
+
+  /** Оплата заказа; если серверу нужен телефон для чека — спросить и повторить. */
+  const createPayment = async (orderId: string) => {
+    let phone: string | undefined;
+    for (;;) {
+      try {
+        return await withTimeout(v2.payments.create(orderId, phone), 20000);
+      } catch (err) {
+        if (!(err instanceof v2.ApiError) || err.need !== 'contact') throw err;
+        const typed = await askPhone(phone ? err.message : undefined);
+        if (!typed) throw new Error('cancelled');
+        phone = typed;
+      }
+    }
+  };
   // Гостевое предложение регистрации (после заказа) + 4 точки-ограничения
   // для гостей (см. GuestUpsellModal) — одно состояние на все 5 мест показа.
   const [guestUpsellReason, setGuestUpsellReason] = useState<GuestUpsellReason | null>(null);
@@ -3608,19 +3656,42 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     // Создаём платёж в ЮKassa (withTimeout не даёт кнопке зависнуть навсегда
     // на нестабильной мобильной сети — см. объявление функции выше).
     setOrderAcceptPhase('loading');
+    // Заказ записан, а оплата не открылась. Корзину очищаем и ведём в
+    // «Мои заказы»: оплатить этот же заказ можно там кнопкой «Оплатить».
+    // Раньше клиент оставался в корзине, жал «Оформить» снова, и каждое
+    // нажатие писало НОВЫЙ заказ (05.10.2026: 12 одинаковых за две минуты).
+    const parkUnpaidOrder = (notice: string | null) => {
+      onUpdateDatabase({ orders: [pendingOrder, ...database.orders], users: updatedUsers });
+      setUploadedFiles([]);
+      setNotes('');
+      setBinding('none');
+      setAppliedPromo(null);
+      setPromoCode('');
+      setPromoError(null);
+      setSelectedService(null);
+      setActiveTab('orders');
+      setMobileHome(false);
+      setPayNotice(`Заказ ${orderId} создан, но не оплачен. ${notice ? notice + ' ' : ''}` +
+        'Оплатите его ниже кнопкой «Оплатить» или при получении.');
+      setOrderAcceptPhase('idle');
+      if (btn) { btn.disabled = false; btn.textContent = 'Оформить заказ'; }
+    };
+
     (async () => {
+      let orderSaved = false;
       try {
         // Пишем заказ в базу ДО обращения к payment-create.php — серверный
         // код читает оттуда реальную сумму заказа (защита от подделки
         // суммы платежа), значит документ обязан уже существовать к этому
         // моменту, а не только после успешного ответа ЮKassa.
         await withTimeout(saveOrderToFirebase(pendingOrder), 15000);
+        orderSaved = true;
         trackAnalyticsEvent('order_created');
 
         // Оплату создаёт наш сервер: он сам берёт сумму из заказа и знает
         // новые ключи ЮKassa. Старый api/payment-create.php остался с
         // отозванным ключом — через него страница оплаты не открывалась.
-        const data = await withTimeout(v2.payments.create(orderId), 20000);
+        const data = await createPayment(orderId);
 
         if (data.paymentUrl && data.paymentId) {
           const updated = { ...pendingOrder, transactionId: data.paymentId };
@@ -3642,28 +3713,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           await new Promise(r => setTimeout(r, 900));
           window.location.href = data.paymentUrl;
         } else {
-          // ЮKassa недоступна — заказ уже записан выше, просто показываем модалку
-          onUpdateDatabase({ orders: [pendingOrder, ...database.orders], users: updatedUsers });
-          setUploadedFiles([]);
-          setNotes('');
-          setBinding('none');
-          setAppliedPromo(null);
-          setPromoCode('');
-          setPromoError(null);
-          setActiveTab('orders');
-          setMobileHome(false);
-          setPayingOrder(pendingOrder);
-          setOrderAcceptPhase('success');
-          setTimeout(() => setOrderAcceptPhase('idle'), 1400);
+          // Ссылки на оплату нет — заказ уже записан выше. Раньше здесь
+          // открывалось учебное окно «оплаты» без настоящего платежа.
+          parkUnpaidOrder(null);
         }
       } catch (err) {
         console.error('Payment error:', err);
-        const isTimeout = err instanceof Error && err.message === 'timeout';
-        setUploadError(
-          isTimeout
-            ? 'Не удалось создать платёж — слишком слабое соединение. Проверьте интернет и попробуйте ещё раз.'
-            : 'Ошибка создания платежа. Попробуйте ещё раз.'
-        );
+        if (orderSaved) {
+          parkUnpaidOrder(paymentErrorText(err));
+          return;
+        }
+        setUploadError(err instanceof Error && err.message === 'timeout'
+          ? 'Не удалось отправить заказ — слишком слабое соединение. Проверьте интернет и попробуйте ещё раз.'
+          : 'Не удалось отправить заказ. Попробуйте ещё раз.');
         setOrderAcceptPhase('idle');
         if (btn) { btn.disabled = false; btn.textContent = 'Оформить заказ'; }
       }
@@ -4160,6 +4222,63 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Телефон для чека — над экраном «Оформляем заказ…» (z-200): оплата
+          ждёт ответа, пока клиент вводит номер. */}
+      <AnimatePresence>{phoneAsk && (
+        <motion.div
+          key="phoneAsk"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[250]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: 0.25 } }}
+          exit={{ opacity: 0, transition: { duration: 0.2 } }}
+          onClick={() => closePhoneAsk(null)}
+        >
+          <motion.form
+            className="glass-window max-w-sm w-full p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, scale: 0.9, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 220, damping: 22 } }}
+            exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.18 } }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (phoneAskValue.replace(/\D/g, '').length >= 10) closePhoneAsk(phoneAskValue);
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                <Phone className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-800 dark:text-white">Телефон для чека</h3>
+                <p className="text-[11px] text-slate-400 font-bold">Банк пришлёт на него чек об оплате</p>
+              </div>
+            </div>
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              autoFocus
+              placeholder="+7 900 123-45-67"
+              value={phoneAskValue}
+              onChange={(e) => setPhoneAskValue(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-base font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-500"
+            />
+            {phoneAsk.error && <p className="text-xs font-bold text-rose-500">{phoneAsk.error}</p>}
+            <p className="text-[11px] text-slate-400">Номер сохранится в профиле — в следующий раз спрашивать не будем.</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => closePhoneAsk(null)}
+                className="flex-1 py-3 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                Отмена
+              </button>
+              <button type="submit" disabled={phoneAskValue.replace(/\D/g, '').length < 10}
+                className="flex-1 py-3 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white">
+                Перейти к оплате
+              </button>
+            </div>
+          </motion.form>
+        </motion.div>
+      )}</AnimatePresence>
 
       {/* Neutral frosted glow accents (no color tint) */}
 
@@ -5712,7 +5831,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 transition={{ duration: 0.25, ease: 'easeOut' }}
                 className="space-y-6 w-full md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1"
               >
-              
+
+              {payNotice && (
+                <div className="flex items-start gap-3 p-4 rounded-2xl border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800/50">
+                  <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <p className="flex-1 text-sm font-bold text-amber-900 dark:text-amber-100">{payNotice}</p>
+                  <button type="button" onClick={() => setPayNotice(null)} aria-label="Закрыть"
+                    className="shrink-0 text-amber-700/70 hover:text-amber-900 dark:text-amber-300/70">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
               {/* Filter controls and top line */}
               <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div className="flex flex-wrap gap-1 w-full sm:w-auto">
@@ -5987,20 +6117,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 onClick={async () => {
                                   setRetryPayingOrderId(ord.id);
                                   try {
-                                    const data = await withTimeout(v2.payments.create(ord.id), 20000);
+                                    const data = await createPayment(ord.id);
                                     if (data.paymentUrl) {
+                                      setPayNotice(null);
                                       window.location.href = data.paymentUrl;
                                     } else {
-                                      alert('Ошибка создания платежа. Попробуйте ещё раз.');
+                                      setPayNotice(data.paid
+                                        ? `Заказ ${ord.id} уже оплачен — статус обновится через несколько секунд.`
+                                        : 'Не удалось открыть оплату. Попробуйте ещё раз или оплатите при получении.');
                                       setRetryPayingOrderId(null);
                                     }
                                   } catch (err) {
-                                    const isTimeout = err instanceof Error && err.message === 'timeout';
-                                    alert(
-                                      isTimeout
-                                        ? 'Не удалось создать платёж — слишком слабое соединение. Проверьте интернет и попробуйте ещё раз.'
-                                        : 'Ошибка соединения. Проверьте интернет и попробуйте снова.'
-                                    );
+                                    const text = paymentErrorText(err);
+                                    if (text) setPayNotice(`Заказ ${ord.id}: ${text}`);
                                     setRetryPayingOrderId(null);
                                   }
                                 }}

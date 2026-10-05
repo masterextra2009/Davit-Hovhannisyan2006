@@ -83,8 +83,23 @@ function create_payment(array $user)
     }
 
     $customer = receipt_customer($user, $order);
+    // Ни почты, ни телефона (гость, вход через Telegram) — сайт спрашивает
+    // номер прямо при оплате и присылает его сюда же. 05.10.2026 клиент без
+    // контактов 20 раз подряд читал «проверьте интернет» и так и не оплатил.
+    $phone = trim((string) (body()['phone'] ?? ''));
+    if ($customer === null && $phone !== '') {
+        $customer = receipt_customer(['phone' => $phone], []);
+        if ($customer === null) {
+            respond(['ok' => false, 'need' => 'contact',
+                'error' => 'Номер не похож на российский. Введите 11 цифр, например +7 900 123-45-67.'], 400);
+        }
+        $saved = '+' . $customer['phone'];
+        db()->prepare("UPDATE users SET phone = ? WHERE id = ? AND (phone IS NULL OR phone = '')")->execute([$saved, $user['id']]);
+        db()->prepare("UPDATE orders SET user_phone = ? WHERE id = ? AND (user_phone IS NULL OR user_phone = '')")->execute([$saved, $order['id']]);
+    }
     if ($customer === null) {
-        fail('Для электронного чека нужна почта или телефон. Укажите их в профиле и попробуйте снова.', 400);
+        respond(['ok' => false, 'need' => 'contact',
+            'error' => 'Для электронного чека нужен ваш телефон или почта.'], 400);
     }
     $value = number_format($amount, 2, '.', '');
     $payment = yookassa($cfg, 'POST', YOOKASSA_API, [

@@ -47,9 +47,12 @@ export function setToken(token: string): void {
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** Чего не хватает серверу, чтобы продолжить: 'contact' — телефона для чека. */
+  need?: string;
+  constructor(message: string, status: number, need?: string) {
     super(message);
     this.status = status;
+    this.need = need;
   }
 }
 
@@ -75,7 +78,7 @@ async function request<T>(path: string, options: { method?: 'GET' | 'POST'; body
     const message = (data && (data.error as string)) || 'Сервер недоступен. Попробуйте ещё раз.';
     // Пропуск протух или отозван — пусть верхний слой предложит войти заново.
     if (res.status === 401) setToken('');
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, data?.need);
   }
   return data as T;
 }
@@ -283,9 +286,9 @@ export const payments = {
    * Создаёт платёж в ЮKassa. Сумму сервер берёт из самого заказа — прислать
    * свою нельзя, иначе цену можно было бы подделать на стороне браузера.
    */
-  create: (orderId: string) =>
+  create: (orderId: string, phone?: string) =>
     request<{ paymentUrl?: string; paymentId?: string; paid?: boolean }>(
-      'payments.php?action=create', { body: { orderId } }),
+      'payments.php?action=create', { body: phone ? { orderId, phone } : { orderId } }),
   status: (orderId: string) =>
     request<{ paymentStatus: string }>(`payments.php?action=status&orderId=${encodeURIComponent(orderId)}`),
 };
