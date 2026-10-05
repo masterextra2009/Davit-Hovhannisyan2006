@@ -1,0 +1,22 @@
+# Перевод документов (server.py рядом). Ставится на VPS Cortex:
+#   /opt/convert/server.py, ключ в /opt/convert/key (тот же — в .sever18-private/convert.php сайта)
+[Unit]
+Description=Convert documents (Word<->PDF) for sever-18
+After=network-online.target
+
+[Service]
+User=convert
+WorkingDirectory=/opt/convert
+Environment=HOME=/tmp
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/convert/venv/bin/python /opt/convert/server.py
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+MemoryMax=600M
+
+[Install]
+WantedBy=multi-user.target
