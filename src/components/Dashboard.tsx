@@ -6152,14 +6152,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               </div>
                             )}
 
-                            {/* Status/Receipt Trigger */}
-                            <button
-                              onClick={() => setPayingOrder(ord)}
-                              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black px-4.5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/10 transition justify-center"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              Статус обработки
-                            </button>
+                            {/* Кнопка «Статус обработки» убрана 05.10.2026: она
+                                открывала учебное окно «оплаты» с полями карты,
+                                которое без денег рисовало «Оплата получена!».
+                                Платить — кнопкой «Оплатить» (ЮKassa) выше. */}
 
                             {/* Удалить заказ целиком — только пока не оплачен и не взят в обработку.
                                 Раньше подтверждение было строкой прямо тут (Да/Нет рядом с кнопкой) —
