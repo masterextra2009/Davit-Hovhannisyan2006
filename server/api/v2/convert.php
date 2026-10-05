@@ -15,7 +15,8 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 
-const CONVERT_MAX_BYTES = 25 * 1024 * 1024;
+/** 15 МБ: файл в base64 на треть больше, а памяти у PHP на хостинге 128 МБ. */
+const CONVERT_MAX_BYTES = 15 * 1024 * 1024;
 /** Переводов в день на одного клиента — чтобы чужой скрипт не занял VPS. */
 const CONVERT_DAILY_LIMIT = 40;
 
@@ -26,12 +27,26 @@ $to = (string) ($_GET['to'] ?? '');
 if (!in_array($to, ['pdf', 'docx'], true)) {
     fail('Неизвестный перевод');
 }
-$file = $_FILES['file'] ?? null;
-if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-    fail('Файл не дошёл до сервера. Попробуйте ещё раз.');
+// Файл приходит либо формой (сайт), либо JSON {name, data: base64} — так шлёт
+// приложение: отправка формой из него уже подводила (см. api.ts приложения),
+// а base64 в JSON работает и в чате. Ответ — в том же виде, что и запрос.
+$asJson = !isset($_FILES['file']);
+if ($asJson) {
+    $raw = base64_decode((string) (body()['data'] ?? ''), true);
+    $name = basename((string) (body()['name'] ?? 'file'));
+    if ($raw === false || $raw === '') {
+        fail('Файл не дошёл до сервера. Попробуйте ещё раз.');
+    }
+} else {
+    $file = $_FILES['file'];
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        fail('Файл не дошёл до сервера. Попробуйте ещё раз.');
+    }
+    $raw = (string) file_get_contents((string) $file['tmp_name']);
+    $name = basename((string) ($file['name'] ?? 'file'));
 }
-if ((int) $file['size'] > CONVERT_MAX_BYTES) {
-    fail('Файл больше 25 МБ — такой не перевести.', 413);
+if (strlen($raw) > CONVERT_MAX_BYTES) {
+    fail('Файл больше 15 МБ — такой не перевести.', 413);
 }
 
 $cfgFile = SITE_DIR . '/../.sever18-private/convert.php';
@@ -48,11 +63,10 @@ if ((int) $st->fetchColumn() >= CONVERT_DAILY_LIMIT && $user['role'] !== 'admin'
     fail('На сегодня переводов достаточно — продолжите завтра.', 429);
 }
 
-$name = basename((string) ($file['name'] ?? 'file'));
 $ch = curl_init(rtrim((string) $cfg['url'], '/') . '?to=' . $to);
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => file_get_contents((string) $file['tmp_name']),
+    CURLOPT_POSTFIELDS => $raw,
     CURLOPT_HTTPHEADER => [
         'Content-Type: application/octet-stream',
         'X-Convert-Key: ' . $cfg['key'],
@@ -82,6 +96,9 @@ db()->prepare(
 )->execute(['convert:' . $day, $user['id'], '$."' . $user['id'] . '"', '$."' . $user['id'] . '"']);
 
 $base = pathinfo($name, PATHINFO_FILENAME) ?: 'document';
+if ($asJson) {
+    respond(['ok' => true, 'name' => "$base.$to", 'data' => base64_encode($body)]);
+}
 header('Content-Type: ' . ($ctype ?: 'application/octet-stream'));
 header('Content-Length: ' . strlen($body));
 header("Content-Disposition: attachment; filename=\"document.$to\"; filename*=UTF-8''" . rawurlencode("$base.$to"));
