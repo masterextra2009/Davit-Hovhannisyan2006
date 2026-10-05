@@ -259,6 +259,12 @@ export interface Promo {
   createdAt: string;
 }
 
+/** Один день счётчика сервера: число заказов или оборот в рублях. */
+export interface DailyStat {
+  date: string;
+  value: number;
+}
+
 export interface DatabaseState {
   users: User[];
   orders: Order[];
@@ -268,5 +274,7 @@ export interface DatabaseState {
   promos?: Promo[];
   siteVisits?: number;
   siteVisitsHistory?: { date: string; count: number }[];
+  ordersDaily?: DailyStat[];
+  revenueDaily?: DailyStat[];
   feedback?: Feedback[];
 }

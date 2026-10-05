@@ -280,3 +280,32 @@ function recently_online(array $user): bool
     $last = (new DateTimeImmutable((string) $user['last_active_at'], new DateTimeZone('UTC')))->getTimestamp();
     return (time() - $last) < ONLINE_FRESHNESS_SECONDS;
 }
+
+/**
+ * Счётчики «по дням» для плиток админки «Заказы» и «Оборот» (05.10.2026).
+ * Посчитать по самой таблице orders нельзя: выданные заказы удаляются через
+ * 48 часов, и сумма за месяц выходила бы заниженной. Поэтому сервер сам
+ * копит число в stats в момент события: 'orders_daily' — заказ оформлен
+ * (и −1, если неоплаченный невыданный заказ удалили: дубли, отмены),
+ * 'revenue_daily' — заказ стал оплаченным (и минус, если оплату сняли).
+ * День — московский; $utcDate задаёт день задним числом (для −1 при удалении).
+ */
+function daily_stat_add(string $name, float $delta, ?string $utcDate = null): void
+{
+    if ($delta == 0.0) {
+        return;
+    }
+    $at = new DateTimeImmutable($utcDate ?? 'now', new DateTimeZone('UTC'));
+    $day = $at->setTimezone(new DateTimeZone('Europe/Moscow'))->format('Y-m-d');
+    $path = '$."' . $day . '"';
+    try {
+        db()->prepare(
+            "INSERT INTO stats (name, data) VALUES (?, JSON_OBJECT(?, ?)) AS new
+             ON DUPLICATE KEY UPDATE data = JSON_SET(stats.data, ?,
+                ROUND(COALESCE(JSON_EXTRACT(stats.data, ?), 0) + ?, 2))"
+        )->execute([$name, $day, $delta, $path, $path, $delta]);
+    } catch (Throwable $e) {
+        // Счётчик — витрина, а не учёт: его сбой не должен ронять заказ или оплату.
+        error_log('daily_stat_add ' . $name . ': ' . $e->getMessage());
+    }
+}

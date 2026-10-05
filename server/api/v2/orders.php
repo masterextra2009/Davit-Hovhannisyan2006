@@ -260,6 +260,7 @@ function create(array $user)
         }
         throw $e;
     }
+    daily_stat_add('orders_daily', 1);
     // Заказ с оплатой при получении готов к работе сразу — сообщаем админу.
     // Заказ под оплату картой объявляется позже, когда оплата пройдёт
     // (payments.php): неоплаченный могут и бросить.
@@ -388,6 +389,7 @@ function cancel(array $user)
         $pdo->rollBack();
         throw $e;
     }
+    daily_stat_add('orders_daily', -1, $order['order_date']);
     respond(['ok' => true]);
 }
 
@@ -496,6 +498,13 @@ function admin_save()
     $justPaid = $payment === 'paid' && ($old['payment_status'] ?? 'unpaid') !== 'paid';
     if ($justPaid) {
         grant_referral_reward($userId);
+        daily_stat_add('revenue_daily', (float) $total);
+    } elseif ($old !== null && $old['payment_status'] === 'paid' && $payment !== 'paid') {
+        // Оплату сняли (ошиблись галочкой) — убираем из оборота того же дня.
+        daily_stat_add('revenue_daily', -(float) $old['total_cost']);
+    }
+    if ($old === null) {
+        daily_stat_add('orders_daily', 1);
     }
 
     // Уведомление на телефон — как раньше делала Cloud Function
@@ -554,12 +563,13 @@ function admin_delete()
 {
     $id = str_field('id', 64);
     $pdo = db();
-    $st = $pdo->prepare('SELECT user_id FROM orders WHERE id = ?');
+    $st = $pdo->prepare('SELECT user_id, status, payment_status, order_date FROM orders WHERE id = ?');
     $st->execute([$id]);
-    $userId = $st->fetchColumn();
-    if ($userId === false) {
+    $gone = $st->fetch();
+    if ($gone === false) {
         fail('Заказ не найден', 404);
     }
+    $userId = $gone['user_id'];
     $pdo->beginTransaction();
     try {
         $pdo->prepare('DELETE FROM orders WHERE id = ?')->execute([$id]);
@@ -568,6 +578,11 @@ function admin_delete()
     } catch (Throwable $e) {
         $pdo->rollBack();
         throw $e;
+    }
+    // Удалили дубль или брошенный заказ — он не считается. Выданные и
+    // оплаченные (их убирает автоудаление через 48 ч) остаются в счёте.
+    if ($gone['payment_status'] !== 'paid' && $gone['status'] !== 'printed') {
+        daily_stat_add('orders_daily', -1, $gone['order_date']);
     }
     respond(['ok' => true]);
 }

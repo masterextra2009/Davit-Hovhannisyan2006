@@ -442,6 +442,7 @@ function dp_order(array $user)
         $pdo->rollBack();
         throw $e;
     }
+    daily_stat_add('orders_daily', 1);
     respond(['ok' => true, 'orderId' => $orderId, 'total' => DOC_PHOTO_PRICE], 201);
 }
 

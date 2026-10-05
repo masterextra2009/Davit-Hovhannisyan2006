@@ -14,7 +14,7 @@ import logoImg from '../assets/logo.webp';
 import {
   FileText, Users, Clock, MessageSquare, Download, CheckCircle,
   Send, RefreshCw, BarChart3, Trash2, Edit3, Save, FileSpreadsheet,
-  Printer, ArrowRight, TrendingUp, DollarSign, Files, Eye, HelpCircle,
+  Printer, ArrowRight, TrendingUp, ShoppingBag, DollarSign, Files, Eye, HelpCircle,
   BellRing, LogOut, FileCheck, Settings, Camera, Image as ImageIcon, Key, CreditCard, Check, ShieldAlert, X, ShieldCheck, Gift, Search, Archive, ChevronLeft, Mail, Phone, User as UserIconLucide, Upload, Lightbulb, GripVertical
 } from 'lucide-react';
 import {
@@ -58,25 +58,6 @@ const PHOTO_SIZE_LABELS: Record<string, string> = {
   '15x21': '15×21 см', '20x30': '20×30 см', '30x40': '30×40 см',
 };
 
-// Тонкое кольцо прогресса для карточек статистики — одна метрика, один цвет,
-// закруглённый конец дуги (см. dataviz: тонкие марки, скруглённые концы).
-function MiniRing({ percent, colorClass }: { percent: number; colorClass: string }) {
-  const r = 15;
-  const c = 2 * Math.PI * r;
-  const clamped = Math.max(0, Math.min(100, percent));
-  const offset = c - (clamped / 100) * c;
-  return (
-    <svg width="38" height="38" viewBox="0 0 40 40" className="shrink-0 -rotate-90">
-      <circle cx="20" cy="20" r={r} fill="none" strokeWidth="4" className="stroke-slate-150 dark:stroke-slate-800" />
-      <circle
-        cx="20" cy="20" r={r} fill="none" strokeWidth="4" strokeLinecap="round"
-        strokeDasharray={c} strokeDashoffset={offset}
-        className={`${colorClass} transition-all duration-700 ease-out`}
-      />
-    </svg>
-  );
-}
-
 // Мини-полоски за последние 7 дней — тот же визуальный язык, что уже
 // использовался для "Заходы на сайт", теперь переиспользуется для выручки
 // и новых клиентов.
@@ -118,6 +99,25 @@ function buildLast7Days<T>(items: T[], getDate: (item: T) => string, getValue: (
   return days;
 }
 
+const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+/**
+ * Сегодня / за месяц / 7 дней по счётчику сервера (misc.php?action=daily-stats).
+ * Не по database.orders: выданные заказы удаляются через 48 ч, и месяц по ним
+ * выходил бы заниженным.
+ */
+function dailySummary(rows: { date: string; value: number }[] = []) {
+  const now = new Date();
+  const today = getLocalDateKey(now);
+  const monthPrefix = today.slice(0, 7);
+  return {
+    today: rows.find(r => r.date === today)?.value || 0,
+    month: rows.filter(r => r.date.startsWith(monthPrefix)).reduce((s, r) => s + r.value, 0),
+    monthName: MONTH_NAMES[now.getMonth()],
+    week: buildLast7Days(rows, r => `${r.date}T12:00:00`, r => r.value),
+  };
+}
+
 interface AdminPanelProps {
   adminUser: User;
   onLogout: () => void;
@@ -130,6 +130,8 @@ interface AdminPanelProps {
     promos?: Promo[];
     siteVisits?: number;
     siteVisitsHistory?: { date: string; count: number }[];
+    ordersDaily?: { date: string; value: number }[];
+    revenueDaily?: { date: string; value: number }[];
     feedback?: Feedback[];
   };
   onUpdateDatabase: (updatedData: {
@@ -1686,12 +1688,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
   // Данные для графиков в карточках статистики — 7 дней, тот же язык, что
   // уже был у "Заходы на сайт".
-  const revenueHistory = useMemo(() => buildLast7Days(
-    database.orders.filter(o => o.paymentStatus === 'paid'),
-    o => o.orderDate,
-    o => o.totalCost
-  ), [database.orders]);
-
   const newClientsHistory = useMemo(() => buildLast7Days(
     clientsOnly,
     u => u.createdAt
@@ -1732,8 +1728,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     return months.reverse();
   }, [clientsOnly]);
 
-  const printedCount = database.orders.filter(o => o.status === 'printed').length;
-  const completedPercent = database.orders.length > 0 ? Math.round((printedCount / database.orders.length) * 100) : 0;
 
   // Карточки «В печатной работе» и «Сводка по чату» убраны из аналитики
   // (Давид 26.09.2026) — вместе с их подсчётами.
@@ -3587,39 +3581,49 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <div className="space-y-6">
               
               {/* Top stats grid widgets */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-                
-                <div className="glass-panel p-5 rounded-3xl">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Общий оборот</span>
-                      <p className="text-2xl font-black text-indigo-650 dark:text-white">₽{totalRevenue}</p>
-                    </div>
-                    <div className="p-2.5 bg-indigo-50 dark:bg-slate-850 text-indigo-600 dark:text-indigo-400 rounded-2xl">
-                      <TrendingUp className="w-5 h-5" />
-                    </div>
-                  </div>
-                  <MiniSparkline data={revenueHistory} colorClass="bg-indigo-500" />
-                  <div className="text-[11px] text-emerald-600 font-bold mt-1.5">
-                    &uarr; 100% зачисление на банковский ПК
-                  </div>
-                </div>
+              {/* 4 плитки ровным рядом на всю ширину (было 5 колонок под 4
+                  плитки — справа зияла пустая). Google Play ниже — на всю строку. */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
 
-                <div className="glass-panel p-5 rounded-3xl">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Всего Заказов</span>
-                      <p className="text-2xl font-black text-slate-800 dark:text-white">{database.orders.length} шт.</p>
+                {(() => {
+                  const r = dailySummary(database.revenueDaily);
+                  return (
+                    <div className="glass-panel p-5 rounded-3xl">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Оборот</span>
+                          <p className="text-2xl font-black text-indigo-650 dark:text-white">₽{Math.round(r.today)}</p>
+                          <div className="text-[11px] text-slate-400">Сегодня</div>
+                          <div className="text-[11px] text-slate-400">За {r.monthName}: ₽{Math.round(r.month)}</div>
+                        </div>
+                        <div className="p-2.5 bg-indigo-50 dark:bg-slate-850 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                          <TrendingUp className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <MiniSparkline data={r.week} colorClass="bg-indigo-500" />
                     </div>
-                    <div className="relative flex items-center justify-center">
-                      <MiniRing percent={completedPercent} colorClass="stroke-emerald-500" />
-                      <span className="absolute text-[10px] font-black text-emerald-600 dark:text-emerald-400">{completedPercent}%</span>
+                  );
+                })()}
+
+                {(() => {
+                  const o = dailySummary(database.ordersDaily);
+                  return (
+                    <div className="glass-panel p-5 rounded-3xl">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Заказы</span>
+                          <p className="text-2xl font-black text-slate-800 dark:text-white">{o.today} шт.</p>
+                          <div className="text-[11px] text-slate-400">Сегодня</div>
+                          <div className="text-[11px] text-slate-400">За {o.monthName}: {o.month} шт.</div>
+                        </div>
+                        <div className="p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-500 rounded-2xl">
+                          <ShoppingBag className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <MiniSparkline data={o.week} colorClass="bg-emerald-500" />
                     </div>
-                  </div>
-                  <div className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold mt-2">
-                    Из них: {printedCount} выполненных
-                  </div>
-                </div>
+                  );
+                })()}
 
                 <div className="glass-panel p-5 rounded-3xl">
                   <div className="flex justify-between items-start">

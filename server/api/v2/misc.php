@@ -70,6 +70,10 @@ switch ($action) {
         require_method('GET');
         require_admin($isAdmin);
         show_visits();
+    case 'daily-stats':
+        require_method('GET');
+        require_admin($isAdmin);
+        show_daily_stats();
     case 'play-stats':
         require_method('GET');
         require_admin($isAdmin);
@@ -261,6 +265,23 @@ function show_visits()
         'total' => (int) ($data['total'] ?? 0),
         'history' => array_map(fn($d, $c) => ['date' => $d, 'count' => (int) $c], array_keys($history), $history),
     ]);
+}
+
+/** Заказы и оборот по дням для плиток админки (см. daily_stat_add в _bootstrap.php). */
+function show_daily_stats()
+{
+    $st = db()->query("SELECT name, data FROM stats WHERE name IN ('orders_daily', 'revenue_daily')");
+    $out = ['orders' => [], 'revenue' => []];
+    foreach ($st->fetchAll() as $r) {
+        $days = json_decode((string) $r['data'], true) ?: [];
+        krsort($days);
+        $days = array_slice($days, 0, VISITS_HISTORY_DAYS, true);
+        $key = $r['name'] === 'orders_daily' ? 'orders' : 'revenue';
+        foreach ($days as $d => $v) {
+            $out[$key][] = ['date' => (string) $d, 'value' => (float) $v];
+        }
+    }
+    respond(['ok' => true] + $out);
 }
 
 // ─────────────────────────── Google Play ───────────────────────────

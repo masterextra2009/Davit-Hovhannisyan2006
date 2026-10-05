@@ -198,6 +198,7 @@ function apply_payment(array $order, array $payment, bool $fromWebhook): string
     $upd = $pdo->prepare("UPDATE orders SET payment_status = 'paid', transaction_id = ?, payment_method = ? WHERE id = ? AND payment_status <> 'paid'");
     $upd->execute([$payment['id'], PAYMENT_METHOD_ONLINE, $order['id']]);
     if ($upd->rowCount() === 1) {
+        daily_stat_add('revenue_daily', $expected);
         $files = json_decode((string) $order['files'], true) ?: [];
         // «Фото на документы»: готовое фото лежит вне сайта и попадает в заказ
         // только сейчас, после оплаты (doc-photo.php).

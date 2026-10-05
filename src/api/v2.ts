@@ -10,7 +10,7 @@
  * телефоне клиента могут врать, а сервер сам себе всегда верен.
  */
 
-import { User, Order, ChatMessage, Notification, Promo, Service, Feedback, DatabaseState } from '../types';
+import { User, Order, ChatMessage, Notification, Promo, Service, Feedback, DatabaseState, DailyStat } from '../types';
 
 const BASE = 'https://sever-18.ru/api/v2';
 
@@ -322,6 +322,8 @@ export const visits = {
   /** Одно посещение на вкладку — как и раньше, отмечаем раз за сессию браузера. */
   track: () => request('misc.php?action=visit', { method: 'POST', body: {} }),
   stats: () => request<{ total: number; history: { date: string; count: number }[] }>('misc.php?action=visits'),
+  /** Заказы и оборот по дням — копит сервер, удаление заказов их не трогает. */
+  daily: () => request<{ orders: DailyStat[]; revenue: DailyStat[] }>('misc.php?action=daily-stats'),
   /** Установки из Google Play (обновляются раз в сутки). configured: false — статистика ещё не подключена. */
   playStats: () =>
     request<
@@ -535,10 +537,19 @@ export function subscribeByPolling(
         // Отзывы и счётчик посещений видит только админ — клиенту их вообще
         // не отдают, и спрашивать незачем.
         if (isAdmin) {
-          const [f, v] = await Promise.all([feedback.list(), visits.stats()]);
+          const [f, v, d] = await Promise.all([
+            feedback.list(),
+            visits.stats(),
+            // Сбой этих цифр не должен отнимать у админки отзывы и заходы.
+            visits.daily().catch(() => null),
+          ]);
           updates.feedback = f.feedback;
           updates.siteVisits = v.total;
           updates.siteVisitsHistory = v.history;
+          if (d) {
+            updates.ordersDaily = d.orders;
+            updates.revenueDaily = d.revenue;
+          }
         }
       }
 
