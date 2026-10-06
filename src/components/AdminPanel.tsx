@@ -477,9 +477,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const [savingSettings, setSavingSettings] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const [exportingBackup, setExportingBackup] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
-
   // Admin notification toast
   const [adminToast, setAdminToast] = useState<{type: 'order'|'chat'; text: string} | null>(null);
   // null = ещё не видели ни одного реального снимка данных из Firestore.
@@ -973,54 +970,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
     }, 600);
-  };
-
-  // Ручной экспорт всей базы (заказы/клиенты/чат/etc.) в один JSON-файл на
-  // диск администратора. Проект на бесплатном тарифе Firebase Spark, где
-  // нет автоматических запланированных бэкапов Firestore (это требует
-  // платного Blaze) — до апгрейда тарифа это единственная защита от потери
-  // всех данных при случайном удалении/сбое. Читает данные, уже загруженные
-  // в состояние приложения (без лишних Firestore-запросов), плюс отдельно
-  // счётчик посещений и заказов, которых нет в общем database-объекте.
-  const handleExportBackup = async () => {
-    setExportingBackup(true);
-    setExportError(null);
-    try {
-      // Счётчик посещений и номер следующего заказа лежат отдельно от общего
-      // состояния — их забираем по месту. На своём сервере номер заказа
-      // выдаётся при оформлении, отдельной «тетрадки» с ним нет.
-      let stats: any = null;
-      let counters: any = null;
-      stats = await v2.visits.stats().catch(() => null);
-
-      const backup = {
-        exportedAt: new Date().toISOString(),
-        users: database.users,
-        orders: database.orders,
-        chatMessages: database.chatMessages,
-        notifications: database.notifications,
-        services: database.services || [],
-        feedback: database.feedback || [],
-        promos: database.promos || [],
-        stats,
-        counters,
-      };
-
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `sever18-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Backup export failed:', err);
-      setExportError('Не удалось создать резервную копию. Проверьте интернет и попробуйте ещё раз.');
-    } finally {
-      setExportingBackup(false);
-    }
   };
 
   // Аватар админа — файлом в общую папку. Раньше картинка шла в профиль
@@ -3879,19 +3828,19 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
           {/* TAB 5: ADMIN CONFIGURATION & BANK INTEGRATION SETTINGS */}
           {activeTab === 'settings' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                
-                {/* Profile settings card */}
-                <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6">
+            <div className="max-w-4xl">
+              {/* Profile settings card: аватар слева, данные справа, сохранение внизу */}
+              <div className="glass-panel rounded-3xl overflow-hidden">
+                <div className="p-6 md:p-8 space-y-6">
                   <div>
                     <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
                       <Camera className="text-indigo-650 w-5 h-5" /> <AnimatedTitle>Профиль и персональная аватарка</AnimatedTitle>
                     </h3>
-                    <p className="text-[12px] text-slate-400 mt-1">Отредактируйте свои личные данные и настройте графический аватар, отображаемый в чате с клиентами.</p>
+                    <p className="text-[12px] text-slate-400 mt-1">Ваши данные и аватар, который клиенты видят в чате.</p>
                   </div>
 
-                  <div className="flex flex-col items-center gap-5 p-5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-100 dark:border-slate-850">
+                  <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 items-stretch">
+                    <div className="flex flex-col items-center justify-center gap-5 p-5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-100 dark:border-slate-850">
                     <div
                       className="relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full"
                       role="button"
@@ -3916,7 +3865,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         className="absolute inset-0 bg-slate-900/60 text-white rounded-2xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity text-[11px] font-bold"
                       >
                         <Camera className="w-5 h-5 text-white" />
-                        <span>Выказать...</span>
+                        <span>Изменить</span>
                       </div>
                     </div>
 
@@ -3953,10 +3902,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         ))}
                       </div>
                     </div>
-                  </div>
+                    </div>
 
-                  {/* Input Fields */}
-                  <div className="space-y-4">
+                    {/* Input Fields */}
+                    <div className="flex flex-col justify-center space-y-4">
                     <div>
                       <label htmlFor="admin-full-name" className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">ФИО Администратора</label>
                       <input
@@ -3981,59 +3930,14 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         placeholder="+7 (999) 000-00-00"
                       />
                     </div>
+                      <p className="text-[11px] text-slate-400">Нажмите на аватар, чтобы загрузить своё фото.</p>
+                    </div>
                   </div>
                 </div>
 
-              </div>
-
-              {/* Status Alert and Central Save Button */}
-              <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-4">
-                <div>
-                  <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
-                    <Download className="text-indigo-650 w-5 h-5" /> <AnimatedTitle>Резервная копия базы данных</AnimatedTitle>
-                  </h3>
-                  <p className="text-[12px] text-slate-400 mt-1 leading-relaxed">
-                    Скачивает JSON-файл со всеми заказами, клиентами, перепиской и уведомлениями на этот момент.
-                    На бесплатном тарифе Firebase нет автоматических бэкапов — сохраняйте файл в надёжное место
-                    (облако/почта самому себе) периодически, чтобы не потерять данные при сбое.
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <button
-                    onClick={handleExportBackup}
-                    disabled={exportingBackup}
-                    className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 w-full sm:w-auto justify-center ${
-                      exportingBackup
-                        ? 'bg-indigo-400 text-white cursor-not-allowed shadow-none'
-                        : 'btn-holo-glass cursor-pointer'
-                    }`}
-                    style={exportingBackup ? undefined : { color: '#1e293b' }}
-                  >
-                    {exportingBackup ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Собираем файл...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4" />
-                        <span>Скачать резервную копию</span>
-                      </>
-                    )}
-                  </button>
-                  {exportError && (
-                    <span className="text-xs font-bold text-rose-600">{exportError}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 glass-panel rounded-3xl">
-                <div>
-                  <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Сохранить общие настройки системы</h4>
-                  <p className="text-[11px] text-slate-400 mt-1">Все изменения вступят в силу мгновенно и синхронизируются с удаленным сервером и вашим СБП-шлюзом.</p>
-                </div>
-
-                <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-end">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 md:px-8 py-5 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+                  <p className="text-[11px] text-slate-400">Изменения вступят в силу сразу после сохранения.</p>
+                  <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-end">
                   {saveSuccess && (
                     <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-1.5 rounded-xl border border-emerald-200/50 flex items-center gap-1.5 animate-pulse">
                       <Check className="w-4 h-4" /> Настройки сохранены!
@@ -4062,6 +3966,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       </>
                     )}
                   </button>
+                  </div>
                 </div>
               </div>
             </div>
