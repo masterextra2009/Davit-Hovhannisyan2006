@@ -4351,6 +4351,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 <option value="none">Ничего — клиент приносит сам</option>
                                 <option value="file">Файл для печати (или флешка)</option>
                                 <option value="photo">Фото</option>
+                                <option value="any">Фото или файл (или флешка)</option>
                               </select>
                               <input
                                 type="text"
