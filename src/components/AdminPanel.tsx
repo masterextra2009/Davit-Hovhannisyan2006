@@ -6,7 +6,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, Service, Feedback, Promo } from '../types';
-import { QRCodeSVG } from 'qrcode.react';
+import { OrderBarcode } from './OrderBarcode';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
 import { ServicesShowcaseDemo } from './ServicesShowcaseDemo';
@@ -2367,8 +2367,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             </div>
                           </div>
 
-                          {/* Клиент + QR с номером заказа (его читает сканер на кассе) */}
-                          <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                          {/* Клиент + штрих-код номера заказа (его читает сканер на кассе) */}
+                          <div className="flex flex-col gap-2.5">
                             <div className="min-w-0 text-[12px] text-slate-500 dark:text-slate-400 space-y-0.5">
                               <div className="text-sm font-extrabold text-slate-900 dark:text-white">
                                 {order.userName}
@@ -2385,9 +2385,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               )}
                               {order.userEmail && <div className="truncate">{order.userEmail}</div>}
                             </div>
-                            <div className="bg-white p-1.5 rounded-lg" title={`QR-код заказа ${order.id}`}>
-                              <QRCodeSVG value={order.id} size={76} level="M" />
-                            </div>
+                            <OrderBarcode value={order.id} />
                           </div>
 
                           {/* Row 2: Stage buttons — always visible at top */}
