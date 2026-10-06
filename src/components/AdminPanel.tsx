@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, Service, Feedback, Promo } from '../types';
+import { QRCodeSVG } from 'qrcode.react';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
 import { ServicesShowcaseDemo } from './ServicesShowcaseDemo';
@@ -1186,6 +1187,12 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
    * «Чертёж А3». Нужно на выдаче: Давид сканирует код и должен сразу
    * видеть, что выносить клиенту, не разбирая карточку по полям.
    */
+  // Для превью в карточке заказа: картинку показываем саму, остальное — значком
+  // с расширением (PDF, DOCX…).
+  const isImageFile = (f: PrintFile) =>
+    f.formatGroup === 'image' || /\.(jpe?g|png|webp|gif|bmp|heic)$/i.test(f.name);
+  const fileExt = (name: string) => (name.split('.').pop() || 'файл').toUpperCase().slice(0, 4);
+
   const describeOrder = (o: Order): string => {
     // Заказ из витрины услуг — это и есть услуга: «Кружка», «Печать на
     // футболке». Файл при ней — материал (картинка), а не отдельная печать,
@@ -2236,7 +2243,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {sortedOrders.length === 0 ? (
                 <p className="text-xs text-white/50 text-center py-10 glass-panel rounded-3xl">Нет заказов в реестре.</p>
               ) : (
-                <div className="grid grid-cols-1 gap-5">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-5 items-start">
                   {sortedOrders
                     .filter(o => {
                       // Выданные заказы живут только в Архиве — как только заказ
@@ -2278,66 +2285,46 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       }
                       return true;
                     })
-                    .map(order => (
+                    .map(order => {
+                      const firstFile = order.files?.[0];
+                      const svc = order.serviceId ? database.services?.find(x => x.id === order.serviceId) : undefined;
+                      return (
                       <div
                         key={order.id}
-                        className="glass-card rounded-2xl overflow-hidden"
+                        className="glass-card rounded-2xl overflow-hidden flex flex-col"
                       >
-                        {/* Upper Section client credentials */}
-                        <div className="p-4 bg-slate-50/50 dark:bg-slate-950/20 border-b border-slate-150/60 dark:border-slate-850 flex flex-col gap-3">
-                          {/* Row 1: Order info + status badges + delete */}
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-extrabold text-slate-900 dark:text-white text-xs">{order.id}</span>
-                                <span className="text-[11px] text-slate-400">{formatDateTime(order.orderDate)}</span>
-                              </div>
-                              <div className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">
-                                Клиент: <strong>{order.userName}</strong>
-                                <LoyaltyChip userId={order.userId} orders={database.orders} />
-                                {/* Точку-разделитель рисуем только когда почта есть:
-                                    у гостя её не спрашивают, и «имя •» с висящей
-                                    точкой в конце читалось как обрезанная строка. */}
-                                {order.userEmail ? <> &bull; {order.userEmail}</> : null}
-                                {order.isGuestOrder && (
-                                  <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider align-middle">
-                                    Гость
-                                  </span>
-                                )}
-                                {/* Телефон приходит вместе с заказом из мобильного приложения
-                                    (order.userPhone). У заказов с сайта и у старых заказов его
-                                    нет — тогда строка просто не показывается. */}
-                                {order.userPhone && (
-                                  <>
-                                    {' '}&bull;{' '}
-                                    <a
-                                      href={`tel:${order.userPhone.replace(/[^\d+]/g, '')}`}
-                                      className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
-                                    >
-                                      {order.userPhone}
-                                    </a>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex flex-wrap gap-2 items-center">
-                              {order.rejected && (
-                                <span className="text-[11px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">
-                                  ⚠ Брак
-                                </span>
-                              )}
-                              <span className={`text-[11px] uppercase font-bold px-2 px-2.5 py-0.5 rounded-md ${getStatusColor(order.status)}`}>
-                                {getStatusLabel(order.status)}
+                        {/* Превью: первое приложенное фото, иначе значок файла
+                            (или картинка самой услуги, если файлов нет) */}
+                        <div className="relative aspect-[16/10] bg-slate-900/60 grid place-items-center overflow-hidden">
+                          {firstFile ? (
+                            <>
+                              <span className={`font-mono font-bold text-xl text-white px-3 py-2 rounded-lg ${/pdf$/i.test(firstFile.name) ? 'bg-rose-600' : /docx?$/i.test(firstFile.name) ? 'bg-blue-600' : 'bg-slate-600'}`}>
+                                {fileExt(firstFile.name)}
                               </span>
-                              {order.paymentStatus === 'unpaid' && order.paymentMethod === 'При получении (Наличные/Карта)' ? (
-                                <span className="text-[11px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
-                                  💵 Оплата при получении
-                                </span>
-                              ) : (
-                                <span className={`text-[11px] uppercase font-bold px-2.5 py-0.5 rounded-md ${getPaymentStatusColor(order.paymentStatus)}`}>
-                                  {getPaymentStatusLabel(order.paymentStatus)}
-                                </span>
+                              {isImageFile(firstFile) && (firstFile.previewUrl || firstFile.url) && (
+                                <img
+                                  src={firstFile.previewUrl || firstFile.url}
+                                  alt={`Файл клиента ${firstFile.name}`}
+                                  loading="lazy"
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                  onError={e => { e.currentTarget.style.display = 'none'; }}
+                                />
                               )}
+                            </>
+                          ) : svc?.imageUrl ? (
+                            <img src={svc.imageUrl} alt={svc.title} loading="lazy" className="absolute inset-0 w-full h-full object-contain" />
+                          ) : (
+                            <span className="text-xs text-white/50">Без файлов</span>
+                          )}
+                          <div className="absolute inset-x-2.5 bottom-2.5 flex items-end justify-between gap-2">
+                            <span className="text-[12px] font-extrabold text-white px-2.5 py-1 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-500 shadow truncate">
+                              {describeOrder(order)}{svc?.price ? ` · ${svc.price}` : ''}
+                            </span>
+                            {order.files.length > 1 && (
+                              <span className="shrink-0 text-[11px] font-bold text-white bg-black/60 px-2 py-0.5 rounded-lg">+{order.files.length - 1} файл.</span>
+                            )}
+                          </div>
+                          <div className="absolute top-2 right-2 bg-black/50 rounded-lg">
                               {orderToConfirmDelete === order.id ? (
                                 <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 p-1 rounded-lg border border-rose-100 dark:border-rose-900/40">
                                   <span className="text-[10px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить заказ?</span>
@@ -2353,6 +2340,53 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               )}
+                          </div>
+                        </div>
+
+                        <div className="p-4 flex flex-col gap-3 flex-1">
+                          {/* Номер, дата и метки */}
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-xs">
+                              <span className="font-extrabold text-slate-900 dark:text-white">{order.id}</span>
+                              <span className="text-slate-400"> · {formatDateTime(order.orderDate)}</span>
+                            </span>
+                            <div className="flex flex-wrap gap-1.5 items-center">
+                              {order.rejected && (
+                                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">⚠ Брак</span>
+                              )}
+                              <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md ${getStatusColor(order.status)}`}>
+                                {getStatusLabel(order.status)}
+                              </span>
+                              {order.paymentStatus === 'unpaid' && order.paymentMethod === 'При получении (Наличные/Карта)' ? (
+                                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">💵 При получении</span>
+                              ) : (
+                                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md ${getPaymentStatusColor(order.paymentStatus)}`}>
+                                  {getPaymentStatusLabel(order.paymentStatus)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Клиент + QR с номером заказа (его читает сканер на кассе) */}
+                          <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                            <div className="min-w-0 text-[12px] text-slate-500 dark:text-slate-400 space-y-0.5">
+                              <div className="text-sm font-extrabold text-slate-900 dark:text-white">
+                                {order.userName}
+                                <LoyaltyChip userId={order.userId} orders={database.orders} />
+                                {order.isGuestOrder && (
+                                  <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider align-middle">Гость</span>
+                                )}
+                              </div>
+                              {/* Телефон есть у заказов из приложения; у сайта и старых — нет */}
+                              {order.userPhone && (
+                                <a href={`tel:${order.userPhone.replace(/[^\d+]/g, '')}`} className="block font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                                  {order.userPhone}
+                                </a>
+                              )}
+                              {order.userEmail && <div className="truncate">{order.userEmail}</div>}
+                            </div>
+                            <div className="bg-white p-1.5 rounded-lg" title={`QR-код заказа ${order.id}`}>
+                              <QRCodeSVG value={order.id} size={76} level="M" />
                             </div>
                           </div>
 
@@ -2392,60 +2426,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             })}
                           </div>
 
-                          {/* Row 3: Брак (reject) — независимо от стадии, т.к. брак может случиться на любом шаге */}
-                          {order.rejected ? (
-                            <div className="flex items-start gap-2 p-2.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40 rounded-xl">
-                              <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 uppercase shrink-0 mt-0.5">Причина брака:</span>
-                              <p className="text-[12px] text-rose-700 dark:text-rose-300 flex-1">{order.rejectionReason}</p>
-                              <button
-                                onClick={() => handleUnrejectOrder(order.id)}
-                                className="text-[10px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline shrink-0 cursor-pointer"
-                              >
-                                Отменить
-                              </button>
-                            </div>
-                          ) : rejectingOrderId === order.id ? (
-                            <div className="flex flex-col gap-1.5 p-2.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40 rounded-xl">
-                              <textarea
-                                autoFocus
-                                value={rejectionReasonDraft}
-                                onChange={e => setRejectionReasonDraft(e.target.value)}
-                                placeholder="Почему заказ не может быть выполнен? Клиент увидит этот текст."
-                                className="w-full p-2 text-[12px] bg-white dark:bg-slate-950 border border-rose-200 dark:border-rose-900/50 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 resize-none"
-                                rows={2}
-                              />
-                              <div className="flex gap-2 justify-end">
-                                <button
-                                  onClick={() => { setRejectingOrderId(null); setRejectionReasonDraft(''); }}
-                                  className="px-2.5 py-1 text-[11px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
-                                >
-                                  Отмена
-                                </button>
-                                <button
-                                  onClick={() => handleRejectOrder(order.id, rejectionReasonDraft)}
-                                  disabled={!rejectionReasonDraft.trim()}
-                                  className="px-3 py-1 text-[11px] font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg cursor-pointer transition"
-                                >
-                                  Отклонить заказ
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => { setRejectingOrderId(order.id); setRejectionReasonDraft(''); }}
-                              className="self-start text-[11px] font-bold text-rose-500/70 hover:text-rose-600 flex items-center gap-1 cursor-pointer"
-                            >
-                              ⚠ Брак / отклонить заказ
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Mid Section - Files queue list */}
-                        <div className="p-4 md:p-5 space-y-4">
-                          
-                          <div>
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2.5">
-                              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Файлы для выгрузки на ПК типографии:</span>
+                          {/* Файлы */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Файлы ({order.files.length})</span>
                               {(order.files && order.files.length > 2) && (
                                 <button
                                   onClick={() => handleDownloadAllAsZip(order)}
@@ -2470,46 +2454,36 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 </button>
                               )}
                             </div>
-                            
-                            <div className="space-y-2">
-                              {order.files.map(file => (
-                                <div
-                                  key={file.id}
-                                  className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl flex items-center justify-between gap-3 text-xs border border-slate-100 dark:border-slate-850"
+                            {order.files.map(file => (
+                              <div
+                                key={file.id}
+                                className="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl flex items-center gap-2.5 text-xs border border-slate-100 dark:border-slate-850"
+                              >
+                                <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0 grid place-items-center bg-indigo-500/15">
+                                  <FileText className="w-4 h-4 text-indigo-500" />
+                                  {isImageFile(file) && (file.previewUrl || file.url) && (
+                                    <img src={file.previewUrl || file.url} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-bold block truncate text-slate-700 dark:text-slate-300" title={file.name}>{file.name}</span>
+                                  <span className="text-[10px] text-slate-400 block truncate">
+                                    {formatFileSize(file.size)}
+                                    {file.pageCount ? ` · ${file.pageCount} стр.` : ''}
+                                    {file.paperType === 'photo' ? ` · ${PHOTO_SIZE_LABELS[file.photoSize || '10x15'] || file.photoSize} · ${(file.photoBorder || 'borderless') === 'bordered' ? 'с рамкой' : 'без рамки'}` : ''}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => triggerSimulatedDownload(file)}
+                                  disabled={downloadingFileId === file.id}
+                                  title="Скачать на ПК"
+                                  aria-label={`Скачать ${file.name}`}
+                                  className="shrink-0 p-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition disabled:opacity-60"
                                 >
-                                  <div className="flex items-center gap-2 overflow-hidden">
-                                    <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
-                                    <div className="overflow-hidden">
-                                      <span className="font-bold block truncate text-slate-700 dark:text-slate-300">{file.name}</span>
-                                      <span className="text-[10px] text-slate-400 block mt-0.5">{formatFileSize(file.size)} &bull; ID: {file.id} {file.pageCount !== undefined ? `&bull; Папок/Стр: ${file.pageCount}–стр` : ''} {file.paperType === 'photo' ? `&bull; ${PHOTO_SIZE_LABELS[file.photoSize || '10x15'] || file.photoSize} &bull; ${(file.photoBorder || 'borderless') === 'bordered' ? 'С рамкой (белые поля)' : 'Без рамки (край-в-край)'}` : ''}</span>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    {/* Download actions simulator */}
-                                    <button
-                                      onClick={() => triggerSimulatedDownload(file)}
-                                      disabled={downloadingFileId === file.id}
-                                      className={`px-3 py-1.5 rounded-lg text-[12px] font-bold transition flex items-center gap-1 shrink-0 ${
-                                        downloadingFileId === file.id
-                                          ? 'bg-slate-205 dark:bg-slate-800 text-slate-500'
-                                          : 'bg-indigo-600 hover:bg-slate-900 hover:text-white dark:bg-slate-900 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-600/30'
-                                      }`}
-                                    >
-                                      {downloadingFileId === file.id ? (
-                                        <>
-                                          <span className="w-3 h-3 border-2 border-slate-400 border-t-white rounded-full animate-spin" />
-                                          Скачивание {downloadProgress}%
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Download className="w-3.5 h-3.5" />
-                                          Скачать на ПК
-                                        </>
-                                      )}
-                                    </button>
-
-                                    {/* Admin Delete file from order button */}
+                                  {downloadingFileId === file.id
+                                    ? <span className="block w-3.5 h-3.5 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                                    : <Download className="w-3.5 h-3.5" />}
+                                </button>
                                     {adminFileToConfirmDelete?.orderId === order.id && adminFileToConfirmDelete?.fileId === file.id ? (
                                       <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 p-1 rounded-lg border border-rose-100 dark:border-rose-900/40">
                                         <span className="text-[10px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить?</span>
@@ -2535,16 +2509,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                         <Trash2 className="w-3.5 h-3.5" />
                                       </button>
                                     )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                              </div>
+                            ))}
                           </div>
 
-                          {/* Order specifications — выделено рамкой слева, чтобы не потерялось
-                              среди списка заказов; показываются только реально выбранные
-                              клиентом параметры (скрепление/промокод скрыты, если не заданы). */}
-                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-3 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border-l-4 border-l-indigo-500 border-y border-r border-slate-100 dark:border-slate-850/80 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 p-3 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border-l-4 border-l-indigo-500 border-y border-r border-slate-100 dark:border-slate-850/80 text-xs text-slate-500 dark:text-slate-400 font-medium">
                             <div>Бумага: <strong className="text-slate-800 dark:text-white">
                               {(() => {
                                 const firstFile = order.files?.[0];
@@ -2602,14 +2571,57 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               <span className="font-black text-amber-700 dark:text-amber-400">⚠ Спец-требования клиента:</span> {order.notes}
                             </div>
                           )}
+
+                          {/* Row 3: Брак (reject) — независимо от стадии, т.к. брак может случиться на любом шаге */}
+                          {order.rejected ? (
+                            <div className="flex items-start gap-2 p-2.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40 rounded-xl">
+                              <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 uppercase shrink-0 mt-0.5">Причина брака:</span>
+                              <p className="text-[12px] text-rose-700 dark:text-rose-300 flex-1">{order.rejectionReason}</p>
+                              <button
+                                onClick={() => handleUnrejectOrder(order.id)}
+                                className="text-[10px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline shrink-0 cursor-pointer"
+                              >
+                                Отменить
+                              </button>
+                            </div>
+                          ) : rejectingOrderId === order.id ? (
+                            <div className="flex flex-col gap-1.5 p-2.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40 rounded-xl">
+                              <textarea
+                                autoFocus
+                                value={rejectionReasonDraft}
+                                onChange={e => setRejectionReasonDraft(e.target.value)}
+                                placeholder="Почему заказ не может быть выполнен? Клиент увидит этот текст."
+                                className="w-full p-2 text-[12px] bg-white dark:bg-slate-950 border border-rose-200 dark:border-rose-900/50 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 resize-none"
+                                rows={2}
+                              />
+                              <div className="flex gap-2 justify-end">
+                                <button
+                                  onClick={() => { setRejectingOrderId(null); setRejectionReasonDraft(''); }}
+                                  className="px-2.5 py-1 text-[11px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                                >
+                                  Отмена
+                                </button>
+                                <button
+                                  onClick={() => handleRejectOrder(order.id, rejectionReasonDraft)}
+                                  disabled={!rejectionReasonDraft.trim()}
+                                  className="px-3 py-1 text-[11px] font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg cursor-pointer transition"
+                                >
+                                  Отклонить заказ
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => { setRejectingOrderId(order.id); setRejectionReasonDraft(''); }}
+                              className="self-start text-[11px] font-bold text-rose-500/70 hover:text-rose-600 flex items-center gap-1 cursor-pointer"
+                            >
+                              ⚠ Брак / отклонить заказ
+                            </button>
+                          )}
                         </div>
 
-                        {/* Interactive operator state switches layout */}
-                        <div className="p-4 bg-slate-50/50 dark:bg-slate-950/10 border-t border-slate-150/80 dark:border-slate-850 flex flex-col md:flex-row justify-between items-center gap-4">
-                          
-                          {/* Manual cash receipt switch */}
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Оплата наличными:</span>
+                        {/* Низ: оплата и сумма */}
+                        <div className="px-4 py-3 bg-slate-50/50 dark:bg-slate-950/10 border-t border-slate-150/80 dark:border-slate-850 flex items-center justify-between gap-3">
                             <button
                               onClick={() => handleTogglePaymentStatus(order.id)}
                               className={`py-1.2 px-2.5 rounded-lg text-[11px] font-extrabold border transition ${
@@ -2621,12 +2633,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             >
                               {order.paymentStatus === 'paid' ? 'Отметить не Оплаченным' : 'Отметить Оплаченным'}
                             </button>
-                          </div>
-
+                          <span className="text-lg font-extrabold text-slate-900 dark:text-white tabular-nums">{order.totalCost} ₽</span>
                         </div>
-
                       </div>
-                    ))}
+                      );
+                    })}
                 </div>
               )}
 
