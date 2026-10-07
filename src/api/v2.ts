@@ -366,13 +366,42 @@ export interface MaximCall {
   events: { at: string; tool: string; args: Record<string, string> }[];
   transcript: string;
   summary?: string;
+  /** Во сколько обошёлся звонок (ИИ Google), ₽. У старых звонков может не быть. */
+  costRub?: number;
 }
 
 export interface MaximMemoryEntry { date: string; summary: string }
 
+export interface MaximPayment {
+  id: string;
+  name: string;
+  rub?: number;
+  link: string;
+  note?: string;
+  /** Срок в ближайшем месяце: ГГГГ-ММ-ДД; dueText — «5 ноября». */
+  due: string;
+  dueText: string;
+  inDays: number;
+}
+
+export interface MaximCosts {
+  month: string;
+  calls: number;
+  minutes: number;
+  /** Сколько ушло на ИИ Google за месяц, ₽ — по реальным данным каждого звонка. */
+  aiRub: number;
+  perCall: number;
+  perMinute: number;
+  fixed: { name: string; rub: number }[];
+  totalRub: number;
+  usdRub: number;
+  payments: MaximPayment[];
+}
+
 export const maxim = {
   status: () => request<MaximStatus>('maxim.php?action=status'),
   calls: (month: string) => request<{ calls: MaximCall[]; months: string[] }>(`maxim.php?action=calls&month=${encodeURIComponent(month)}`),
+  costs: (month: string) => request<MaximCosts>(`maxim.php?action=costs&month=${encodeURIComponent(month)}`),
   character: () => request<{ text: string }>('maxim.php?action=character'),
   saveCharacter: (text: string) => request<{ ok: true }>('maxim.php?action=character', { body: { text } }),
   memory: () => request<{ memory: Record<string, MaximMemoryEntry[]> }>('maxim.php?action=memory'),
