@@ -142,6 +142,9 @@ export interface Order {
   binding?: 'none' | 'staple' | 'file' | 'spring_plastic' | 'spring_metal' | 'hard_cover';
   promoCode?: string;
   promoDiscount?: number;
+  // Скидка за уровень клиента, % — ставит сервер при оформлении, если она
+  // больше промокода (orders.php, LOYALTY_TIERS в _pricing.php).
+  loyaltyDiscount?: number;
   // Заполняется только для заказов "только услуга" (из витрины услуг, без
   // загруженных файлов) — id услуги в коллекции services, чтобы сервер мог
   // сам проверить актуальную цену вместо доверия totalCost от клиента.
@@ -212,7 +215,7 @@ export interface Service {
   order: number;
   // Что спросить у клиента при заказе из приложения (витрина услуг, 24.09.2026).
   // Не задано — приложение решает по названию услуги.
-  ask?: 'none' | 'file' | 'photo' | '';
+  ask?: 'none' | 'file' | 'photo' | 'any' | '';
   /** Подпись поля для надписи, например «Надпись на кружке». Пусто — поля нет. */
   askText?: string;
   /** Выбор из вариантов: заголовок («Траурная ленточка») и сами варианты. */
@@ -256,6 +259,12 @@ export interface Promo {
   createdAt: string;
 }
 
+/** Один день счётчика сервера: число заказов или оборот в рублях. */
+export interface DailyStat {
+  date: string;
+  value: number;
+}
+
 export interface DatabaseState {
   users: User[];
   orders: Order[];
@@ -265,5 +274,7 @@ export interface DatabaseState {
   promos?: Promo[];
   siteVisits?: number;
   siteVisitsHistory?: { date: string; count: number }[];
+  ordersDaily?: DailyStat[];
+  revenueDaily?: DailyStat[];
   feedback?: Feedback[];
 }

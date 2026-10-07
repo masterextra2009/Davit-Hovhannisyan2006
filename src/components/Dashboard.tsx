@@ -83,12 +83,13 @@ import {
   calculateOrderCost, getFileFormatGroup, formatFileSize, 
   formatDateTime, getStatusLabel, getStatusColor, 
   getPaymentStatusLabel, getPaymentStatusColor, printInvoiceHTML,
-  getClientTierForUser, isWorkingHours, showBrowserNotification, trackAnalyticsEvent,
+  isWorkingHours, showBrowserNotification, trackAnalyticsEvent,
   formatServicePrice, sortServicesByGroup
 } from '../utils';
 import { isVoice, parseVoice, formatVoiceLength } from '../utils/chatVoice';
 import { PromoTicket } from './PromoTicket';
 import * as v2 from '../api/v2';
+import { LoyaltyGerb, levelEmblemUrl } from './LoyaltyGerb';
 import { saveOrderToFirebase, subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, registerUserWithFirebase, updateChatMessageInFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -233,6 +234,59 @@ async function countDocxPages(file: File): Promise<number> {
   return Number.isFinite(pages) && pages > 0 ? pages : 1;
 }
 
+// Что лежит внутри .zip: сколько там файлов для печати и сколько они стоят
+// по умолчанию (20 ₽/фото, 20 ₽×страницы для PDF/.docx, 20 ₽ за прочее).
+// Архив внутри архива раскрываем тоже — 28.09.2026 клиент прислал 4 фото и
+// 4 архива с фото одной пачкой, и каждый архив посчитался как 1 файл за
+// 20 ₽ («8 файлов» вместо реальных десятков фото).
+// Служебный мусор (папка __MACOSX с копиями «._фото.jpg» от Mac, Thumbs.db,
+// скрытые файлы) — не фото для печати, его не считаем.
+async function inspectZipContents(file: Blob, depth = 0): Promise<{ count: number; total: number; allPhotos: boolean }> {
+  const zip = await JSZip.loadAsync(file);
+  const entries = Object.values(zip.files).filter(e => {
+    if (e.dir) return false;
+    const base = e.name.split('/').pop() || '';
+    return !e.name.startsWith('__MACOSX/') && !base.startsWith('.') && base.toLowerCase() !== 'thumbs.db';
+  });
+  let count = 0;
+  let total = 0;
+  let allPhotos = true;
+  for (const entry of entries) {
+    const lower = entry.name.toLowerCase();
+    const group = getFileFormatGroup(entry.name);
+    if (group === 'image') {
+      count += 1;
+      total += 20;
+      continue;
+    }
+    if (lower.endsWith('.zip') && depth < 3) {
+      try {
+        const inner = await inspectZipContents(await entry.async('blob'), depth + 1);
+        count += inner.count;
+        total += inner.total;
+        allPhotos = allPhotos && inner.allPhotos;
+        continue;
+      } catch {
+        // битый/запароленный вложенный архив — считаем как 1 файл ниже
+      }
+    }
+    allPhotos = false;
+    let pages = 1;
+    try {
+      if (lower.endsWith('.pdf')) {
+        pages = await countPdfPages(new File([await entry.async('blob')], entry.name, { type: 'application/pdf' }));
+      } else if (lower.endsWith('.docx')) {
+        pages = await countDocxPages(new File([await entry.async('blob')], entry.name));
+      }
+    } catch {
+      pages = 1;
+    }
+    count += 1;
+    total += 20 * pages;
+  }
+  return { count, total, allPhotos: allPhotos && count > 0 };
+}
+
 // Analyse color fill % from an image URL using Canvas API (0-100)
 // Works precisely for raster images; for PDFs uses the first-page preview.
 async function analyzeColorFill(imageUrl: string): Promise<number> {
@@ -326,6 +380,22 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
     promise,
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
   ]);
+}
+
+/**
+ * Текст для клиента, когда оплата не открылась. Раньше любой отказ сервера
+ * выглядел как «Ошибка соединения. Проверьте интернет» — 05.10.2026 клиент
+ * 20 раз подряд проверял исправный интернет, а серверу не хватало телефона
+ * для чека. Теперь: отказ сервера — его словами, обрыв — про интернет.
+ * null — клиент сам закрыл окошко с телефоном, говорить нечего.
+ */
+function paymentErrorText(err: unknown): string | null {
+  if (err instanceof Error && err.message === 'cancelled') return null;
+  if (err instanceof Error && err.message === 'timeout') {
+    return 'Не удалось открыть оплату — слишком слабое соединение. Проверьте интернет и попробуйте ещё раз.';
+  }
+  if (err instanceof v2.ApiError) return err.message;
+  return 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.';
 }
 
 // Черновик незавершённой загрузки — переживает обновление страницы (F5)
@@ -1785,6 +1855,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     return 0;
   };
 
+  // Уровень клиента и его скидка — с сервера (orders.php?action=loyalty).
+  // Перезапрашиваем, когда меняются заказы: оплата может поднять уровень.
+  const [loyalty, setLoyalty] = useState<v2.Loyalty | null>(null);
+  const paidOrdersKey = database.orders
+    .filter(o => o.userId === user.id && (o.paymentStatus === 'paid' || o.status === 'printed'))
+    .length;
+  useEffect(() => {
+    let alive = true;
+    v2.orders.loyalty().then(l => { if (alive) setLoyalty(l); }).catch(() => {});
+    return () => { alive = false; };
+  }, [user.id, paidOrdersKey]);
+
   // Gift Promo System state
   const [showPromoGiftModal, setShowPromoGiftModal] = useState(false);
   const [show3DMockupModal, setShow3DMockupModal] = useState(false);
@@ -1853,6 +1935,38 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
 
   // Payment popup state
   const [payingOrder, setPayingOrder] = useState<Order | null>(null);
+
+  // Окошко «Телефон для чека»: у клиента без почты и телефона ЮKassa не
+  // выдаёт чек, и сервер не создаёт оплату (need: 'contact'). Спрашиваем
+  // номер прямо здесь и повторяем оплату с ним — сервер сохранит его в профиль.
+  const [phoneAsk, setPhoneAsk] = useState<{ error?: string; resolve: (phone: string | null) => void } | null>(null);
+  const [phoneAskValue, setPhoneAskValue] = useState('');
+  const askPhone = (error?: string) => new Promise<string | null>(resolve => {
+    setPhoneAsk({ error, resolve });
+  });
+  const closePhoneAsk = (phone: string | null) => {
+    phoneAsk?.resolve(phone);
+    setPhoneAsk(null);
+  };
+
+  // Заказ уже записан, а оплата не открылась — сообщение висит над списком
+  // заказов, пока клиент его не закроет (короткий toast он бы не успел прочесть).
+  const [payNotice, setPayNotice] = useState<string | null>(null);
+
+  /** Оплата заказа; если серверу нужен телефон для чека — спросить и повторить. */
+  const createPayment = async (orderId: string) => {
+    let phone: string | undefined;
+    for (;;) {
+      try {
+        return await withTimeout(v2.payments.create(orderId, phone), 20000);
+      } catch (err) {
+        if (!(err instanceof v2.ApiError) || err.need !== 'contact') throw err;
+        const typed = await askPhone(phone ? err.message : undefined);
+        if (!typed) throw new Error('cancelled');
+        phone = typed;
+      }
+    }
+  };
   // Гостевое предложение регистрации (после заказа) + 4 точки-ограничения
   // для гостей (см. GuestUpsellModal) — одно состояние на все 5 мест показа.
   const [guestUpsellReason, setGuestUpsellReason] = useState<GuestUpsellReason | null>(null);
@@ -2486,8 +2600,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         updatedFiles,
         order.photoSize,
         order.binding,
-        order.promoCode,
-        order.promoDiscount
+        // Скидка за уровень пересчитывается так же, как промокод: иначе после
+        // удаления файла из заказа цена подскочила бы без скидки.
+        order.promoCode ?? (order.loyaltyDiscount ? 'уровень' : undefined),
+        order.promoDiscount ?? order.loyaltyDiscount
       );
 
       updatedOrders = database.orders.map(o => {
@@ -2781,10 +2897,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     // не было выбора размера/цвета печати, теперь у архива-бандла есть один
     // общий размер на все фото внутри (см. isPhotoBundle в модалке настройки
     // ниже); если нужны разные размеры — клиент грузит такие фото отдельно.
-    const allFilesAreImages = Array.from(filesList).every(f => {
-      const fg = getFileFormatGroup(f.name);
-      return fg === 'image' || f.type.startsWith('image/');
-    });
     const willZip = filesList.length > 2;
     const rawFilesForZip: File[] = [];
     // Флаги больше не сбрасываются тут сразу после первой порции файлов — они
@@ -2851,9 +2963,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       // что внутри. Заглядываем внутрь и честно считаем цену по содержимому,
       // как и для авто-собранного архива (20₽/фото, 20₽×страницы для PDF).
       if (formatGroup === 'archive') {
-        JSZip.loadAsync(file).then(async zip => {
-          const entries = Object.values(zip.files).filter(e => !e.dir);
-
+        inspectZipContents(file).then(contents => {
           // Архив из ОДНИХ фото — раньше всегда становился одной строкой с
           // прикидочной ценой без единой настройки печати ("не выдаёт выбора
           // размера фото"). Первая версия исправления распаковывала архив на
@@ -2865,51 +2975,22 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           // общим размером на все фото внутри (выбирается в модалке настройки,
           // см. isPhotoBundle ниже); если нужны разные размеры — клиент
           // грузит такие фото отдельно, вне архива.
-          const allEntriesArePhotos = entries.length > 0 && entries.every(e => getFileFormatGroup(e.name) === 'image');
-
-          if (allEntriesArePhotos) {
+          if (contents.allPhotos) {
             patchFileState(fileId, {
               paperType: 'photo',
               photoSize: '10x15',
               photoBorder: 'borderless',
               printColor: 'color',
-              bundleFileCount: entries.length,
-              bundleFixedPrice: entries.length * 20,
+              bundleFileCount: contents.count,
+              bundleFixedPrice: contents.count * 20,
               pageCount: undefined,
             });
             return;
           }
 
-          let total = 0;
-          for (const entry of entries) {
-            const entryFormatGroup = getFileFormatGroup(entry.name);
-            if (entryFormatGroup === 'image') {
-              total += 20;
-            } else {
-              const isEntryPdf = entry.name.toLowerCase().endsWith('.pdf');
-              const isEntryDocx = entry.name.toLowerCase().endsWith('.docx');
-              let pages = 1;
-              if (isEntryPdf) {
-                try {
-                  const blob = await entry.async('blob');
-                  pages = await countPdfPages(new File([blob], entry.name, { type: 'application/pdf' }));
-                } catch {
-                  pages = 1;
-                }
-              } else if (isEntryDocx) {
-                try {
-                  const blob = await entry.async('blob');
-                  pages = await countDocxPages(new File([blob], entry.name));
-                } catch {
-                  pages = 1;
-                }
-              }
-              total += 20 * pages;
-            }
-          }
           patchFileState(fileId, {
-            bundleFixedPrice: total || 20,
-            bundleFileCount: entries.length || 1,
+            bundleFixedPrice: contents.total || 20,
+            bundleFileCount: contents.count || 1,
             pageCount: undefined,
           });
         }).catch(err => {
@@ -2975,11 +3056,24 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       const bundleId = 'bundle_' + Date.now();
       (async () => {
         let total = 0;
+        // Файлов для печати: .zip в пачке считается по содержимому, а не как 1.
+        let fileCount = 0;
+        let bundleAllPhotos = true;
         for (let i = 0; i < newFiles.length; i++) {
           const meta = newFiles[i];
           if (meta.formatGroup === 'image') {
             total += 20; // фото по умолчанию — 10×15, цвет
+            fileCount += 1;
+          } else if (meta.formatGroup === 'archive') {
+            const contents = await inspectZipContents(rawFilesForZip[i])
+              .catch(() => ({ count: 1, total: 20, allPhotos: false }));
+            total += contents.total || 20;
+            fileCount += contents.count || 1;
+            // 4 фото + архивы с одними фото — всё равно пачка фото, с выбором размера
+            bundleAllPhotos = bundleAllPhotos && contents.allPhotos;
           } else {
+            fileCount += 1;
+            if (!rawFilesForZip[i].type.startsWith('image/')) bundleAllPhotos = false;
             const raw = rawFilesForZip[i];
             const isPdf = raw.type === 'application/pdf' || meta.name.toLowerCase().endsWith('.pdf');
             const isDocx = meta.name.toLowerCase().endsWith('.docx');
@@ -2992,7 +3086,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         const zip = new JSZip();
         rawFilesForZip.forEach((raw, i) => zip.file(newFiles[i].name, raw));
         const zipBlob = await zip.generateAsync({ type: 'blob' });
-        const zipFile = new File([zipBlob], `Архив (${newFiles.length} файлов).zip`, { type: 'application/zip' });
+        const zipFile = new File([zipBlob], `Архив (${fileCount} файлов).zip`, { type: 'application/zip' });
         const bundleEntry: PrintFile = {
           id: bundleId,
           name: zipFile.name,
@@ -3001,15 +3095,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           uploadedAt: new Date().toISOString(),
           formatGroup: 'archive',
           bundleFixedPrice: total,
-          bundleFileCount: newFiles.length,
+          bundleFileCount: fileCount,
           // Пачка из ОДНИХ фото (клиент отметил сразу >2 снимков) — даём
           // общий размер на всё через ту же модалку настройки, что и для
           // загруженного архива (isPhotoBundle), вместо жёстко зашитого
           // 10×15 без права выбора.
-          ...(allFilesAreImages ? { paperType: 'photo', photoSize: '10x15', photoBorder: 'borderless', printColor: 'color' } : {}),
+          ...(bundleAllPhotos ? { paperType: 'photo', photoSize: '10x15', photoBorder: 'borderless', printColor: 'color' } : {}),
         };
         uploadFileToFirebaseStorage(zipFile, bundleId);
-        if (allFilesAreImages) {
+        if (bundleAllPhotos) {
           setPendingUploads(prev => [...prev, bundleEntry]);
         } else {
           setUploadedFiles(prev => [...prev, bundleEntry]);
@@ -3378,8 +3472,15 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       return;
     }
 
-    const finalPromo = getActivePromo();
-    const finalDiscount = finalPromo ? getActiveDiscountPercent(finalPromo) : undefined;
+    // Скидка — бо́льшая из двух: промокод или уровень клиента (так же
+    // считает сервер). Если выиграл уровень, промокод не отправляем и не
+    // гасим — он пригодится в другой раз.
+    const activePromoCode = getActivePromo();
+    const promoPct = activePromoCode ? getActiveDiscountPercent(activePromoCode) : 0;
+    const loyaltyPct = loyalty?.tier?.percent || 0;
+    const byLoyalty = loyaltyPct > promoPct;
+    const finalPromo = byLoyalty ? null : activePromoCode;
+    const finalDiscount = byLoyalty ? loyaltyPct : (finalPromo ? promoPct : undefined);
 
     // Считаем итоговую стоимость из per-file настроек
     const photoSizePrices: Record<string, number> = {
@@ -3457,6 +3558,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       notes: notes.trim(),
       binding,
       ...(finalPromo ? { promoCode: finalPromo, promoDiscount: finalDiscount } : {}),
+      ...(byLoyalty && !selectedService ? { loyaltyDiscount: loyaltyPct } : {}),
       ...(selectedService ? { serviceId: selectedService.id } : {}),
     };
 
@@ -3554,19 +3656,42 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     // Создаём платёж в ЮKassa (withTimeout не даёт кнопке зависнуть навсегда
     // на нестабильной мобильной сети — см. объявление функции выше).
     setOrderAcceptPhase('loading');
+    // Заказ записан, а оплата не открылась. Корзину очищаем и ведём в
+    // «Мои заказы»: оплатить этот же заказ можно там кнопкой «Оплатить».
+    // Раньше клиент оставался в корзине, жал «Оформить» снова, и каждое
+    // нажатие писало НОВЫЙ заказ (05.10.2026: 12 одинаковых за две минуты).
+    const parkUnpaidOrder = (notice: string | null) => {
+      onUpdateDatabase({ orders: [pendingOrder, ...database.orders], users: updatedUsers });
+      setUploadedFiles([]);
+      setNotes('');
+      setBinding('none');
+      setAppliedPromo(null);
+      setPromoCode('');
+      setPromoError(null);
+      setSelectedService(null);
+      setActiveTab('orders');
+      setMobileHome(false);
+      setPayNotice(`Заказ ${orderId} создан, но не оплачен. ${notice ? notice + ' ' : ''}` +
+        'Оплатите его ниже кнопкой «Оплатить» или при получении.');
+      setOrderAcceptPhase('idle');
+      if (btn) { btn.disabled = false; btn.textContent = 'Оформить заказ'; }
+    };
+
     (async () => {
+      let orderSaved = false;
       try {
         // Пишем заказ в базу ДО обращения к payment-create.php — серверный
         // код читает оттуда реальную сумму заказа (защита от подделки
         // суммы платежа), значит документ обязан уже существовать к этому
         // моменту, а не только после успешного ответа ЮKassa.
         await withTimeout(saveOrderToFirebase(pendingOrder), 15000);
+        orderSaved = true;
         trackAnalyticsEvent('order_created');
 
         // Оплату создаёт наш сервер: он сам берёт сумму из заказа и знает
         // новые ключи ЮKassa. Старый api/payment-create.php остался с
         // отозванным ключом — через него страница оплаты не открывалась.
-        const data = await withTimeout(v2.payments.create(orderId), 20000);
+        const data = await createPayment(orderId);
 
         if (data.paymentUrl && data.paymentId) {
           const updated = { ...pendingOrder, transactionId: data.paymentId };
@@ -3588,28 +3713,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           await new Promise(r => setTimeout(r, 900));
           window.location.href = data.paymentUrl;
         } else {
-          // ЮKassa недоступна — заказ уже записан выше, просто показываем модалку
-          onUpdateDatabase({ orders: [pendingOrder, ...database.orders], users: updatedUsers });
-          setUploadedFiles([]);
-          setNotes('');
-          setBinding('none');
-          setAppliedPromo(null);
-          setPromoCode('');
-          setPromoError(null);
-          setActiveTab('orders');
-          setMobileHome(false);
-          setPayingOrder(pendingOrder);
-          setOrderAcceptPhase('success');
-          setTimeout(() => setOrderAcceptPhase('idle'), 1400);
+          // Ссылки на оплату нет — заказ уже записан выше. Раньше здесь
+          // открывалось учебное окно «оплаты» без настоящего платежа.
+          parkUnpaidOrder(null);
         }
       } catch (err) {
         console.error('Payment error:', err);
-        const isTimeout = err instanceof Error && err.message === 'timeout';
-        setUploadError(
-          isTimeout
-            ? 'Не удалось создать платёж — слишком слабое соединение. Проверьте интернет и попробуйте ещё раз.'
-            : 'Ошибка создания платежа. Попробуйте ещё раз.'
-        );
+        if (orderSaved) {
+          parkUnpaidOrder(paymentErrorText(err));
+          return;
+        }
+        setUploadError(err instanceof Error && err.message === 'timeout'
+          ? 'Не удалось отправить заказ — слишком слабое соединение. Проверьте интернет и попробуйте ещё раз.'
+          : 'Не удалось отправить заказ. Попробуйте ещё раз.');
         setOrderAcceptPhase('idle');
         if (btn) { btn.disabled = false; btn.textContent = 'Оформить заказ'; }
       }
@@ -4106,6 +4222,63 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Телефон для чека — над экраном «Оформляем заказ…» (z-200): оплата
+          ждёт ответа, пока клиент вводит номер. */}
+      <AnimatePresence>{phoneAsk && (
+        <motion.div
+          key="phoneAsk"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[250]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: 0.25 } }}
+          exit={{ opacity: 0, transition: { duration: 0.2 } }}
+          onClick={() => closePhoneAsk(null)}
+        >
+          <motion.form
+            className="glass-window max-w-sm w-full p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, scale: 0.9, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 220, damping: 22 } }}
+            exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.18 } }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (phoneAskValue.replace(/\D/g, '').length >= 10) closePhoneAsk(phoneAskValue);
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                <Phone className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-800 dark:text-white">Телефон для чека</h3>
+                <p className="text-[11px] text-slate-400 font-bold">Банк пришлёт на него чек об оплате</p>
+              </div>
+            </div>
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              autoFocus
+              placeholder="+7 900 123-45-67"
+              value={phoneAskValue}
+              onChange={(e) => setPhoneAskValue(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-base font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-500"
+            />
+            {phoneAsk.error && <p className="text-xs font-bold text-rose-500">{phoneAsk.error}</p>}
+            <p className="text-[11px] text-slate-400">Номер сохранится в профиле — в следующий раз спрашивать не будем.</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => closePhoneAsk(null)}
+                className="flex-1 py-3 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                Отмена
+              </button>
+              <button type="submit" disabled={phoneAskValue.replace(/\D/g, '').length < 10}
+                className="flex-1 py-3 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white">
+                Перейти к оплате
+              </button>
+            </div>
+          </motion.form>
+        </motion.div>
+      )}</AnimatePresence>
 
       {/* Neutral frosted glow accents (no color tint) */}
 
@@ -5512,7 +5685,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             const orderCopiesForBinding = uploadedFiles[0]?.fileCopies || 1;
                             const bindingFee = binding !== 'none' ? bindingFeePerCopy(binding, totalPagesForBinding, uploadedFiles.some(f => f.format === 'a3')) * orderCopiesForBinding : 0;
                             const subtotalWithBinding = subtotal + bindingFee;
-                            const discount = activePromo ? getActiveDiscountPercent(activePromo) : 0;
+                            const promoPct = activePromo ? getActiveDiscountPercent(activePromo) : 0;
+                            const loyaltyPct = loyalty?.tier?.percent || 0;
+                            const byLoyalty = loyaltyPct > promoPct;
+                            const discount = byLoyalty ? loyaltyPct : promoPct;
                             const total = Math.round(subtotalWithBinding * (1 - discount / 100));
                             const savings = subtotalWithBinding - total;
                             // Итого обязано включать цену выбранной услуги (selectedService) —
@@ -5532,7 +5708,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 )}
                                 {savings > 0 && (
                                   <div className="flex justify-between text-rose-400 font-bold text-[12px]">
-                                    <span>Промокод ({activePromo}):</span>
+                                    <span>{byLoyalty ? `Скидка за уровень (${loyalty?.tier?.name}, −${loyaltyPct}%):` : `Промокод (${activePromo}):`}</span>
                                     <span>−{savings} ₽</span>
                                   </div>
                                 )}
@@ -5655,7 +5831,18 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 transition={{ duration: 0.25, ease: 'easeOut' }}
                 className="space-y-6 w-full md:overflow-y-auto md:flex-1 md:overscroll-contain min-h-0 pr-1"
               >
-              
+
+              {payNotice && (
+                <div className="flex items-start gap-3 p-4 rounded-2xl border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800/50">
+                  <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <p className="flex-1 text-sm font-bold text-amber-900 dark:text-amber-100">{payNotice}</p>
+                  <button type="button" onClick={() => setPayNotice(null)} aria-label="Закрыть"
+                    className="shrink-0 text-amber-700/70 hover:text-amber-900 dark:text-amber-300/70">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
               {/* Filter controls and top line */}
               <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div className="flex flex-wrap gap-1 w-full sm:w-auto">
@@ -5930,20 +6117,19 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 onClick={async () => {
                                   setRetryPayingOrderId(ord.id);
                                   try {
-                                    const data = await withTimeout(v2.payments.create(ord.id), 20000);
+                                    const data = await createPayment(ord.id);
                                     if (data.paymentUrl) {
+                                      setPayNotice(null);
                                       window.location.href = data.paymentUrl;
                                     } else {
-                                      alert('Ошибка создания платежа. Попробуйте ещё раз.');
+                                      setPayNotice(data.paid
+                                        ? `Заказ ${ord.id} уже оплачен — статус обновится через несколько секунд.`
+                                        : 'Не удалось открыть оплату. Попробуйте ещё раз или оплатите при получении.');
                                       setRetryPayingOrderId(null);
                                     }
                                   } catch (err) {
-                                    const isTimeout = err instanceof Error && err.message === 'timeout';
-                                    alert(
-                                      isTimeout
-                                        ? 'Не удалось создать платёж — слишком слабое соединение. Проверьте интернет и попробуйте ещё раз.'
-                                        : 'Ошибка соединения. Проверьте интернет и попробуйте снова.'
-                                    );
+                                    const text = paymentErrorText(err);
+                                    if (text) setPayNotice(`Заказ ${ord.id}: ${text}`);
                                     setRetryPayingOrderId(null);
                                   }
                                 }}
@@ -5966,14 +6152,10 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               </div>
                             )}
 
-                            {/* Status/Receipt Trigger */}
-                            <button
-                              onClick={() => setPayingOrder(ord)}
-                              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black px-4.5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/10 transition justify-center"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              Статус обработки
-                            </button>
+                            {/* Кнопка «Статус обработки» убрана 05.10.2026: она
+                                открывала учебное окно «оплаты» с полями карты,
+                                которое без денег рисовало «Оплата получена!».
+                                Платить — кнопкой «Оплатить» (ЮKassa) выше. */}
 
                             {/* Удалить заказ целиком — только пока не оплачен и не взят в обработку.
                                 Раньше подтверждение было строкой прямо тут (Да/Нет рядом с кнопкой) —
@@ -6440,65 +6622,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             className="hidden"
                           />
 
-                          {/* Visual loyalty rank float indicator */}
-                          <div className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-md ${
-                            getClientTierForUser(user.id, database.orders).tierCode === 'vip' ? 'bg-amber-500 text-white' :
-                            getClientTierForUser(user.id, database.orders).tierCode === 'loyal' ? 'bg-slate-300 text-slate-800' : 'bg-indigo-600 text-white'
-                          }`}>
-                            {getClientTierForUser(user.id, database.orders).tierCode === 'vip' ? <Sparkles className="w-4 h-4 text-emerald-100" /> :
-                             getClientTierForUser(user.id, database.orders).tierCode === 'loyal' ? <Trophy className="w-4 h-4 text-emerald-100" /> : <Star className="w-4 h-4 text-emerald-100" />}
-                          </div>
+                          {/* Эмблема уровня у аватара (уровень — с сервера) */}
+                          {loyalty?.tier && (
+                            <img src={levelEmblemUrl(loyalty.tier.code)} alt={`Уровень «${loyalty.tier.name}»`} className="absolute -bottom-3 -right-4 w-12 h-12 drop-shadow-lg" />
+                          )}
                         </div>
                         <h3 className="text-base font-black text-slate-800 dark:text-white mt-1">{user.fullName}</h3>
                         <p className="text-[11px] text-slate-400 font-bold tracking-wider">{user.role === 'admin' ? 'Администратор' : 'Клиент'}</p>
                       </div>
 
-                      {/* Dynamic Loyalty Goal Meter */}
-                      <div className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-850 space-y-2">
-                        {(() => {
-                          const paidTotal = userOrders.reduce((acc, current) => acc + (current.paymentStatus === 'paid' ? current.totalCost : 0), 0);
-                          const tier = getClientTierForUser(user.id, database.orders);
-                          let nextGoal = 5000;
-                          let progress = (paidTotal / 5000) * 100;
-                          let goalLabel = 'Постоянный клиент';
-                          
-                          if (paidTotal >= 50000) {
-                            nextGoal = 50000;
-                            progress = 100;
-                            goalLabel = 'Максимальный VIP';
-                          } else if (paidTotal >= 5000) {
-                            nextGoal = 50000;
-                            progress = ((paidTotal - 5000) / 45000) * 100;
-                            goalLabel = 'VIP статус (Приоритет печати)';
-                          }
-                          
-                          return (
-                            <>
-                              <div className="flex justify-between items-baseline text-[11px] font-bold">
-                                <span className="text-slate-400 uppercase tracking-widest">Прогресс лояльности:</span>
-                                <span className="text-slate-500 font-black">{paidTotal} ₽ / {nextGoal} ₽</span>
-                              </div>
-                              <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                                <div 
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                    tier.tierCode === 'vip' ? 'bg-gradient-to-r from-amber-500 to-yellow-400' :
-                                    tier.tierCode === 'loyal' ? 'bg-gradient-to-r from-indigo-500 to-amber-400' : 'bg-indigo-600'
-                                  }`}
-                                  style={{ width: `${Math.min(100, Math.max(8, progress))}%` }}
-                                />
-                              </div>
-                              <div className="flex justify-between text-[10px] font-bold text-slate-400">
-                                <span>{tier.name}</span>
-                                {paidTotal < 50000 ? (
-                                  <span className="text-indigo-600 dark:text-indigo-400">До статуса {goalLabel}: {(nextGoal - paidTotal).toLocaleString('ru-RU')} ₽</span>
-                                ) : (
-                                  <span className="text-amber-500 flex items-center gap-1"><Sparkles className="w-3 h-3" /> Приоритетная VIP-печать включена</span>
-                                )}
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
+                      {/* Уровень клиента — «Герб», как в приложении */}
+                      <LoyaltyGerb loyalty={loyalty} />
 
                       <div className="border-t border-slate-150 dark:border-slate-800 pt-5 space-y-3">
                         <div className="flex justify-between items-center text-xs">
@@ -7178,30 +7312,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 )}
               </button>
 
-              {!user.isGuest && (() => {
-                const paidTotal = userOrders.reduce((acc, current) => acc + (current.paymentStatus === 'paid' ? current.totalCost : 0), 0);
-                const tier = getClientTierForUser(user.id, database.orders);
-                const nextGoal = paidTotal >= 5000 ? 50000 : 5000;
-                const progress = paidTotal >= 5000 ? ((paidTotal - 5000) / 45000) * 100 : (paidTotal / 5000) * 100;
-                return (
-                  <div className="glass-panel glass-rim-card rounded-2xl p-4 space-y-2">
-                    <div className="flex justify-between items-baseline text-[11px] font-bold">
-                      <span className="text-slate-400 uppercase tracking-widest">Статус лояльности</span>
-                      <span className="text-slate-500 font-black">{tier.name}</span>
-                    </div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          tier.tierCode === 'vip' ? 'bg-gradient-to-r from-amber-500 to-yellow-400' :
-                          tier.tierCode === 'loyal' ? 'bg-gradient-to-r from-indigo-500 to-amber-400' : 'bg-indigo-600'
-                        }`}
-                        style={{ width: `${Math.min(100, Math.max(8, progress))}%` }}
-                      />
-                    </div>
-                    <p className="text-[10px] text-slate-400">{paidTotal.toLocaleString('ru-RU')} ₽ / {nextGoal.toLocaleString('ru-RU')} ₽</p>
-                  </div>
-                );
-              })()}
+              {!user.isGuest && <LoyaltyGerb loyalty={loyalty} compact />}
             </aside>
           </>)}
 

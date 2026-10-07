@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/_webpush.php';
 
-/** Сколько человек считается «на сайте» после последнего сигнала (сайт шлёт его раз в 45 с). */
-const ONLINE_FRESHNESS_SECONDS = 120;
 /** Expo принимает до 100 адресов за один запрос. */
 const EXPO_BATCH = 100;
 
@@ -125,15 +123,6 @@ function browser_send(array $user, string $title, string $body, string $tag = ''
     if ($code === 404 || $code === 410) {
         db()->prepare('UPDATE users SET push_subscription = NULL WHERE id = ?')->execute([$user['id']]);
     }
-}
-
-function recently_online(array $user): bool
-{
-    if ((int) ($user['is_online'] ?? 0) !== 1 || empty($user['last_active_at'])) {
-        return false;
-    }
-    $last = (new DateTimeImmutable((string) $user['last_active_at'], new DateTimeZone('UTC')))->getTimestamp();
-    return (time() - $last) < ONLINE_FRESHNESS_SECONDS;
 }
 
 /**

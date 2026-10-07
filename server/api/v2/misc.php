@@ -70,6 +70,10 @@ switch ($action) {
         require_method('GET');
         require_admin($isAdmin);
         show_visits();
+    case 'daily-stats':
+        require_method('GET');
+        require_admin($isAdmin);
+        show_daily_stats();
     case 'play-stats':
         require_method('GET');
         require_admin($isAdmin);
@@ -83,7 +87,9 @@ switch ($action) {
 function list_services(bool $isAdmin)
 {
     $all = $isAdmin && ($_GET['all'] ?? '') !== '';
-    $sql = 'SELECT * FROM services' . ($all ? '' : ' WHERE is_active = 1') . ' ORDER BY sort_order ASC LIMIT 500';
+    // «Фото на документы» — служебная услуга со своим экраном в приложении
+    // (doc-photo.php): в витрине её не показываем, только админу в списке всех.
+    $sql = 'SELECT * FROM services' . ($all ? '' : " WHERE is_active = 1 AND id <> 'doc-photo'") . ' ORDER BY sort_order ASC LIMIT 500';
     respond(['ok' => true, 'services' => array_map('service_public', db()->query($sql)->fetchAll())]);
 }
 
@@ -143,9 +149,9 @@ function save_service()
         'imageScale' => isset($s['imageScale']) ? (float) $s['imageScale'] : null,
         'iconUrl' => mb_substr(trim((string) ($s['iconUrl'] ?? '')), 0, 1024),
         // Что спросить у клиента при заказе из приложения (решение Давида
-        // 24.09.2026): ничего / файл для печати / фото. Не задано — приложение
+        // 24.09.2026): ничего / файл для печати / фото / фото или файл (06.10). Не задано — приложение
         // решает по названию услуги.
-        'ask' => in_array($s['ask'] ?? '', ['none', 'file', 'photo'], true) ? $s['ask'] : '',
+        'ask' => in_array($s['ask'] ?? '', ['none', 'file', 'photo', 'any'], true) ? $s['ask'] : '',
         // Подпись поля для надписи («Надпись на кружке»). Пусто — поля нет.
         'askText' => mb_substr(trim((string) ($s['askText'] ?? '')), 0, 60),
         // Выбор из вариантов: заголовок («Траурная ленточка») и сами варианты.
@@ -259,6 +265,23 @@ function show_visits()
         'total' => (int) ($data['total'] ?? 0),
         'history' => array_map(fn($d, $c) => ['date' => $d, 'count' => (int) $c], array_keys($history), $history),
     ]);
+}
+
+/** Заказы и оборот по дням для плиток админки (см. daily_stat_add в _bootstrap.php). */
+function show_daily_stats()
+{
+    $st = db()->query("SELECT name, data FROM stats WHERE name IN ('orders_daily', 'revenue_daily')");
+    $out = ['orders' => [], 'revenue' => []];
+    foreach ($st->fetchAll() as $r) {
+        $days = json_decode((string) $r['data'], true) ?: [];
+        krsort($days);
+        $days = array_slice($days, 0, VISITS_HISTORY_DAYS, true);
+        $key = $r['name'] === 'orders_daily' ? 'orders' : 'revenue';
+        foreach ($days as $d => $v) {
+            $out[$key][] = ['date' => (string) $d, 'value' => (float) $v];
+        }
+    }
+    respond(['ok' => true] + $out);
 }
 
 // ─────────────────────────── Google Play ───────────────────────────

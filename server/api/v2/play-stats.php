@@ -54,9 +54,12 @@ try {
 
     $daily = fn(array $r): int => (int) ($r['Daily User Installs'] ?? $r['Install events'] ?? 0);
     $week = array_sum(array_map($daily, array_slice($days, -7)));
-    $total = isset($last['Total User Installs']) && $last['Total User Installs'] !== ''
-        ? (int) $last['Total User Installs']
-        : array_sum(array_map($daily, $days));
+    // «Total User Installs» Google у нового приложения присылает нулём, хотя
+    // дневные установки уже есть, — берём большее из счётчика и суммы по дням.
+    $total = max(
+        (int) ($last['Total User Installs'] ?? 0),
+        array_sum(array_map($daily, $days))
+    );
 
     // Оценка: последнее непустое «Total Average Rating» (пока оценок нет, там NA).
     $rating = null;

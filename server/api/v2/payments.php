@@ -24,6 +24,7 @@ require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_telegram.php';
 require __DIR__ . '/_referrals.php';
 require __DIR__ . '/_push.php';
+require_once __DIR__ . '/_doc_photo.php';
 
 const PAYMENT_RETURN_URL = 'https://sever-18.ru/?payment=success&order=';
 const YOOKASSA_API = 'https://api.yookassa.ru/v3/payments';
@@ -82,8 +83,23 @@ function create_payment(array $user)
     }
 
     $customer = receipt_customer($user, $order);
+    // Ни почты, ни телефона (гость, вход через Telegram) — сайт спрашивает
+    // номер прямо при оплате и присылает его сюда же. 05.10.2026 клиент без
+    // контактов 20 раз подряд читал «проверьте интернет» и так и не оплатил.
+    $phone = trim((string) (body()['phone'] ?? ''));
+    if ($customer === null && $phone !== '') {
+        $customer = receipt_customer(['phone' => $phone], []);
+        if ($customer === null) {
+            respond(['ok' => false, 'need' => 'contact',
+                'error' => 'Номер не похож на российский. Введите 11 цифр, например +7 900 123-45-67.'], 400);
+        }
+        $saved = '+' . $customer['phone'];
+        db()->prepare("UPDATE users SET phone = ? WHERE id = ? AND (phone IS NULL OR phone = '')")->execute([$saved, $user['id']]);
+        db()->prepare("UPDATE orders SET user_phone = ? WHERE id = ? AND (user_phone IS NULL OR user_phone = '')")->execute([$saved, $order['id']]);
+    }
     if ($customer === null) {
-        fail('Для электронного чека нужна почта или телефон. Укажите их в профиле и попробуйте снова.', 400);
+        respond(['ok' => false, 'need' => 'contact',
+            'error' => 'Для электронного чека нужен ваш телефон или почта.'], 400);
     }
     $value = number_format($amount, 2, '.', '');
     $payment = yookassa($cfg, 'POST', YOOKASSA_API, [
@@ -197,7 +213,17 @@ function apply_payment(array $order, array $payment, bool $fromWebhook): string
     $upd = $pdo->prepare("UPDATE orders SET payment_status = 'paid', transaction_id = ?, payment_method = ? WHERE id = ? AND payment_status <> 'paid'");
     $upd->execute([$payment['id'], PAYMENT_METHOD_ONLINE, $order['id']]);
     if ($upd->rowCount() === 1) {
+        daily_stat_add('revenue_daily', $expected);
         $files = json_decode((string) $order['files'], true) ?: [];
+        // «Фото на документы»: готовое фото лежит вне сайта и попадает в заказ
+        // только сейчас, после оплаты (doc-photo.php).
+        if (($order['service_id'] ?? '') === DOC_PHOTO_SERVICE_ID) {
+            try {
+                $files = doc_photo_attach(array_merge($order, ['payment_status' => 'paid'])) ?? $files;
+            } catch (Throwable $e) {
+                error_log('payments doc_photo_attach: ' . $e->getMessage());
+            }
+        }
         notify_admin("🔔 <b>Новый оплаченный заказ!</b>\n\n"
             . '📋 Заказ: <b>' . tg_escape($order['id']) . "</b>\n"
             . '👤 Клиент: <b>' . tg_escape($order['user_name']) . "</b>\n"

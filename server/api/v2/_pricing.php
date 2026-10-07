@@ -166,3 +166,40 @@ function promo_percent(?string $code, array $user): int
     }
     return 0;
 }
+
+/**
+ * Уровни клиента (решение Давида 27.09.2026): порог — сумма оплаченных
+ * заказов в рублях, скидка — в процентах. Ниже первого порога уровня нет.
+ * Эти же числа — в src/utils.ts сайта и в loyalty.ts приложения.
+ */
+const LOYALTY_TIERS = [
+    ['code' => 'bronze',   'name' => 'Бронзовый',  'from' => 2000,  'percent' => 5],
+    ['code' => 'silver',   'name' => 'Серебряный', 'from' => 10000, 'percent' => 10],
+    ['code' => 'gold',     'name' => 'Золотой',    'from' => 25000, 'percent' => 15],
+    ['code' => 'platinum', 'name' => 'Платиновый', 'from' => 50000, 'percent' => 20],
+];
+
+/** Уровень по оплаченной сумме; null — уровня ещё нет. */
+function loyalty_tier(float $paidRub): ?array
+{
+    $tier = null;
+    foreach (LOYALTY_TIERS as $t) {
+        if ($paidRub >= $t['from']) {
+            $tier = $t;
+        }
+    }
+    return $tier;
+}
+
+/**
+ * Какая скидка действует на заказ: промокод или уровень — бо́льшая из двух,
+ * не сумма (иначе 20 % уровня + 20 % промокода увели бы печать в минус).
+ * Возвращает [процент, источник: 'promo' | 'loyalty' | null].
+ */
+function best_discount(int $promoPercent, int $loyaltyPercent): array
+{
+    if ($promoPercent <= 0 && $loyaltyPercent <= 0) {
+        return [0, null];
+    }
+    return $promoPercent >= $loyaltyPercent ? [$promoPercent, 'promo'] : [$loyaltyPercent, 'loyalty'];
+}

@@ -10,7 +10,7 @@
  * телефоне клиента могут врать, а сервер сам себе всегда верен.
  */
 
-import { User, Order, ChatMessage, Notification, Promo, Service, Feedback, DatabaseState } from '../types';
+import { User, Order, ChatMessage, Notification, Promo, Service, Feedback, DatabaseState, DailyStat } from '../types';
 
 const BASE = 'https://sever-18.ru/api/v2';
 
@@ -47,9 +47,12 @@ export function setToken(token: string): void {
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** Чего не хватает серверу, чтобы продолжить: 'contact' — телефона для чека. */
+  need?: string;
+  constructor(message: string, status: number, need?: string) {
     super(message);
     this.status = status;
+    this.need = need;
   }
 }
 
@@ -75,7 +78,7 @@ async function request<T>(path: string, options: { method?: 'GET' | 'POST'; body
     const message = (data && (data.error as string)) || 'Сервер недоступен. Попробуйте ещё раз.';
     // Пропуск протух или отозван — пусть верхний слой предложит войти заново.
     if (res.status === 401) setToken('');
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, data?.need);
   }
   return data as T;
 }
@@ -202,6 +205,10 @@ export async function logout(): Promise<void> {
 
 // ─────────────────────────── Заказы ───────────────────────────
 
+export type LoyaltyTier = { code: 'bronze' | 'silver' | 'gold' | 'platinum'; name: string; from: number; percent: number };
+/** Ответ orders.php?action=loyalty: сколько оплачено, текущий уровень (null — ещё нет) и следующий. */
+export type Loyalty = { paid: number; tier: LoyaltyTier | null; next: (LoyaltyTier & { left: number }) | null };
+
 export const orders = {
   /** Номер заказа бронируется ДО загрузки файлов — как и раньше. */
   reserve: () => request<{ orderId: string }>('orders.php?action=reserve', { body: {} }),
@@ -213,6 +220,9 @@ export const orders = {
   rate: (id: string, rating: number, ratingComment?: string) =>
     request('orders.php?action=rate', { body: { id, rating, ratingComment } }),
   cancel: (id: string) => request('orders.php?action=cancel', { body: { id } }),
+  /** Уровень клиента и скидка; админ может спросить про любого клиента. */
+  loyalty: (userId?: string) =>
+    request<Loyalty>(`orders.php?action=loyalty${userId ? `&userId=${encodeURIComponent(userId)}` : ''}`),
   save: (order: Order) => request<{ order: Order }>('orders.php?action=save', { body: { order } }),
   remove: (id: string) => request('orders.php?action=delete', { body: { id } }),
 };
@@ -276,9 +286,9 @@ export const payments = {
    * Создаёт платёж в ЮKassa. Сумму сервер берёт из самого заказа — прислать
    * свою нельзя, иначе цену можно было бы подделать на стороне браузера.
    */
-  create: (orderId: string) =>
+  create: (orderId: string, phone?: string) =>
     request<{ paymentUrl?: string; paymentId?: string; paid?: boolean }>(
-      'payments.php?action=create', { body: { orderId } }),
+      'payments.php?action=create', { body: phone ? { orderId, phone } : { orderId } }),
   status: (orderId: string) =>
     request<{ paymentStatus: string }>(`payments.php?action=status&orderId=${encodeURIComponent(orderId)}`),
 };
@@ -315,6 +325,8 @@ export const visits = {
   /** Одно посещение на вкладку — как и раньше, отмечаем раз за сессию браузера. */
   track: () => request('misc.php?action=visit', { method: 'POST', body: {} }),
   stats: () => request<{ total: number; history: { date: string; count: number }[] }>('misc.php?action=visits'),
+  /** Заказы и оборот по дням — копит сервер, удаление заказов их не трогает. */
+  daily: () => request<{ orders: DailyStat[]; revenue: DailyStat[] }>('misc.php?action=daily-stats'),
   /** Установки из Google Play (обновляются раз в сутки). configured: false — статистика ещё не подключена. */
   playStats: () =>
     request<
@@ -324,6 +336,48 @@ export const visits = {
 };
 
 // ─────────────────────────── Telegram ───────────────────────────
+
+// ─────────────────── Максим — ИИ-администратор на звонках ───────────────────
+// Сам Максим живёт на своём сервере; maxim.php пускает только админа и
+// пересылает запросы ему.
+
+export interface MaximStatus {
+  online: boolean;
+  activeCalls: number;
+  /** Подключён ли номер Новофона: 'на связи' / 'не подключён' / состояние линии. */
+  trunk: string;
+  davidReady: boolean;
+  notesReady: boolean;
+  todayCalls: number;
+  todaySpam: number;
+  months: string[];
+}
+
+export interface MaximCall {
+  id: string;
+  number: string;
+  svoi: boolean;
+  started: string;
+  ended: string;
+  seconds: number;
+  endReason: string;
+  transferred: boolean;
+  notes: string[];
+  events: { at: string; tool: string; args: Record<string, string> }[];
+  transcript: string;
+  summary?: string;
+}
+
+export interface MaximMemoryEntry { date: string; summary: string }
+
+export const maxim = {
+  status: () => request<MaximStatus>('maxim.php?action=status'),
+  calls: (month: string) => request<{ calls: MaximCall[]; months: string[] }>(`maxim.php?action=calls&month=${encodeURIComponent(month)}`),
+  character: () => request<{ text: string }>('maxim.php?action=character'),
+  saveCharacter: (text: string) => request<{ ok: true }>('maxim.php?action=character', { body: { text } }),
+  memory: () => request<{ memory: Record<string, MaximMemoryEntry[]> }>('maxim.php?action=memory'),
+  forget: (number: string) => request<{ ok: true }>('maxim.php?action=memory-forget', { body: { number } }),
+};
 
 export const telegram = {
   /** Одноразовая ссылка на бота: клиент открывает её и жмёт «Отправить» — Telegram привязан. */
@@ -528,10 +582,19 @@ export function subscribeByPolling(
         // Отзывы и счётчик посещений видит только админ — клиенту их вообще
         // не отдают, и спрашивать незачем.
         if (isAdmin) {
-          const [f, v] = await Promise.all([feedback.list(), visits.stats()]);
+          const [f, v, d] = await Promise.all([
+            feedback.list(),
+            visits.stats(),
+            // Сбой этих цифр не должен отнимать у админки отзывы и заходы.
+            visits.daily().catch(() => null),
+          ]);
           updates.feedback = f.feedback;
           updates.siteVisits = v.total;
           updates.siteVisitsHistory = v.history;
+          if (d) {
+            updates.ordersDaily = d.orders;
+            updates.revenueDaily = d.revenue;
+          }
         }
       }
 

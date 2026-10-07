@@ -176,6 +176,14 @@ function serve_file()
     $sig = (string) ($_GET['sig'] ?? '');
     $bySignature = $sig !== '' && signature_valid($path, $exp, $sig);
 
+    // Фото профиля показывается всегда, хотя ссылка на него подписана на
+    // 30 дней: картинку в <img> браузер грузит без входа, и через месяц
+    // аватар у клиента пропадал бы (найдено 27.09.2026). Открываем только
+    // картинку, которая прямо сейчас стоит чьим-то фото профиля.
+    if (!$bySignature && is_profile_avatar($path)) {
+        $bySignature = true;
+    }
+
     if (!$bySignature) {
         $user = current_user();
         if (!$user) {
@@ -271,6 +279,17 @@ function normalized_path(string $path): string
         fail('Неверный путь к файлу');
     }
     return $path;
+}
+
+/** Стоит ли этот файл-картинка сейчас фото профиля у кого-то из клиентов. */
+function is_profile_avatar(string $path): bool
+{
+    if (!preg_match('/\.(jpe?g|png|webp|gif|heic)$/i', $path)) {
+        return false;
+    }
+    $st = db()->prepare("SELECT 1 FROM users WHERE deleted_at IS NULL AND avatar_url LIKE ? LIMIT 1");
+    $st->execute(['%path=' . str_replace(['%', '_'], ['\\%', '\\_'], rawurlencode($path)) . '&%']);
+    return (bool) $st->fetchColumn();
 }
 
 // ─────────────────────────── Подписанные ссылки ───────────────────────────

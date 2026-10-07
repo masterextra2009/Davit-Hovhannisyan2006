@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { User, Order, ChatMessage, Notification as AppNotification, PrintFile, OrderStatus, PaymentStatus, Service, Feedback, Promo } from '../types';
+import { OrderBarcode } from './OrderBarcode';
 import { ThemeToggle } from './ThemeToggle';
 import { LiveClock } from './LiveClock';
 import { ServicesShowcaseDemo } from './ServicesShowcaseDemo';
@@ -14,20 +15,37 @@ import logoImg from '../assets/logo.webp';
 import {
   FileText, Users, Clock, MessageSquare, Download, CheckCircle,
   Send, RefreshCw, BarChart3, Trash2, Edit3, Save, FileSpreadsheet,
-  Printer, ArrowRight, TrendingUp, DollarSign, Files, Eye, HelpCircle,
-  BellRing, LogOut, FileCheck, Settings, Camera, Image as ImageIcon, Key, CreditCard, Check, ShieldAlert, X, ShieldCheck, Gift, Search, Archive, ChevronLeft, Mail, Phone, User as UserIconLucide, Upload, Lightbulb, GripVertical
+  Printer, ArrowRight, TrendingUp, ShoppingBag, DollarSign, Files, Eye, HelpCircle,
+  BellRing, Bot, LogOut, FileCheck, Settings, Camera, Image as ImageIcon, Key, CreditCard, Check, ShieldAlert, X, ShieldCheck, Gift, Search, Archive, ChevronLeft, Mail, Phone, User as UserIconLucide, Upload, Lightbulb, GripVertical
 } from 'lucide-react';
 import {
   formatFileSize, formatDateTime, getStatusLabel,
   getStatusColor, getPaymentStatusLabel, getPaymentStatusColor,
-  exportToCSV, printInvoiceHTML, calculateOrderCost, getLocalDateKey, sortServicesByGroup
+  exportToCSV, printInvoiceHTML, calculateOrderCost, getLocalDateKey, sortServicesByGroup,
+  loyaltyTierFor
 } from '../utils';
+
+// Уровень клиента значком рядом с именем: видно, кому положена скидка
+// (её ставит сервер сам) и кто из клиентов самый ценный.
+function LoyaltyChip({ userId, orders }: { userId: string; orders: Order[] }) {
+  const tier = loyaltyTierFor(userId, orders);
+  if (!tier) return null;
+  return (
+    <span
+      className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider align-middle ${tier.chip}`}
+      title={`Уровень «${tier.name}»: скидка ${tier.percent}% на заказы`}
+    >
+      {tier.name} −{tier.percent}%
+    </span>
+  );
+}
 import * as v2 from '../api/v2';
 import { deleteUserAccountWithFirebase, deleteOrderFromFirebase, saveOrderToFirebase, deleteFeedbackFromFirebase, deleteChatMessageInFirebase, clearChatHistoryInFirebase, updateChatMessageInFirebase } from '../firebaseUtils';
 import { isVoice, parseVoice } from '../utils/chatVoice';
 import VoiceGlass from './VoiceGlass';
 import AdminPushToggle from './AdminPushToggle';
 import { PromoCardPreview } from './PromoCardPreview';
+import { MaximAdmin } from './MaximAdmin';
 import { UserAvatar } from './UserAvatar';
 import { StickerView } from './StickerView';
 import { EmojiPicker } from './EmojiPicker';
@@ -41,25 +59,6 @@ const PHOTO_SIZE_LABELS: Record<string, string> = {
   '10x15': '10×15 см', 'polaroid': 'Полароид', '13x18': '13×18 см',
   '15x21': '15×21 см', '20x30': '20×30 см', '30x40': '30×40 см',
 };
-
-// Тонкое кольцо прогресса для карточек статистики — одна метрика, один цвет,
-// закруглённый конец дуги (см. dataviz: тонкие марки, скруглённые концы).
-function MiniRing({ percent, colorClass }: { percent: number; colorClass: string }) {
-  const r = 15;
-  const c = 2 * Math.PI * r;
-  const clamped = Math.max(0, Math.min(100, percent));
-  const offset = c - (clamped / 100) * c;
-  return (
-    <svg width="38" height="38" viewBox="0 0 40 40" className="shrink-0 -rotate-90">
-      <circle cx="20" cy="20" r={r} fill="none" strokeWidth="4" className="stroke-slate-150 dark:stroke-slate-800" />
-      <circle
-        cx="20" cy="20" r={r} fill="none" strokeWidth="4" strokeLinecap="round"
-        strokeDasharray={c} strokeDashoffset={offset}
-        className={`${colorClass} transition-all duration-700 ease-out`}
-      />
-    </svg>
-  );
-}
 
 // Мини-полоски за последние 7 дней — тот же визуальный язык, что уже
 // использовался для "Заходы на сайт", теперь переиспользуется для выручки
@@ -102,6 +101,25 @@ function buildLast7Days<T>(items: T[], getDate: (item: T) => string, getValue: (
   return days;
 }
 
+const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+/**
+ * Сегодня / за месяц / 7 дней по счётчику сервера (misc.php?action=daily-stats).
+ * Не по database.orders: выданные заказы удаляются через 48 ч, и месяц по ним
+ * выходил бы заниженным.
+ */
+function dailySummary(rows: { date: string; value: number }[] = []) {
+  const now = new Date();
+  const today = getLocalDateKey(now);
+  const monthPrefix = today.slice(0, 7);
+  return {
+    today: rows.find(r => r.date === today)?.value || 0,
+    month: rows.filter(r => r.date.startsWith(monthPrefix)).reduce((s, r) => s + r.value, 0),
+    monthName: MONTH_NAMES[now.getMonth()],
+    week: buildLast7Days(rows, r => `${r.date}T12:00:00`, r => r.value),
+  };
+}
+
 interface AdminPanelProps {
   adminUser: User;
   onLogout: () => void;
@@ -114,6 +132,8 @@ interface AdminPanelProps {
     promos?: Promo[];
     siteVisits?: number;
     siteVisitsHistory?: { date: string; count: number }[];
+    ordersDaily?: { date: string; value: number }[];
+    revenueDaily?: { date: string; value: number }[];
     feedback?: Feedback[];
   };
   onUpdateDatabase: (updatedData: {
@@ -134,7 +154,7 @@ function scannerCharFromCode(code: string): string | null {
 
 export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: AdminPanelProps) {
   // Navigation
-  const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services' | 'promos' | 'print-app'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services' | 'promos' | 'print-app' | 'maxim'>('orders');
   // Вкладка "Обновления" видна только внутри программы "Фото-Сервер — Печать"
   // (там window.printerAPI прокинут через preload.js) — на обычном сайте в
   // браузере этого моста нет, поэтому вкладка там просто не показывается.
@@ -370,8 +390,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
         updatedFiles,
         order.photoSize,
         order.binding,
-        order.promoCode,
-        order.promoDiscount
+        // Скидка за уровень пересчитывается так же, как промокод: иначе после
+        // удаления файла из заказа цена подскочила бы без скидки.
+        order.promoCode ?? (order.loyaltyDiscount ? 'уровень' : undefined),
+        order.promoDiscount ?? order.loyaltyDiscount
       );
 
       updatedOrders = database.orders.map(o => {
@@ -456,9 +478,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   
   const [savingSettings, setSavingSettings] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-
-  const [exportingBackup, setExportingBackup] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
 
   // Admin notification toast
   const [adminToast, setAdminToast] = useState<{type: 'order'|'chat'; text: string} | null>(null);
@@ -955,62 +974,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     }, 600);
   };
 
-  // Ручной экспорт всей базы (заказы/клиенты/чат/etc.) в один JSON-файл на
-  // диск администратора. Проект на бесплатном тарифе Firebase Spark, где
-  // нет автоматических запланированных бэкапов Firestore (это требует
-  // платного Blaze) — до апгрейда тарифа это единственная защита от потери
-  // всех данных при случайном удалении/сбое. Читает данные, уже загруженные
-  // в состояние приложения (без лишних Firestore-запросов), плюс отдельно
-  // счётчик посещений и заказов, которых нет в общем database-объекте.
-  const handleExportBackup = async () => {
-    setExportingBackup(true);
-    setExportError(null);
-    try {
-      // Счётчик посещений и номер следующего заказа лежат отдельно от общего
-      // состояния — их забираем по месту. На своём сервере номер заказа
-      // выдаётся при оформлении, отдельной «тетрадки» с ним нет.
-      let stats: any = null;
-      let counters: any = null;
-      stats = await v2.visits.stats().catch(() => null);
-
-      const backup = {
-        exportedAt: new Date().toISOString(),
-        users: database.users,
-        orders: database.orders,
-        chatMessages: database.chatMessages,
-        notifications: database.notifications,
-        services: database.services || [],
-        feedback: database.feedback || [],
-        promos: database.promos || [],
-        stats,
-        counters,
-      };
-
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `sever18-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Backup export failed:', err);
-      setExportError('Не удалось создать резервную копию. Проверьте интернет и попробуйте ещё раз.');
-    } finally {
-      setExportingBackup(false);
-    }
-  };
-
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Аватар админа — файлом в общую папку. Раньше картинка шла в профиль
+  // целиком текстом (data:…), а сервер хранит ссылку до 1024 символов —
+  // оставался битый обрывок, и аватар «не сохранялся».
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAdminAvatarUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const data = await v2.files.uploadPublic(file);
+      if (data.url) {
+        setAdminAvatarUrl(data.url);
+      }
+    } catch {
+      alert('Ошибка загрузки фото');
     }
   };
 
@@ -1211,6 +1188,12 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
    * «Чертёж А3». Нужно на выдаче: Давид сканирует код и должен сразу
    * видеть, что выносить клиенту, не разбирая карточку по полям.
    */
+  // Для превью в карточке заказа: картинку показываем саму, остальное — значком
+  // с расширением (PDF, DOCX…).
+  const isImageFile = (f: PrintFile) =>
+    f.formatGroup === 'image' || /\.(jpe?g|png|webp|gif|bmp|heic)$/i.test(f.name);
+  const fileExt = (name: string) => (name.split('.').pop() || 'файл').toUpperCase().slice(0, 4);
+
   const describeOrder = (o: Order): string => {
     // Заказ из витрины услуг — это и есть услуга: «Кружка», «Печать на
     // футболке». Файл при ней — материал (картинка), а не отдельная печать,
@@ -1662,12 +1645,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
   // Данные для графиков в карточках статистики — 7 дней, тот же язык, что
   // уже был у "Заходы на сайт".
-  const revenueHistory = useMemo(() => buildLast7Days(
-    database.orders.filter(o => o.paymentStatus === 'paid'),
-    o => o.orderDate,
-    o => o.totalCost
-  ), [database.orders]);
-
   const newClientsHistory = useMemo(() => buildLast7Days(
     clientsOnly,
     u => u.createdAt
@@ -1708,8 +1685,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     return months.reverse();
   }, [clientsOnly]);
 
-  const printedCount = database.orders.filter(o => o.status === 'printed').length;
-  const completedPercent = database.orders.length > 0 ? Math.round((printedCount / database.orders.length) * 100) : 0;
 
   // Карточки «В печатной работе» и «Сводка по чату» убраны из аналитики
   // (Давид 26.09.2026) — вместе с их подсчётами.
@@ -2002,6 +1977,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           </button>
 
           <button
+            onClick={() => setActiveTab('maxim')}
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
+              activeTab === 'maxim'
+                ? 'nav-holo-active bg-white/10 text-white font-black'
+                : 'text-white/55 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <div className={`glass-icon-capsule glass-icon-green w-9 h-9 shrink-0 ${activeTab === 'maxim' ? 'glass-icon-active' : ''}`}>
+              <Bot className="w-4.5 h-4.5 text-white" />
+            </div>
+            <span className="hidden sm:inline">Максим</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('settings')}
             className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
               activeTab === 'settings' 
@@ -2080,7 +2069,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <h1 className="text-sm font-black text-white leading-none">АДМИН-ПК</h1>
           </div>
           <div className="flex items-center gap-2">
-            <LiveClock showSeconds={false} />
+            <LiveClock bare showSeconds={false} />
             <ThemeToggle />
             <button
               onClick={onLogout}
@@ -2096,15 +2085,15 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           <div>
             <h1 className="text-xl font-black text-white">
               {activeTab === 'orders' && 'Очередь печати документов'}
-              {activeTab === 'chat' && 'Оперативная чат-линия клиентов'}
+              {activeTab === 'chat' && 'Чат'}
               {activeTab === 'feedback' && 'Пожелания и замечания клиентов'}
               {activeTab === 'users' && 'Управление пользователями и конфиденциальность'}
               {activeTab === 'analytics' && 'Статистика копи-центра в реальном времени'}
               {activeTab === 'settings' && 'Редактирование профиля и интеграция банка'}
               {activeTab === 'print-app' && 'Обновления и баланс'}
+              {activeTab === 'maxim' && 'Максим — ИИ-администратор на звонках'}
             </h1>
             <p className="text-xs text-white/60 mt-1">
-              {activeTab === 'chat' && 'Контролируйте ветки диалогов всех активных клиентов вашего копи-точки.'}
               {activeTab === 'feedback' && 'Сообщения из формы "Есть пожелание или замечание?" в кабинете клиента.'}
               {activeTab === 'users' && 'Просмотр контактов, редактирование профилей и полное удаление согласно регламенту.'}
               {activeTab === 'analytics' && 'Сводная аналитика выручки, распределение графиков популярности расширений.'}
@@ -2114,7 +2103,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           </div>
 
           <div className="flex items-center gap-3">
-            <LiveClock />
+            <LiveClock bare />
             <ThemeToggle />
             <div className="text-xs glass-card px-3.5 py-2 rounded-xl text-white font-bold">
               Активных заказов: <strong className="text-emerald-300">{pendingCount}</strong>
@@ -2270,7 +2259,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {sortedOrders.length === 0 ? (
                 <p className="text-xs text-white/50 text-center py-10 glass-panel rounded-3xl">Нет заказов в реестре.</p>
               ) : (
-                <div className="grid grid-cols-1 gap-5">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-5 items-start">
                   {sortedOrders
                     .filter(o => {
                       // Выданные заказы живут только в Архиве — как только заказ
@@ -2312,65 +2301,46 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       }
                       return true;
                     })
-                    .map(order => (
+                    .map(order => {
+                      const firstFile = order.files?.[0];
+                      const svc = order.serviceId ? database.services?.find(x => x.id === order.serviceId) : undefined;
+                      return (
                       <div
                         key={order.id}
-                        className="glass-card rounded-2xl overflow-hidden"
+                        className="glass-card rounded-2xl overflow-hidden flex flex-col"
                       >
-                        {/* Upper Section client credentials */}
-                        <div className="p-4 bg-slate-50/50 dark:bg-slate-950/20 border-b border-slate-150/60 dark:border-slate-850 flex flex-col gap-3">
-                          {/* Row 1: Order info + status badges + delete */}
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-extrabold text-slate-900 dark:text-white text-xs">{order.id}</span>
-                                <span className="text-[11px] text-slate-400">{formatDateTime(order.orderDate)}</span>
-                              </div>
-                              <div className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">
-                                Клиент: <strong>{order.userName}</strong>
-                                {/* Точку-разделитель рисуем только когда почта есть:
-                                    у гостя её не спрашивают, и «имя •» с висящей
-                                    точкой в конце читалось как обрезанная строка. */}
-                                {order.userEmail ? <> &bull; {order.userEmail}</> : null}
-                                {order.isGuestOrder && (
-                                  <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider align-middle">
-                                    Гость
-                                  </span>
-                                )}
-                                {/* Телефон приходит вместе с заказом из мобильного приложения
-                                    (order.userPhone). У заказов с сайта и у старых заказов его
-                                    нет — тогда строка просто не показывается. */}
-                                {order.userPhone && (
-                                  <>
-                                    {' '}&bull;{' '}
-                                    <a
-                                      href={`tel:${order.userPhone.replace(/[^\d+]/g, '')}`}
-                                      className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
-                                    >
-                                      {order.userPhone}
-                                    </a>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex flex-wrap gap-2 items-center">
-                              {order.rejected && (
-                                <span className="text-[11px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">
-                                  ⚠ Брак
-                                </span>
-                              )}
-                              <span className={`text-[11px] uppercase font-bold px-2 px-2.5 py-0.5 rounded-md ${getStatusColor(order.status)}`}>
-                                {getStatusLabel(order.status)}
+                        {/* Превью: первое приложенное фото, иначе значок файла
+                            (или картинка самой услуги, если файлов нет) */}
+                        <div className="relative aspect-[16/10] bg-slate-900/60 grid place-items-center overflow-hidden">
+                          {firstFile ? (
+                            <>
+                              <span className={`font-mono font-bold text-xl text-white px-3 py-2 rounded-lg ${/pdf$/i.test(firstFile.name) ? 'bg-rose-600' : /docx?$/i.test(firstFile.name) ? 'bg-blue-600' : 'bg-slate-600'}`}>
+                                {fileExt(firstFile.name)}
                               </span>
-                              {order.paymentStatus === 'unpaid' && order.paymentMethod === 'При получении (Наличные/Карта)' ? (
-                                <span className="text-[11px] uppercase font-bold px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
-                                  💵 Оплата при получении
-                                </span>
-                              ) : (
-                                <span className={`text-[11px] uppercase font-bold px-2.5 py-0.5 rounded-md ${getPaymentStatusColor(order.paymentStatus)}`}>
-                                  {getPaymentStatusLabel(order.paymentStatus)}
-                                </span>
+                              {isImageFile(firstFile) && (firstFile.previewUrl || firstFile.url) && (
+                                <img
+                                  src={firstFile.previewUrl || firstFile.url}
+                                  alt={`Файл клиента ${firstFile.name}`}
+                                  loading="lazy"
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                  onError={e => { e.currentTarget.style.display = 'none'; }}
+                                />
                               )}
+                            </>
+                          ) : svc?.imageUrl ? (
+                            <img src={svc.imageUrl} alt={svc.title} loading="lazy" className="absolute inset-0 w-full h-full object-contain" />
+                          ) : (
+                            <span className="text-xs text-white/50">Без файлов</span>
+                          )}
+                          <div className="absolute inset-x-2.5 bottom-2.5 flex items-end justify-between gap-2">
+                            <span className="text-[12px] font-extrabold text-white px-2.5 py-1 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-500 shadow truncate">
+                              {describeOrder(order)}{svc?.price ? ` · ${svc.price}` : ''}
+                            </span>
+                            {order.files.length > 1 && (
+                              <span className="shrink-0 text-[11px] font-bold text-white bg-black/60 px-2 py-0.5 rounded-lg">+{order.files.length - 1} файл.</span>
+                            )}
+                          </div>
+                          <div className="absolute top-2 right-2 bg-black/50 rounded-lg">
                               {orderToConfirmDelete === order.id ? (
                                 <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 p-1 rounded-lg border border-rose-100 dark:border-rose-900/40">
                                   <span className="text-[10px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить заказ?</span>
@@ -2386,7 +2356,52 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               )}
+                          </div>
+                        </div>
+
+                        <div className="p-4 flex flex-col gap-3 flex-1">
+                          {/* Номер, дата и метки */}
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-xs">
+                              <span className="font-extrabold text-slate-900 dark:text-white">{order.id}</span>
+                              <span className="text-slate-400"> · {formatDateTime(order.orderDate)}</span>
+                            </span>
+                            <div className="flex flex-wrap gap-1.5 items-center">
+                              {order.rejected && (
+                                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">⚠ Брак</span>
+                              )}
+                              <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md ${getStatusColor(order.status)}`}>
+                                {getStatusLabel(order.status)}
+                              </span>
+                              {order.paymentStatus === 'unpaid' && order.paymentMethod === 'При получении (Наличные/Карта)' ? (
+                                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">💵 При получении</span>
+                              ) : (
+                                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md ${getPaymentStatusColor(order.paymentStatus)}`}>
+                                  {getPaymentStatusLabel(order.paymentStatus)}
+                                </span>
+                              )}
                             </div>
+                          </div>
+
+                          {/* Клиент + штрих-код номера заказа (его читает сканер на кассе) */}
+                          <div className="flex flex-col gap-2.5">
+                            <div className="min-w-0 text-[12px] text-slate-500 dark:text-slate-400 space-y-0.5">
+                              <div className="text-sm font-extrabold text-slate-900 dark:text-white">
+                                {order.userName}
+                                <LoyaltyChip userId={order.userId} orders={database.orders} />
+                                {order.isGuestOrder && (
+                                  <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider align-middle">Гость</span>
+                                )}
+                              </div>
+                              {/* Телефон есть у заказов из приложения; у сайта и старых — нет */}
+                              {order.userPhone && (
+                                <a href={`tel:${order.userPhone.replace(/[^\d+]/g, '')}`} className="block font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                                  {order.userPhone}
+                                </a>
+                              )}
+                              {order.userEmail && <div className="truncate">{order.userEmail}</div>}
+                            </div>
+                            <OrderBarcode value={order.id} />
                           </div>
 
                           {/* Row 2: Stage buttons — always visible at top */}
@@ -2424,6 +2439,152 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               );
                             })}
                           </div>
+
+                          {/* Файлы */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Файлы ({order.files.length})</span>
+                              {(order.files && order.files.length > 2) && (
+                                <button
+                                  onClick={() => handleDownloadAllAsZip(order)}
+                                  disabled={zippingOrderId === order.id}
+                                  className={`px-3 py-1.5 rounded-xl text-[12px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm border ${
+                                    zippingOrderId === order.id
+                                      ? 'bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-200'
+                                      : 'bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-450 dark:hover:bg-emerald-900 border-transparent'
+                                  }`}
+                                >
+                                  {zippingOrderId === order.id ? (
+                                    <>
+                                      <span className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                                      Архивация ZIP {zipProgress}%
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Files className="w-3.5 h-3.5 text-white/95 dark:text-emerald-450" />
+                                      Скачать все файлы в ZIP ({order.files.length} шт.)
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                            {order.files.map(file => (
+                              <div
+                                key={file.id}
+                                className="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl flex items-center gap-2.5 text-xs border border-slate-100 dark:border-slate-850"
+                              >
+                                <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0 grid place-items-center bg-indigo-500/15">
+                                  <FileText className="w-4 h-4 text-indigo-500" />
+                                  {isImageFile(file) && (file.previewUrl || file.url) && (
+                                    <img src={file.previewUrl || file.url} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-bold block truncate text-slate-700 dark:text-slate-300" title={file.name}>{file.name}</span>
+                                  <span className="text-[10px] text-slate-400 block truncate">
+                                    {formatFileSize(file.size)}
+                                    {file.pageCount ? ` · ${file.pageCount} стр.` : ''}
+                                    {file.paperType === 'photo' ? ` · ${PHOTO_SIZE_LABELS[file.photoSize || '10x15'] || file.photoSize} · ${(file.photoBorder || 'borderless') === 'bordered' ? 'с рамкой' : 'без рамки'}` : ''}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => triggerSimulatedDownload(file)}
+                                  disabled={downloadingFileId === file.id}
+                                  title="Скачать на ПК"
+                                  aria-label={`Скачать ${file.name}`}
+                                  className="shrink-0 p-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition disabled:opacity-60"
+                                >
+                                  {downloadingFileId === file.id
+                                    ? <span className="block w-3.5 h-3.5 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                                    : <Download className="w-3.5 h-3.5" />}
+                                </button>
+                                    {adminFileToConfirmDelete?.orderId === order.id && adminFileToConfirmDelete?.fileId === file.id ? (
+                                      <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 p-1 rounded-lg border border-rose-100 dark:border-rose-900/40">
+                                        <span className="text-[10px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить?</span>
+                                        <button
+                                          onClick={() => handleAdminDeleteFileFromOrder(order.id, file.id)}
+                                          className="bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition"
+                                        >
+                                          Да
+                                        </button>
+                                        <button
+                                          onClick={() => setAdminFileToConfirmDelete(null)}
+                                          className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition"
+                                        >
+                                          Нет
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => setAdminFileToConfirmDelete({ orderId: order.id, fileId: file.id })}
+                                        className="p-1 px-1.5 text-slate-400 hover:text-rose-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition cursor-pointer"
+                                        title="Удалить файл из заказа"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 p-3 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border-l-4 border-l-indigo-500 border-y border-r border-slate-100 dark:border-slate-850/80 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                            <div>Бумага: <strong className="text-slate-800 dark:text-white">
+                              {(() => {
+                                const firstFile = order.files?.[0];
+                                // Фото/Полароид/коллаж хранятся в БД как paperType:'glossy' на уровне
+                                // заказа (см. Dashboard.tsx), но это не обычная бумага А4 — сверяемся
+                                // с реальным типом файла, чтобы не показывать неверную подпись.
+                                if (firstFile?.paperType === 'photo') {
+                                  return `Фотопечать (${PHOTO_SIZE_LABELS[firstFile.photoSize || '10x15'] || firstFile.photoSize})`;
+                                }
+                                if (firstFile?.paperType === 'collage') {
+                                  return 'Фотоколлаж';
+                                }
+                                return order.paperType === 'standard' ? 'А4 Обычная' :
+                                  order.paperType === 'glossy' ? 'А4 Глянцевая' :
+                                  order.paperType === 'matte' ? 'А4 Матовая' :
+                                  order.paperType === 'standard_a3' ? 'А3 Обычная' :
+                                  order.paperType === 'bw_a3' ? 'А3 Фотобумага' : order.paperType;
+                              })()}
+                            </strong></div>
+                            <div>Цветность: <strong className="text-slate-800 dark:text-white">
+                              {order.printColor === 'bw' ? 'Черно-белая (Ч/Б)' :
+                               order.printColor === 'color_full' ? 'Цветная 100% заливочная' : 'Цветная (RGB)'}
+                            </strong></div>
+                            <div>Количество тиража: <strong className="text-slate-800 dark:text-white">{order.copies} шт.</strong></div>
+                            {order.serviceId && (
+                              <div>Услуга из витрины: <strong className="text-indigo-650 dark:text-indigo-400">
+                                {database.services?.find(x => x.id === order.serviceId)?.title || order.serviceId}
+                                {(() => {
+                                  const svc = database.services?.find(x => x.id === order.serviceId);
+                                  return svc?.price ? ` — ${svc.price}` : '';
+                                })()}
+                              </strong></div>
+                            )}
+                            {order.binding && order.binding !== 'none' && (
+                              <div>Скрепление: <strong className="text-indigo-650 dark:text-indigo-400">
+                                {order.binding === 'file' ? 'Вложить в файлик' :
+                                 order.binding === 'staple' ? 'Скрепка в углу' :
+                                 order.binding === 'spring_plastic' ? 'Пружина пластик' :
+                                 order.binding === 'spring_metal' ? 'Пружина металл' : 'Тв. переплет'}
+                              </strong></div>
+                            )}
+                            {order.promoCode && (
+                              <div>Промокод: <strong className="text-emerald-600 dark:text-emerald-400 uppercase">
+                                {order.promoCode}
+                              </strong></div>
+                            )}
+                            {order.loyaltyDiscount ? (
+                              <div>Скидка за уровень: <strong className="text-emerald-600 dark:text-emerald-400">−{order.loyaltyDiscount}%</strong></div>
+                            ) : null}
+                            <div>Итоговая стоимость: <strong className="text-amber-600 dark:text-amber-400">₽{order.totalCost}</strong></div>
+                          </div>
+
+                          {order.notes && (
+                            <div className="p-3 bg-amber-500/10 dark:bg-amber-950/20 border-2 border-amber-400/50 dark:border-amber-500/40 rounded-xl text-[12px] leading-relaxed animate-pulse-slow">
+                              <span className="font-black text-amber-700 dark:text-amber-400">⚠ Спец-требования клиента:</span> {order.notes}
+                            </div>
+                          )}
 
                           {/* Row 3: Брак (reject) — независимо от стадии, т.к. брак может случиться на любом шаге */}
                           {order.rejected ? (
@@ -2473,173 +2634,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           )}
                         </div>
 
-                        {/* Mid Section - Files queue list */}
-                        <div className="p-4 md:p-5 space-y-4">
-                          
-                          <div>
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2.5">
-                              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Файлы для выгрузки на ПК типографии:</span>
-                              {(order.files && order.files.length > 2) && (
-                                <button
-                                  onClick={() => handleDownloadAllAsZip(order)}
-                                  disabled={zippingOrderId === order.id}
-                                  className={`px-3 py-1.5 rounded-xl text-[12px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm border ${
-                                    zippingOrderId === order.id
-                                      ? 'bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-200'
-                                      : 'bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-450 dark:hover:bg-emerald-900 border-transparent'
-                                  }`}
-                                >
-                                  {zippingOrderId === order.id ? (
-                                    <>
-                                      <span className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                                      Архивация ZIP {zipProgress}%
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Files className="w-3.5 h-3.5 text-white/95 dark:text-emerald-450" />
-                                      Скачать все файлы в ZIP ({order.files.length} шт.)
-                                    </>
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                            
-                            <div className="space-y-2">
-                              {order.files.map(file => (
-                                <div
-                                  key={file.id}
-                                  className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl flex items-center justify-between gap-3 text-xs border border-slate-100 dark:border-slate-850"
-                                >
-                                  <div className="flex items-center gap-2 overflow-hidden">
-                                    <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
-                                    <div className="overflow-hidden">
-                                      <span className="font-bold block truncate text-slate-700 dark:text-slate-300">{file.name}</span>
-                                      <span className="text-[10px] text-slate-400 block mt-0.5">{formatFileSize(file.size)} &bull; ID: {file.id} {file.pageCount !== undefined ? `&bull; Папок/Стр: ${file.pageCount}–стр` : ''} {file.paperType === 'photo' ? `&bull; ${PHOTO_SIZE_LABELS[file.photoSize || '10x15'] || file.photoSize} &bull; ${(file.photoBorder || 'borderless') === 'bordered' ? 'С рамкой (белые поля)' : 'Без рамки (край-в-край)'}` : ''}</span>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    {/* Download actions simulator */}
-                                    <button
-                                      onClick={() => triggerSimulatedDownload(file)}
-                                      disabled={downloadingFileId === file.id}
-                                      className={`px-3 py-1.5 rounded-lg text-[12px] font-bold transition flex items-center gap-1 shrink-0 ${
-                                        downloadingFileId === file.id
-                                          ? 'bg-slate-205 dark:bg-slate-800 text-slate-500'
-                                          : 'bg-indigo-600 hover:bg-slate-900 hover:text-white dark:bg-slate-900 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-600/30'
-                                      }`}
-                                    >
-                                      {downloadingFileId === file.id ? (
-                                        <>
-                                          <span className="w-3 h-3 border-2 border-slate-400 border-t-white rounded-full animate-spin" />
-                                          Скачивание {downloadProgress}%
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Download className="w-3.5 h-3.5" />
-                                          Скачать на ПК
-                                        </>
-                                      )}
-                                    </button>
-
-                                    {/* Admin Delete file from order button */}
-                                    {adminFileToConfirmDelete?.orderId === order.id && adminFileToConfirmDelete?.fileId === file.id ? (
-                                      <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/20 p-1 rounded-lg border border-rose-100 dark:border-rose-900/40">
-                                        <span className="text-[10px] font-black text-rose-500 uppercase px-1 animate-pulse">Удалить?</span>
-                                        <button
-                                          onClick={() => handleAdminDeleteFileFromOrder(order.id, file.id)}
-                                          className="bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition"
-                                        >
-                                          Да
-                                        </button>
-                                        <button
-                                          onClick={() => setAdminFileToConfirmDelete(null)}
-                                          className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition"
-                                        >
-                                          Нет
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        onClick={() => setAdminFileToConfirmDelete({ orderId: order.id, fileId: file.id })}
-                                        className="p-1 px-1.5 text-slate-400 hover:text-rose-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition cursor-pointer"
-                                        title="Удалить файл из заказа"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Order specifications — выделено рамкой слева, чтобы не потерялось
-                              среди списка заказов; показываются только реально выбранные
-                              клиентом параметры (скрепление/промокод скрыты, если не заданы). */}
-                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-3 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border-l-4 border-l-indigo-500 border-y border-r border-slate-100 dark:border-slate-850/80 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                            <div>Бумага: <strong className="text-slate-800 dark:text-white">
-                              {(() => {
-                                const firstFile = order.files?.[0];
-                                // Фото/Полароид/коллаж хранятся в БД как paperType:'glossy' на уровне
-                                // заказа (см. Dashboard.tsx), но это не обычная бумага А4 — сверяемся
-                                // с реальным типом файла, чтобы не показывать неверную подпись.
-                                if (firstFile?.paperType === 'photo') {
-                                  return `Фотопечать (${PHOTO_SIZE_LABELS[firstFile.photoSize || '10x15'] || firstFile.photoSize})`;
-                                }
-                                if (firstFile?.paperType === 'collage') {
-                                  return 'Фотоколлаж';
-                                }
-                                return order.paperType === 'standard' ? 'А4 Обычная' :
-                                  order.paperType === 'glossy' ? 'А4 Глянцевая' :
-                                  order.paperType === 'matte' ? 'А4 Матовая' :
-                                  order.paperType === 'standard_a3' ? 'А3 Обычная' :
-                                  order.paperType === 'bw_a3' ? 'А3 Фотобумага' : order.paperType;
-                              })()}
-                            </strong></div>
-                            <div>Цветность: <strong className="text-slate-800 dark:text-white">
-                              {order.printColor === 'bw' ? 'Черно-белая (Ч/Б)' :
-                               order.printColor === 'color_full' ? 'Цветная 100% заливочная' : 'Цветная (RGB)'}
-                            </strong></div>
-                            <div>Количество тиража: <strong className="text-slate-800 dark:text-white">{order.copies} шт.</strong></div>
-                            {order.serviceId && (
-                              <div>Услуга из витрины: <strong className="text-indigo-650 dark:text-indigo-400">
-                                {database.services?.find(x => x.id === order.serviceId)?.title || order.serviceId}
-                                {(() => {
-                                  const svc = database.services?.find(x => x.id === order.serviceId);
-                                  return svc?.price ? ` — ${svc.price}` : '';
-                                })()}
-                              </strong></div>
-                            )}
-                            {order.binding && order.binding !== 'none' && (
-                              <div>Скрепление: <strong className="text-indigo-650 dark:text-indigo-400">
-                                {order.binding === 'file' ? 'Вложить в файлик' :
-                                 order.binding === 'staple' ? 'Скрепка в углу' :
-                                 order.binding === 'spring_plastic' ? 'Пружина пластик' :
-                                 order.binding === 'spring_metal' ? 'Пружина металл' : 'Тв. переплет'}
-                              </strong></div>
-                            )}
-                            {order.promoCode && (
-                              <div>Промокод: <strong className="text-emerald-600 dark:text-emerald-400 uppercase">
-                                {order.promoCode}
-                              </strong></div>
-                            )}
-                            <div>Итоговая стоимость: <strong className="text-amber-600 dark:text-amber-400">₽{order.totalCost}</strong></div>
-                          </div>
-
-                          {order.notes && (
-                            <div className="p-3 bg-amber-500/10 dark:bg-amber-950/20 border-2 border-amber-400/50 dark:border-amber-500/40 rounded-xl text-[12px] leading-relaxed animate-pulse-slow">
-                              <span className="font-black text-amber-700 dark:text-amber-400">⚠ Спец-требования клиента:</span> {order.notes}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Interactive operator state switches layout */}
-                        <div className="p-4 bg-slate-50/50 dark:bg-slate-950/10 border-t border-slate-150/80 dark:border-slate-850 flex flex-col md:flex-row justify-between items-center gap-4">
-                          
-                          {/* Manual cash receipt switch */}
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Оплата наличными:</span>
+                        {/* Низ: оплата и сумма */}
+                        <div className="px-4 py-3 bg-slate-50/50 dark:bg-slate-950/10 border-t border-slate-150/80 dark:border-slate-850 flex items-center justify-between gap-3">
                             <button
                               onClick={() => handleTogglePaymentStatus(order.id)}
                               className={`py-1.2 px-2.5 rounded-lg text-[11px] font-extrabold border transition ${
@@ -2651,12 +2647,11 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             >
                               {order.paymentStatus === 'paid' ? 'Отметить не Оплаченным' : 'Отметить Оплаченным'}
                             </button>
-                          </div>
-
+                          <span className="text-lg font-extrabold text-slate-900 dark:text-white tabular-nums">{order.totalCost} ₽</span>
                         </div>
-
                       </div>
-                    ))}
+                      );
+                    })}
                 </div>
               )}
 
@@ -2987,9 +2982,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               <div className="glass-panel rounded-3xl p-6 overflow-x-auto">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
                   <div>
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider"><AnimatedTitle>База зарегистрированных пользователей</AnimatedTitle></h3>
-                    <p className="text-[11px] text-white/50 mt-1">Нажмите на строку любого пользователя для просмотра реестра всех его загруженных файлов.</p>
-                  </div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider"><AnimatedTitle>База зарегистрированных пользователей</AnimatedTitle></h3>                  </div>
                   <div className="search-glow-wrap w-full sm:w-72">
                     <div className="search-glow-halo"><div className="search-glow-halo-ring"></div></div>
                     <div className="search-glow-frame">
@@ -3078,6 +3071,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                               <div className="flex flex-col">
                                 <span className="font-extrabold text-slate-900 dark:text-slate-200 flex items-center gap-2">
                                   {cli.fullName}
+                                  <LoyaltyChip userId={cli.id} orders={database.orders} />
                                   {isAdmin && (
                                     <span className="bg-red-50 dark:bg-red-950/40 text-red-650 dark:text-red-400 text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-red-200/50 dark:border-red-900/30">
                                       Админ
@@ -3561,39 +3555,49 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
             <div className="space-y-6">
               
               {/* Top stats grid widgets */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-                
-                <div className="glass-panel p-5 rounded-3xl">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Общий оборот</span>
-                      <p className="text-2xl font-black text-indigo-650 dark:text-white">₽{totalRevenue}</p>
-                    </div>
-                    <div className="p-2.5 bg-indigo-50 dark:bg-slate-850 text-indigo-600 dark:text-indigo-400 rounded-2xl">
-                      <TrendingUp className="w-5 h-5" />
-                    </div>
-                  </div>
-                  <MiniSparkline data={revenueHistory} colorClass="bg-indigo-500" />
-                  <div className="text-[11px] text-emerald-600 font-bold mt-1.5">
-                    &uarr; 100% зачисление на банковский ПК
-                  </div>
-                </div>
+              {/* 4 плитки ровным рядом на всю ширину (было 5 колонок под 4
+                  плитки — справа зияла пустая). Google Play ниже — на всю строку. */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
 
-                <div className="glass-panel p-5 rounded-3xl">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Всего Заказов</span>
-                      <p className="text-2xl font-black text-slate-800 dark:text-white">{database.orders.length} шт.</p>
+                {(() => {
+                  const r = dailySummary(database.revenueDaily);
+                  return (
+                    <div className="glass-panel p-5 rounded-3xl">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Оборот</span>
+                          <p className="text-2xl font-black text-indigo-650 dark:text-white">₽{Math.round(r.today)}</p>
+                          <div className="text-[11px] text-slate-400">Сегодня</div>
+                          <div className="text-[11px] text-slate-400">За {r.monthName}: ₽{Math.round(r.month)}</div>
+                        </div>
+                        <div className="p-2.5 bg-indigo-50 dark:bg-slate-850 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                          <TrendingUp className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <MiniSparkline data={r.week} colorClass="bg-indigo-500" />
                     </div>
-                    <div className="relative flex items-center justify-center">
-                      <MiniRing percent={completedPercent} colorClass="stroke-emerald-500" />
-                      <span className="absolute text-[10px] font-black text-emerald-600 dark:text-emerald-400">{completedPercent}%</span>
+                  );
+                })()}
+
+                {(() => {
+                  const o = dailySummary(database.ordersDaily);
+                  return (
+                    <div className="glass-panel p-5 rounded-3xl">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Заказы</span>
+                          <p className="text-2xl font-black text-slate-800 dark:text-white">{o.today} шт.</p>
+                          <div className="text-[11px] text-slate-400">Сегодня</div>
+                          <div className="text-[11px] text-slate-400">За {o.monthName}: {o.month} шт.</div>
+                        </div>
+                        <div className="p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-500 rounded-2xl">
+                          <ShoppingBag className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <MiniSparkline data={o.week} colorClass="bg-emerald-500" />
                     </div>
-                  </div>
-                  <div className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold mt-2">
-                    Из них: {printedCount} выполненных
-                  </div>
-                </div>
+                  );
+                })()}
 
                 <div className="glass-panel p-5 rounded-3xl">
                   <div className="flex justify-between items-start">
@@ -3622,7 +3626,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           return todayData?.count || 0;
                         })()}
                       </p>
-                      <div className="text-[11px] text-slate-400">Сегодня • Всего: {database.siteVisits || 0}</div>
+                      <div className="text-[11px] text-slate-400">Сегодня</div>
                       <div className="text-[11px] text-slate-400">
                         {(() => {
                           const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
@@ -3639,12 +3643,23 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       <Users className="w-5 h-5" />
                     </div>
                   </div>
-                  {/* График последних 7 дней */}
+                  {/* График последних 7 дней: по календарю, сегодня справа. Сервер
+                      присылает дни от новых к старым, и прежний slice(-7) брал
+                      самые старые — 05.10.2026 на графике висели 19–25 сентября,
+                      а сегодняшнего столбика не было. День без заходов = 0. */}
                   <div className="flex items-end gap-1 h-10 mt-2">
-                    {(database.siteVisitsHistory || []).slice(-7).map((h: any, i: number) => {
-                      const max = Math.max(...(database.siteVisitsHistory || []).slice(-7).map((x: any) => x.count || 0), 1);
+                    {(() => {
+                      const byDate = new Map((database.siteVisitsHistory || []).map((h: any) => [h.date, h.count || 0]));
+                      return Array.from({ length: 7 }, (_, k) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() - (6 - k));
+                        const date = getLocalDateKey(d);
+                        return { date, count: byDate.get(date) || 0 };
+                      });
+                    })().map((h, i, week) => {
+                      const max = Math.max(...week.map(x => x.count), 1);
                       const height = Math.max(4, Math.round((h.count / max) * 40));
-                      const isToday = h.date === getLocalDateKey();
+                      const isToday = i === week.length - 1;
                       return (
                         <div key={i} className="flex-1 flex flex-col items-center gap-0.5" title={`${h.date}: ${h.count} визитов`}>
                           <div
@@ -3838,19 +3853,19 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
           {/* TAB 5: ADMIN CONFIGURATION & BANK INTEGRATION SETTINGS */}
           {activeTab === 'settings' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                
-                {/* Profile settings card */}
-                <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6">
+            <div className="max-w-4xl">
+              {/* Profile settings card: аватар слева, данные справа, сохранение внизу */}
+              <div className="glass-panel rounded-3xl overflow-hidden">
+                <div className="p-6 md:p-8 space-y-6">
                   <div>
                     <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
                       <Camera className="text-indigo-650 w-5 h-5" /> <AnimatedTitle>Профиль и персональная аватарка</AnimatedTitle>
                     </h3>
-                    <p className="text-[12px] text-slate-400 mt-1">Отредактируйте свои личные данные и настройте графический аватар, отображаемый в чате с клиентами.</p>
+                    <p className="text-[12px] text-slate-400 mt-1">Ваши данные и аватар, который клиенты видят в чате.</p>
                   </div>
 
-                  <div className="flex flex-col items-center gap-5 p-5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-100 dark:border-slate-850">
+                  <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 items-stretch">
+                    <div className="flex flex-col items-center justify-center gap-5 p-5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-100 dark:border-slate-850">
                     <div
                       className="relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full"
                       role="button"
@@ -3875,7 +3890,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         className="absolute inset-0 bg-slate-900/60 text-white rounded-2xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity text-[11px] font-bold"
                       >
                         <Camera className="w-5 h-5 text-white" />
-                        <span>Выказать...</span>
+                        <span>Изменить</span>
                       </div>
                     </div>
 
@@ -3912,10 +3927,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         ))}
                       </div>
                     </div>
-                  </div>
+                    </div>
 
-                  {/* Input Fields */}
-                  <div className="space-y-4">
+                    {/* Input Fields */}
+                    <div className="flex flex-col justify-center space-y-4">
                     <div>
                       <label htmlFor="admin-full-name" className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">ФИО Администратора</label>
                       <input
@@ -3940,59 +3955,14 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         placeholder="+7 (999) 000-00-00"
                       />
                     </div>
+                      <p className="text-[11px] text-slate-400">Нажмите на аватар, чтобы загрузить своё фото.</p>
+                    </div>
                   </div>
                 </div>
 
-              </div>
-
-              {/* Status Alert and Central Save Button */}
-              <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-4">
-                <div>
-                  <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
-                    <Download className="text-indigo-650 w-5 h-5" /> <AnimatedTitle>Резервная копия базы данных</AnimatedTitle>
-                  </h3>
-                  <p className="text-[12px] text-slate-400 mt-1 leading-relaxed">
-                    Скачивает JSON-файл со всеми заказами, клиентами, перепиской и уведомлениями на этот момент.
-                    На бесплатном тарифе Firebase нет автоматических бэкапов — сохраняйте файл в надёжное место
-                    (облако/почта самому себе) периодически, чтобы не потерять данные при сбое.
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <button
-                    onClick={handleExportBackup}
-                    disabled={exportingBackup}
-                    className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 w-full sm:w-auto justify-center ${
-                      exportingBackup
-                        ? 'bg-indigo-400 text-white cursor-not-allowed shadow-none'
-                        : 'btn-holo-glass cursor-pointer'
-                    }`}
-                    style={exportingBackup ? undefined : { color: '#1e293b' }}
-                  >
-                    {exportingBackup ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Собираем файл...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4" />
-                        <span>Скачать резервную копию</span>
-                      </>
-                    )}
-                  </button>
-                  {exportError && (
-                    <span className="text-xs font-bold text-rose-600">{exportError}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 glass-panel rounded-3xl">
-                <div>
-                  <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Сохранить общие настройки системы</h4>
-                  <p className="text-[11px] text-slate-400 mt-1">Все изменения вступят в силу мгновенно и синхронизируются с удаленным сервером и вашим СБП-шлюзом.</p>
-                </div>
-
-                <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-end">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 md:px-8 py-5 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+                  <p className="text-[11px] text-slate-400">Изменения вступят в силу сразу после сохранения.</p>
+                  <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-end">
                   {saveSuccess && (
                     <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-1.5 rounded-xl border border-emerald-200/50 flex items-center gap-1.5 animate-pulse">
                       <Check className="w-4 h-4" /> Настройки сохранены!
@@ -4021,6 +3991,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       </>
                     )}
                   </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -4394,6 +4365,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 <option value="none">Ничего — клиент приносит сам</option>
                                 <option value="file">Файл для печати (или флешка)</option>
                                 <option value="photo">Фото</option>
+                                <option value="any">Фото или файл (или флешка)</option>
                               </select>
                               <input
                                 type="text"
@@ -4715,6 +4687,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               </div>
             </div>
           )}
+
+          {/* ── МАКСИМ: ИИ-администратор на звонках салона ── */}
+          {activeTab === 'maxim' && <MaximAdmin />}
 
           {/* ── НОВОСТИ И АКЦИИ ── */}
           {/* Всё, что заведено здесь, видно клиентам в мобильном приложении на

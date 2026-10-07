@@ -55,9 +55,17 @@ function fail(string $message, int $code = 400)
     respond(['ok' => false, 'error' => $message], $code);
 }
 
-function db(): PDO
+/**
+ * Соединение с базой. $fresh = true — открыть заново: MySQL на хостинге
+ * закрывает простаивающее соединение примерно через полминуты, а обработка
+ * фото нейросетью (doc-photo.php) идёт дольше — без этого «server has gone away».
+ */
+function db(bool $fresh = false): PDO
 {
     static $pdo = null;
+    if ($fresh) {
+        $pdo = null;
+    }
     if ($pdo instanceof PDO) {
         return $pdo;
     }
@@ -248,5 +256,56 @@ function user_public(array $u): array
         'promoGiftedSeen' => (bool) $u['promo_gifted_seen'],
         'referralCode' => $u['referral_code'],
         'adminTypingAt' => iso($u['admin_typing_at']),
+        // «В сети» в чате. До 05.10.2026 поле сюда не попадало, и админка
+        // показывала «не в сети» у всех, хотя сайт исправно слал сигнал.
+        'isOnline' => recently_online($u),
+        'lastActiveAt' => iso($u['last_active_at'] ?? null),
     ]), fn($v) => $v !== null);
+}
+
+/** Сколько человек считается «в сети» после последнего сигнала (сайт шлёт его раз в 45 с). */
+const ONLINE_FRESHNESS_SECONDS = 120;
+
+/**
+ * В сети = сигнал был за последние 2 минуты. Одного флага is_online мало:
+ * телефон, закрывший вкладку, часто не успевает сказать «ушёл», и человек
+ * висел бы «в сети» часами. По этому же правилу push не шлётся тому, кто
+ * прямо сейчас на сайте (_push.php).
+ */
+function recently_online(array $user): bool
+{
+    if ((int) ($user['is_online'] ?? 0) !== 1 || empty($user['last_active_at'])) {
+        return false;
+    }
+    $last = (new DateTimeImmutable((string) $user['last_active_at'], new DateTimeZone('UTC')))->getTimestamp();
+    return (time() - $last) < ONLINE_FRESHNESS_SECONDS;
+}
+
+/**
+ * Счётчики «по дням» для плиток админки «Заказы» и «Оборот» (05.10.2026).
+ * Посчитать по самой таблице orders нельзя: выданные заказы удаляются через
+ * 48 часов, и сумма за месяц выходила бы заниженной. Поэтому сервер сам
+ * копит число в stats в момент события: 'orders_daily' — заказ оформлен
+ * (и −1, если неоплаченный невыданный заказ удалили: дубли, отмены),
+ * 'revenue_daily' — заказ стал оплаченным (и минус, если оплату сняли).
+ * День — московский; $utcDate задаёт день задним числом (для −1 при удалении).
+ */
+function daily_stat_add(string $name, float $delta, ?string $utcDate = null): void
+{
+    if ($delta == 0.0) {
+        return;
+    }
+    $at = new DateTimeImmutable($utcDate ?? 'now', new DateTimeZone('UTC'));
+    $day = $at->setTimezone(new DateTimeZone('Europe/Moscow'))->format('Y-m-d');
+    $path = '$."' . $day . '"';
+    try {
+        db()->prepare(
+            "INSERT INTO stats (name, data) VALUES (?, JSON_OBJECT(?, ?)) AS new
+             ON DUPLICATE KEY UPDATE data = JSON_SET(stats.data, ?,
+                ROUND(COALESCE(JSON_EXTRACT(stats.data, ?), 0) + ?, 2))"
+        )->execute([$name, $day, $delta, $path, $path, $delta]);
+    } catch (Throwable $e) {
+        // Счётчик — витрина, а не учёт: его сбой не должен ронять заказ или оплату.
+        error_log('daily_stat_add ' . $name . ': ' . $e->getMessage());
+    }
 }

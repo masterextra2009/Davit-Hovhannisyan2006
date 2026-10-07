@@ -668,6 +668,8 @@ export function printInvoiceHTML(order: Order) {
               <div>Количество копий:</div>
               <div>x ${order.copies}</div>
             </div>
+            ${order.promoCode && order.promoDiscount ? `<div class="total-row"><div>Скидка (промокод ${order.promoCode}):</div><div>−${order.promoDiscount}%</div></div>` : ''}
+            ${order.loyaltyDiscount ? `<div class="total-row"><div>Скидка за уровень:</div><div>−${order.loyaltyDiscount}%</div></div>` : ''}
             <div class="total-row total-final">
               <div>Итого к оплате:</div>
               <div>₽${order.totalCost}</div>
@@ -724,53 +726,27 @@ function getFileFormatGroupLabel(group: FileFormatGroup): string {
   }
 }
 
-export interface ClientTier {
-  name: 'Новичок' | 'Постоянный клиент' | 'VIP клиент';
-  tierCode: 'newbie' | 'loyal' | 'vip';
-  icon: 'star' | 'trophy' | 'crown';
-  color: string;
-  badgeClass: string;
-  priority: boolean;
-  minAmount: number;
-}
+/**
+ * Уровни клиента со скидкой (27.09.2026) — те же числа, что LOYALTY_TIERS
+ * в server/api/v2/_pricing.php. Скидку ставит сервер; здесь — только чтобы
+ * показать уровень в админке, где уже есть все заказы.
+ */
+export const LOYALTY_TIERS = [
+  { code: 'bronze', name: 'Бронзовый', from: 2000, percent: 5, chip: 'bg-gradient-to-r from-amber-700 to-orange-400 text-white' },
+  { code: 'silver', name: 'Серебряный', from: 10000, percent: 10, chip: 'bg-gradient-to-r from-slate-400 to-slate-200 text-slate-900' },
+  { code: 'gold', name: 'Золотой', from: 25000, percent: 15, chip: 'bg-gradient-to-r from-amber-500 to-yellow-300 text-slate-950' },
+  { code: 'platinum', name: 'Платиновый', from: 50000, percent: 20, chip: 'bg-gradient-to-r from-cyan-600 to-sky-300 text-slate-950' },
+] as const;
+export type LoyaltyTierInfo = (typeof LOYALTY_TIERS)[number];
 
-export function getClientTierForUser(userId: string, orders: Order[]): ClientTier {
-  const userOrders = orders.filter(o => o.userId === userId);
-  const totalAmount = userOrders
-    .filter(o => o.paymentStatus === 'paid' || o.status === 'printed' || o.status === 'ready')
-    .reduce((sum, o) => sum + o.totalCost, 0);
-
-  if (totalAmount >= 50000) {
-    return {
-      name: 'VIP клиент',
-      tierCode: 'vip',
-      icon: 'crown',
-      color: 'text-amber-500',
-      badgeClass: 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black px-2.5 py-0.5 rounded-full text-[11px] uppercase tracking-wide border border-amber-300 shadow-sm flex items-center gap-1 shadow-amber-500/10',
-      priority: true,
-      minAmount: 50000,
-    };
-  } else if (totalAmount >= 5000) {
-    return {
-      name: 'Постоянный клиент',
-      tierCode: 'loyal',
-      icon: 'trophy',
-      color: 'text-amber-400',
-      badgeClass: 'bg-gradient-to-r from-slate-200 to-amber-100 text-slate-800 font-bold px-2.5 py-0.5 rounded-full text-[11px] border border-slate-300 flex items-center gap-1 shadow-sm',
-      priority: false,
-      minAmount: 5000,
-    };
-  } else {
-    return {
-      name: 'Новичок',
-      tierCode: 'newbie',
-      icon: 'star',
-      color: 'text-indigo-400',
-      badgeClass: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 font-bold px-2.5 py-0.5 rounded-full text-[11px] border border-indigo-150 dark:border-indigo-900/50 flex items-center gap-1 shadow-sm',
-      priority: false,
-      minAmount: 0,
-    };
-  }
+/** Уровень клиента по его оплаченным и выданным заказам (как сервер); null — ещё нет. */
+export function loyaltyTierFor(userId: string, orders: Order[]): LoyaltyTierInfo | null {
+  const paid = orders
+    .filter(o => o.userId === userId && (o.paymentStatus === 'paid' || o.status === 'printed'))
+    .reduce((sum, o) => sum + (o.totalCost || 0), 0);
+  let tier: LoyaltyTierInfo | null = null;
+  for (const t of LOYALTY_TIERS) if (paid >= t.from) tier = t;
+  return tier;
 }
 
 export function playNotificationSound(type: 'message' | 'ready') {

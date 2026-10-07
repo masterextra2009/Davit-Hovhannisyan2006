@@ -51,8 +51,8 @@ export default function AdminPushToggle() {
 
   if (state === 'on') {
     return (
-      <div className="px-1 mb-5 text-[12px] font-semibold text-emerald-300/80 flex items-center gap-2">
-        <span aria-hidden>🔔</span> Уведомления на этом компьютере включены
+      <div className="px-1 mb-5 text-[12px] font-semibold text-emerald-300/80" title="Уведомления на этом компьютере включены">
+        Уведомления
       </div>
     );
   }
