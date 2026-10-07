@@ -337,6 +337,48 @@ export const visits = {
 
 // ─────────────────────────── Telegram ───────────────────────────
 
+// ─────────────────── Максим — ИИ-администратор на звонках ───────────────────
+// Сам Максим живёт на своём сервере; maxim.php пускает только админа и
+// пересылает запросы ему.
+
+export interface MaximStatus {
+  online: boolean;
+  activeCalls: number;
+  /** Подключён ли номер Новофона: 'на связи' / 'не подключён' / состояние линии. */
+  trunk: string;
+  davidReady: boolean;
+  notesReady: boolean;
+  todayCalls: number;
+  todaySpam: number;
+  months: string[];
+}
+
+export interface MaximCall {
+  id: string;
+  number: string;
+  svoi: boolean;
+  started: string;
+  ended: string;
+  seconds: number;
+  endReason: string;
+  transferred: boolean;
+  notes: string[];
+  events: { at: string; tool: string; args: Record<string, string> }[];
+  transcript: string;
+  summary?: string;
+}
+
+export interface MaximMemoryEntry { date: string; summary: string }
+
+export const maxim = {
+  status: () => request<MaximStatus>('maxim.php?action=status'),
+  calls: (month: string) => request<{ calls: MaximCall[]; months: string[] }>(`maxim.php?action=calls&month=${encodeURIComponent(month)}`),
+  character: () => request<{ text: string }>('maxim.php?action=character'),
+  saveCharacter: (text: string) => request<{ ok: true }>('maxim.php?action=character', { body: { text } }),
+  memory: () => request<{ memory: Record<string, MaximMemoryEntry[]> }>('maxim.php?action=memory'),
+  forget: (number: string) => request<{ ok: true }>('maxim.php?action=memory-forget', { body: { number } }),
+};
+
 export const telegram = {
   /** Одноразовая ссылка на бота: клиент открывает её и жмёт «Отправить» — Telegram привязан. */
   linkCode: () => request<{ url: string }>('telegram.php?action=link-code', { body: {} }),
