@@ -4,10 +4,10 @@
  * память о звонивших. Данные живут на сервере Максима, сюда — через api/v2/maxim.php.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Phone, PhoneForwarded, PhoneOff, Bot, Brain, FileText, RefreshCw, Save, Trash2, ChevronDown, Mail, ShieldAlert } from 'lucide-react';
-import { maxim, MaximCall, MaximMemoryEntry, MaximStatus } from '../api/v2';
+import { Phone, PhoneForwarded, PhoneOff, Bot, Brain, FileText, RefreshCw, Save, Trash2, ChevronDown, Mail, ShieldAlert, Wallet, ExternalLink } from 'lucide-react';
+import { maxim, MaximCall, MaximCosts, MaximMemoryEntry, MaximStatus } from '../api/v2';
 
-type Section = 'calls' | 'character' | 'memory';
+type Section = 'calls' | 'money' | 'character' | 'memory';
 type CallFilter = 'all' | 'clients' | 'svoi' | 'transferred' | 'spam';
 
 const msk = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(iso).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', ...opts });
@@ -20,6 +20,8 @@ const fmtPhone = (n: string) => {
   const d = (n || '').replace(/\D/g, '').slice(-10);
   return d.length === 10 ? `+7 ${d.slice(0, 3)} ${d.slice(3, 6)}-${d.slice(6, 8)}-${d.slice(8)}` : n || 'Номер скрыт';
 };
+const plural = (n: number, one: string, few: string, many: string) => { const a = n % 100, b = n % 10; return a >= 11 && a <= 14 ? many : b === 1 ? one : b >= 2 && b <= 4 ? few : many; };
+const fmtRub = (n: number) => `${n.toLocaleString('ru-RU', { maximumFractionDigits: n < 10 ? 2 : 0 })} ₽`;
 const fmtDur = (s: number) => (s < 60 ? `${s} с` : `${Math.floor(s / 60)} мин ${s % 60} с`);
 const isSpam = (c: MaximCall) => !c.svoi && !c.transferred && c.seconds < 40 && c.events.some((e) => e.tool === 'end_call') && /не интересует/i.test(c.transcript);
 
@@ -63,11 +65,13 @@ export function MaximAdmin() {
 
       <div className="flex gap-2 flex-wrap">
         <SectionBtn on={section === 'calls'} onClick={() => setSection('calls')} icon={<Phone className="w-4 h-4" />} text="Звонки" />
+        <SectionBtn on={section === 'money'} onClick={() => setSection('money')} icon={<Wallet className="w-4 h-4" />} text="Расходы и оплаты" />
         <SectionBtn on={section === 'character'} onClick={() => setSection('character')} icon={<FileText className="w-4 h-4" />} text="Характер и цены" />
         <SectionBtn on={section === 'memory'} onClick={() => setSection('memory')} icon={<Brain className="w-4 h-4" />} text="Память" />
       </div>
 
       {section === 'calls' && <CallsSection months={status?.months || []} />}
+      {section === 'money' && <MoneySection />}
       {section === 'character' && <CharacterSection />}
       {section === 'memory' && <MemorySection />}
     </div>
@@ -155,7 +159,7 @@ function CallsSection({ months }: { months: string[] }) {
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="text-sm font-black text-white">{fmtPhone(c.number)}</span>
-                  <span className="text-xs text-white/45">{msk(c.started, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · {fmtDur(c.seconds)}</span>
+                  <span className="text-xs text-white/45">{msk(c.started, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · {fmtDur(c.seconds)}{c.costRub != null ? ` · ${fmtRub(c.costRub)}` : ''}</span>
                   {c.svoi && <Badge text="свой" color="text-emerald-300" />}
                   {c.transferred && <Badge text="соединён с вами" color="text-emerald-300" />}
                   {spam && <Badge text="спам" color="text-white/50" />}
@@ -188,6 +192,78 @@ function CallsSection({ months }: { months: string[] }) {
 
 function Badge({ text, color }: { text: string; color: string }) {
   return <span className={`text-[10px] font-extrabold uppercase tracking-widest glass-card px-2 py-0.5 rounded-md ${color}`}>{text}</span>;
+}
+
+// ─────────────────────────── Расходы и оплаты ───────────────────────────
+
+function MoneySection() {
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [data, setData] = useState<MaximCosts | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    setData(null); setError('');
+    maxim.costs(month).then(setData).catch((e) => setError(e?.message || 'Не удалось загрузить'));
+  }, [month]);
+
+  const now = new Date().toISOString().slice(0, 7);
+  const months = [now, ...Array.from({ length: 5 }, (_, i) => { const d = new Date(); d.setUTCDate(15); d.setUTCMonth(d.getUTCMonth() - i - 1); return d.toISOString().slice(0, 7); })];
+
+  return (
+    <div className="space-y-4">
+      <select value={month} onChange={(e) => setMonth(e.target.value)} className="glass-card rounded-xl px-3 py-2 text-sm font-bold text-white bg-transparent">
+        {months.map((m) => <option key={m} value={m} className="text-black">{monthName(m)}</option>)}
+      </select>
+      {error && <p className="text-sm text-rose-300">{error}</p>}
+      {!data && !error && <p className="text-sm text-white/50">Считаю…</p>}
+      {data && (
+        <>
+          <div className="glass-panel rounded-3xl p-5">
+            <p className="text-[11px] uppercase tracking-widest text-white/45 font-extrabold">Всего за {monthName(data.month).toLowerCase()}</p>
+            <p className="text-3xl font-black text-white mt-1">{fmtRub(data.totalRub)}</p>
+            <div className="mt-4 space-y-2 text-sm">
+              <Row label={`ИИ Google — ${data.calls} ${plural(data.calls, 'звонок', 'звонка', 'звонков')}, ${data.minutes.toLocaleString('ru-RU')} мин`} value={fmtRub(data.aiRub)} />
+              {data.fixed.map((f) => <Row key={f.name} label={f.name} value={fmtRub(f.rub)} />)}
+            </div>
+            <p className="text-xs text-white/45 mt-4">
+              В среднем звонок — {fmtRub(data.perCall)}, минута разговора — {fmtRub(data.perMinute)}. ИИ считается по реальным данным Google за каждый звонок
+              (по курсу {data.usdRub} ₽ за $); сервер и номер — по тарифу.
+            </p>
+          </div>
+
+          <div className="glass-panel rounded-3xl p-5 space-y-3">
+            <div>
+              <h3 className="text-sm font-black text-white">Ближайшие оплаты</h3>
+              <p className="text-xs text-white/50 mt-0.5">Максим напомнит в Telegram заранее (ежемесячные — за 3 дня и в день оплаты, разовые — за месяц, неделю и день).</p>
+            </div>
+            {!data.payments.length && <p className="text-sm text-white/50">Ничего не запланировано.</p>}
+            {data.payments.map((p) => (
+              <div key={p.id} className="flex items-start gap-3 glass-card rounded-2xl p-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white">{p.name}{p.rub ? ` — около ${fmtRub(p.rub)}` : ''}</p>
+                  <p className={`text-xs mt-0.5 ${p.inDays <= 3 ? 'text-amber-300 font-bold' : 'text-white/50'}`}>
+                    {p.inDays === 0 ? 'Сегодня' : `${p.dueText} · через ${p.inDays} дн.`}
+                  </p>
+                  {p.note && <p className="text-xs text-white/55 mt-1">{p.note}</p>}
+                </div>
+                <a href={p.link} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white">
+                  {p.rub ? 'Оплатить' : 'Открыть'} <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string; key?: React.Key }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2 last:border-0">
+      <span className="text-white/70">{label}</span>
+      <span className="font-black text-white shrink-0">{value}</span>
+    </div>
+  );
 }
 
 // ─────────────────────────── Характер и цены ───────────────────────────
@@ -272,7 +348,7 @@ function MemorySection() {
         <div key={num} className="glass-panel rounded-2xl p-4 space-y-2">
           <div className="flex items-center gap-2">
             <span className="text-sm font-black text-white">{fmtPhone(num)}</span>
-            <span className="text-xs text-white/45">{list.length} {list.length === 1 ? 'звонок' : list.length < 5 ? 'звонка' : 'звонков'}</span>
+            <span className="text-xs text-white/45">{list.length} {plural(list.length, 'звонок', 'звонка', 'звонков')}</span>
             {confirm === num
               ? <span className="ml-auto flex gap-2">
                   <button onClick={() => forget(num)} className="text-xs font-bold text-rose-300 hover:text-rose-200">Да, забыть</button>

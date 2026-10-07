@@ -9,6 +9,7 @@ declare(strict_types=1);
 //                              Пускаем по секрету в заголовке X-Maxim-Secret.
 //   GET  status              — админ: на связи ли Максим, звонки за сегодня
 //   GET  calls&month=ГГГГ-ММ — админ: журнал звонков с расшифровками
+//   GET  costs&month=ГГГГ-ММ — админ: расходы за месяц и ближайшие оплаты
 //   GET  character           — админ: характер и цены Максима (текст)
 //   POST character  {text}   — админ: сохранить характер
 //   GET  memory              — админ: что Максим помнит о звонивших
@@ -104,6 +105,13 @@ switch ($action) {
             fail('Неверный месяц');
         }
         respond(maxim_api('GET', '/api/calls?month=' . $month));
+    case 'costs':
+        require_method('GET');
+        $month = (string) ($_GET['month'] ?? gmdate('Y-m'));
+        if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+            fail('Неверный месяц');
+        }
+        respond(maxim_api('GET', '/api/costs?month=' . $month));
     case 'character':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $text = (string) (body()['text'] ?? '');
