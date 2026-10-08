@@ -4,7 +4,7 @@
  * память о звонивших. Данные живут на сервере Максима, сюда — через api/v2/maxim.php.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Phone, PhoneForwarded, PhoneOff, Bot, Brain, FileText, RefreshCw, Save, Trash2, ChevronDown, Mail, ShieldAlert, Wallet, ExternalLink } from 'lucide-react';
+import { Phone, PhoneForwarded, PhoneOff, Bot, Brain, FileText, RefreshCw, Save, Trash2, ChevronDown, Mail, ShieldAlert, Wallet, ExternalLink, AlertTriangle, Undo2 } from 'lucide-react';
 import { maxim, MaximCall, MaximCosts, MaximMemoryEntry, MaximStatus } from '../api/v2';
 
 type Section = 'calls' | 'money' | 'character' | 'memory';
@@ -54,6 +54,9 @@ export function MaximAdmin() {
         <StatusBadge status={status} error={statusError} />
       </div>
 
+      <PayWarning />
+      <UndoHint />
+
       {status && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Tile label="Звонков сегодня" value={String(status.todayCalls)} />
@@ -74,6 +77,47 @@ export function MaximAdmin() {
       {section === 'money' && <MoneySection />}
       {section === 'character' && <CharacterSection />}
       {section === 'memory' && <MemorySection />}
+    </div>
+  );
+}
+
+/** Срочные оплаты (≤ 3 дней) — жёлтая плашка над всем разделом, видна с любой вкладки. */
+function PayWarning() {
+  const [due, setDue] = useState<MaximCosts['payments']>([]);
+  useEffect(() => {
+    maxim.costs(new Date().toISOString().slice(0, 7)).then((d) => setDue(d.payments.filter((p) => p.inDays <= 3))).catch(() => {});
+  }, []);
+  if (!due.length) return null;
+  return (
+    <div className="p-4 space-y-2" style={{ borderRadius: 16, background: 'rgba(245,158,11,.22)', border: '1px solid rgba(252,211,77,.6)' }}>
+      <div className="text-sm font-black flex items-center gap-2" style={{ color: '#fcd34d' }}><AlertTriangle className="w-4 h-4" /> Скоро оплата — иначе Максим перестанет отвечать</div>
+      {due.map((p) => (
+        <div key={p.id} className="flex items-center gap-3 flex-wrap">
+          <span className="text-sm text-white flex-1 min-w-0">
+            <b>{p.name}</b>{p.rub ? ` — ${fmtRub(p.rub)}` : ''} · <span className="font-bold" style={{ color: '#fcd34d' }}>{p.inDays === 0 ? 'сегодня' : `через ${p.inDays} ${plural(p.inDays, 'день', 'дня', 'дней')} (${p.dueText})`}</span>
+          </span>
+          <a href={p.link} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-bold" style={{ borderRadius: 12, background: '#f59e0b', color: '#111' }}>
+            {p.rub ? 'Оплатить' : 'Открыть'} <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Как вернуть всё как было: снять переадресацию с телефона салона. Всегда на виду. */
+function UndoHint() {
+  return (
+    <div className="p-4 flex items-center gap-4 flex-wrap" style={{ borderRadius: 16, background: 'rgba(244,63,94,.14)', border: '1px solid rgba(253,164,175,.45)' }}>
+      <div className="glass-icon-capsule glass-icon-gray w-10 h-10 shrink-0"><Undo2 className="w-5 h-5 text-white" /></div>
+      <div className="flex-1 min-w-[200px]">
+        <p className="text-sm font-black text-white">Вернуть всё как было — звонки снова только вам</p>
+        <p className="text-xs text-white/60 mt-0.5">
+          Наберите на телефоне салона код и нажмите вызов. Снимает все переадресации (у любого оператора) — через минуту
+          звонки идут прямо вам, без Максима. Пригодится, если не оплачен номер или сервер, или Максим сломался.
+        </p>
+      </div>
+      <a href="tel:%23%23002%23" className="shrink-0 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-2xl font-black tracking-widest text-white" title="Набрать ##002#">##002#</a>
     </div>
   );
 }
@@ -147,12 +191,15 @@ function CallsSection({ months }: { months: string[] }) {
       {!calls && !error && <p className="text-sm text-white/50">Загружаю…</p>}
       {calls && !shown.length && <p className="text-sm text-white/50">Звонков нет.</p>}
 
+      {/* Плитки; открытый разговор — во всю ширину сразу под рядом своей плитки (dense добивает ряд остальными). */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 grid-flow-row-dense">
       {shown.map((c) => {
         const spam = isSpam(c);
         const isOpen = open === c.id;
         return (
-          <div key={c.id} className="glass-panel rounded-2xl overflow-hidden">
-            <button onClick={() => setOpen(isOpen ? null : c.id)} className="w-full text-left p-4 flex gap-3 items-start">
+          <React.Fragment key={c.id}>
+          <div className={`glass-panel rounded-2xl overflow-hidden transition`} style={isOpen ? { outline: '2px solid rgba(255,255,255,.55)', outlineOffset: 2 } : undefined}>
+            <button onClick={() => setOpen(isOpen ? null : c.id)} className="w-full h-full text-left p-4 flex gap-3 items-start">
               <div className={`glass-icon-capsule w-9 h-9 shrink-0 ${c.transferred ? 'glass-icon-green' : spam ? 'glass-icon-gray' : 'glass-icon-blue'}`}>
                 {c.transferred ? <PhoneForwarded className="w-4 h-4 text-white" /> : spam ? <PhoneOff className="w-4 h-4 text-white" /> : <Phone className="w-4 h-4 text-white" />}
               </div>
@@ -165,12 +212,13 @@ function CallsSection({ months }: { months: string[] }) {
                   {spam && <Badge text="спам" color="text-white/50" />}
                   {c.notes.length > 0 && <Badge text="записка" color="text-amber-300" />}
                 </div>
-                <p className="text-sm text-white/70 mt-1">{c.summary || (spam ? 'Реклама — Максим отказался и положил трубку.' : 'Без разговора.')}</p>
+                <p className="text-sm text-white/70 mt-1 line-clamp-3">{c.summary || (spam ? 'Реклама — Максим отказался и положил трубку.' : 'Без разговора.')}</p>
               </div>
               <ChevronDown className={`w-4 h-4 text-white/40 shrink-0 mt-1 transition ${isOpen ? 'rotate-180' : ''}`} />
             </button>
+          </div>
             {isOpen && (
-              <div className="px-4 pb-4 space-y-2 border-t border-white/10 pt-3">
+              <div onClick={() => setOpen(null)} className="col-span-full glass-panel rounded-2xl p-4 space-y-2 cursor-pointer" title="Нажмите, чтобы закрыть">
                 {c.notes.map((n, i) => (
                   <div key={i} className="flex gap-2 items-start text-sm text-amber-200 bg-amber-400/10 rounded-xl px-3 py-2"><Mail className="w-4 h-4 shrink-0 mt-0.5" />{n}</div>
                 ))}
@@ -183,9 +231,10 @@ function CallsSection({ months }: { months: string[] }) {
                 ))}
               </div>
             )}
-          </div>
+          </React.Fragment>
         );
       })}
+      </div>
     </div>
   );
 }
