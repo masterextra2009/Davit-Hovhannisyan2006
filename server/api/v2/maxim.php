@@ -17,6 +17,8 @@ declare(strict_types=1);
 //   POST call       {orderId} — админ: Максим звонит клиенту «заказ готов, когда заберёте?»
 //   GET  order-calls          — админ: как прошли эти звонки (итог на карточке заказа)
 //   POST call-result {orderId, state, text} — сам Максим (X-Maxim-Secret): итог звонка
+//   POST autocall-tick        — сам Максим (X-Maxim-Secret) раз в 10 минут: авто-обзвон
+//   GET/POST autocall {enabled} — админ: выключатель авто-обзвона
 //
 // Итоги звонков — в .sever18-private/maxim-order-calls.json, а не в заказе:
 // админка сохраняет заказ целиком и затёрла бы итог старой копией.
@@ -82,6 +84,61 @@ function maxim_api(string $method, string $path, ?array $body = null): array
 const ORDER_CALLS_KEEP_DAYS = 30;
 /** Пока Максим дозванивается, повторно по тому же заказу не звоним. */
 const ORDER_CALL_BUSY_SECONDS = 180;
+
+// Авто-обзвон (Давид, 11.10): через 2 суток после «Готов», Пн–Сб 11:00–18:00 по Москве,
+// не взял — ещё одна попытка не раньше чем через 20 часов, и всё.
+const AUTOCALL_AFTER_HOURS = 48;
+const AUTOCALL_MAX_AGE_DAYS = 14;   // дольше — скорее всего забрали, а «Выдан» не нажали
+const AUTOCALL_MAX_ATTEMPTS = 2;
+const AUTOCALL_RETRY_HOURS = 20;
+const AUTOCALL_DAILY_LIMIT = 15;
+const AUTOCALL_FROM_HOUR = 11;
+const AUTOCALL_TO_HOUR = 18;
+
+function autocall_enabled(?bool $set = null): bool
+{
+    $file = SITE_DIR . '/../.sever18-private/maxim-autocall.json';
+    if ($set !== null) {
+        file_put_contents($file, json_encode(['enabled' => $set, 'changedAt' => gmdate('c')]), LOCK_EX);
+        return $set;
+    }
+    $c = is_readable($file) ? json_decode((string) file_get_contents($file), true) : null;
+    return is_array($c) && ($c['enabled'] ?? false) === true;
+}
+
+/** Номер клиента: из заказа (приложение), иначе из профиля. '' — номера нет. */
+function order_phone(array $o): string
+{
+    $digits = preg_replace('/\D/', '', (string) ($o['user_phone'] ?: $o['profile_phone']));
+    return strlen($digits) < 10 ? '' : '7' . substr($digits, -10);
+}
+
+/** Максим звонит по готовому заказу. Пишет журнал и возвращает запись о звонке. */
+function start_order_call(array $o, bool $auto): array
+{
+    maxim_api('POST', '/api/outbound', [
+        'number' => order_phone($o),
+        'order' => [
+            'id' => $o['id'],
+            'what' => order_what($o),
+            'date' => ru_day((string) $o['order_date']),
+            'paid' => $o['payment_status'] === 'paid',
+            'name' => (string) $o['user_name'],
+        ],
+    ]);
+    $call = ['at' => gmdate('c'), 'state' => 'calling'];
+    order_calls(function (array $calls) use ($o, $call, $auto, &$out) {
+        $prev = $calls[$o['id']] ?? [];
+        $attempts = (int) ($prev['autoAttempts'] ?? 0) + ($auto ? 1 : 0);
+        // manual — Давид хоть раз звонил кнопкой: автомат этот заказ больше не трогает.
+        $manual = !$auto || !empty($prev['manual']);
+        $out = $call + ($auto ? ['auto' => true] : []) + ($manual ? ['manual' => true] : [])
+            + ($attempts ? ['autoAttempts' => $attempts] : []);
+        $calls[$o['id']] = $out;
+        return $calls;
+    });
+    return $out;
+}
 
 /**
  * Итоги звонков по заказам: orderId → {at, state, result?, doneAt?}.
@@ -164,11 +221,69 @@ if ($action === 'call-result') {
         // Пишем только по звонкам, которые начинала админка.
         if (isset($calls[$orderId])) {
             $found = true;
-            $calls[$orderId] = ['at' => $calls[$orderId]['at'], 'state' => $state, 'result' => $text, 'doneAt' => gmdate('c')];
+            $calls[$orderId] = ['state' => $state, 'result' => $text, 'doneAt' => gmdate('c')] + $calls[$orderId];
         }
         return $calls;
     });
     respond(['ok' => true, 'found' => $found]);
+}
+
+if ($action === 'autocall-tick') {
+    require_method('POST');
+    if (!maxim_secret_ok()) {
+        fail('Нет доступа', 403);
+    }
+    if (!autocall_enabled()) {
+        respond(['ok' => true, 'skip' => 'выключен']);
+    }
+    $now = new DateTime('now', new DateTimeZone('Europe/Moscow'));
+    $hour = (int) $now->format('G');
+    if ((int) $now->format('N') === 7 || $hour < AUTOCALL_FROM_HOUR || $hour >= AUTOCALL_TO_HOUR) {
+        respond(['ok' => true, 'skip' => 'не время']);
+    }
+    $calls = order_calls();
+    $today = $now->format('Y-m-d');
+    $todayAuto = 0;
+    foreach ($calls as $c) {
+        $at = strtotime((string) ($c['at'] ?? '')) ?: 0;
+        if (($c['state'] ?? '') === 'calling' && time() - $at < ORDER_CALL_BUSY_SECONDS) {
+            respond(['ok' => true, 'skip' => 'Максим уже звонит']); // по одному, без очереди на линии
+        }
+        if (!empty($c['auto']) && (new DateTime('@' . $at))->setTimezone(new DateTimeZone('Europe/Moscow'))->format('Y-m-d') === $today) {
+            $todayAuto++;
+        }
+    }
+    if ($todayAuto >= AUTOCALL_DAILY_LIMIT) {
+        respond(['ok' => true, 'skip' => 'лимит на сегодня']);
+    }
+    $st = db()->prepare('SELECT o.*, u.phone AS profile_phone FROM orders o LEFT JOIN users u ON u.id = o.user_id'
+        . ' WHERE o.status = \'ready\' AND o.rejected = 0 AND o.ready_at IS NOT NULL'
+        . ' AND o.ready_at <= UTC_TIMESTAMP() - INTERVAL ' . AUTOCALL_AFTER_HOURS . ' HOUR'
+        . ' AND o.ready_at >= UTC_TIMESTAMP() - INTERVAL ' . AUTOCALL_MAX_AGE_DAYS . ' DAY'
+        . ' ORDER BY o.ready_at ASC LIMIT 200');
+    $st->execute();
+    foreach ($st->fetchAll() as $o) {
+        if (order_phone($o) === '') {
+            continue;
+        }
+        $c = $calls[$o['id']] ?? null;
+        if ($c) {
+            // Давид уже звонил кнопкой (Давид, 11.10: «если я уже нажал позвонить, он не
+            // набирал повторно») или уже поговорили — больше не беспокоим.
+            if (!empty($c['manual']) || empty($c['auto']) || ($c['state'] ?? '') === 'answered') {
+                continue;
+            }
+            if ((int) ($c['autoAttempts'] ?? 0) >= AUTOCALL_MAX_ATTEMPTS) {
+                continue;
+            }
+            if (time() - (strtotime((string) ($c['at'] ?? '')) ?: 0) < AUTOCALL_RETRY_HOURS * 3600) {
+                continue;
+            }
+        }
+        $call = start_order_call($o, true);
+        respond(['ok' => true, 'called' => $o['id'], 'call' => $call]);
+    }
+    respond(['ok' => true, 'skip' => 'некому звонить']);
 }
 
 if ($action === 'note') {
@@ -232,31 +347,19 @@ switch ($action) {
         if ($o['status'] !== 'ready' || (int) $o['rejected'] === 1) {
             fail('Звонить можно только по готовому заказу');
         }
-        // Телефон из заказа (приложение), иначе из профиля клиента.
-        $digits = preg_replace('/\D/', '', (string) ($o['user_phone'] ?: $o['profile_phone']));
-        if (strlen($digits) < 10) {
+        if (order_phone($o) === '') {
             fail('У клиента нет номера телефона');
         }
         $prev = order_calls()[$orderId] ?? null;
         if ($prev && $prev['state'] === 'calling' && time() - (strtotime($prev['at']) ?: 0) < ORDER_CALL_BUSY_SECONDS) {
             fail('Максим уже звонит этому клиенту');
         }
-        maxim_api('POST', '/api/outbound', [
-            'number' => '7' . substr($digits, -10),
-            'order' => [
-                'id' => $orderId,
-                'what' => order_what($o),
-                'date' => ru_day((string) $o['order_date']),
-                'paid' => $o['payment_status'] === 'paid',
-                'name' => (string) $o['user_name'],
-            ],
-        ]);
-        $call = ['at' => gmdate('c'), 'state' => 'calling'];
-        order_calls(function (array $calls) use ($orderId, $call) {
-            $calls[$orderId] = $call;
-            return $calls;
-        });
-        respond(['ok' => true, 'call' => $call]);
+        respond(['ok' => true, 'call' => start_order_call($o, false)]);
+    case 'autocall':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            respond(['ok' => true, 'enabled' => autocall_enabled((body()['enabled'] ?? false) === true)]);
+        }
+        respond(['ok' => true, 'enabled' => autocall_enabled()]);
     case 'order-calls':
         require_method('GET');
         $calls = order_calls();
