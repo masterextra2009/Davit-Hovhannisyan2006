@@ -2293,7 +2293,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {sortedOrders.length === 0 ? (
                 <p className="text-xs text-white/50 text-center py-10 glass-panel rounded-3xl">Нет заказов в реестре.</p>
               ) : (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4 items-start">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4 items-stretch">
                   {sortedOrders
                     .filter(o => {
                       // Выданные заказы живут только в Архиве — как только заказ
@@ -2419,7 +2419,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
                           {/* Клиент + штрих-код номера заказа (его читает сканер на кассе) */}
                           <div className="flex flex-col gap-2.5">
-                            <div className="min-w-0 text-[12px] text-slate-500 dark:text-slate-400 space-y-0.5">
+                            <div className="min-w-0 min-h-[40px] text-[12px] text-slate-500 dark:text-slate-400 space-y-0.5">
                               <div className="text-sm font-extrabold text-slate-900 dark:text-white">
                                 {order.userName}
                                 <LoyaltyChip userId={order.userId} orders={database.orders} />
@@ -2664,15 +2664,14 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                         </div>
 
                         {/* Низ: оплата и сумма */}
-                        <div className="px-4 py-3 bg-slate-50/50 dark:bg-slate-950/10 border-t border-slate-150/80 dark:border-slate-850 flex items-center justify-between gap-3">
+                        <div className="mt-auto px-3 py-2.5 bg-slate-50/50 dark:bg-slate-950/10 border-t border-slate-150/80 dark:border-slate-850 flex items-center justify-between gap-3">
                             <button
                               onClick={() => handleTogglePaymentStatus(order.id)}
-                              className={`py-1.2 px-2.5 rounded-lg text-[11px] font-extrabold border transition ${
+                              className={`py-1 px-2.5 rounded-lg text-[11px] font-extrabold border transition ${
                                 order.paymentStatus === 'paid'
-                                  ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20'
-                                  : 'bg-rose-50 border-rose-250 dark:bg-rose-955/20'
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-500/15 dark:border-emerald-500/40 dark:text-emerald-300'
+                                  : 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-500/15 dark:border-rose-500/40 dark:text-rose-300'
                               }`}
-                              style={{ color: order.paymentStatus === 'paid' ? '#065f46' : '#9f1239' }}
                             >
                               {order.paymentStatus === 'paid' ? 'Отметить не Оплаченным' : 'Отметить Оплаченным'}
                             </button>

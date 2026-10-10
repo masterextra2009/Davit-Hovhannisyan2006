@@ -43,12 +43,15 @@ export function MaximCallButton({ orderId, hasPhone, call, onCall }: {
 
   return (
     <div className="flex flex-col gap-1.5">
+      {/* rounded-[12px], а не rounded-xl: в тёмной админке .rounded-xl перекрашивается
+          в серое стекло с !important (index.css) — кнопка была бы серой. Яркая всегда
+          (Давид, 10.10), даже без номера — тогда просто не нажимается. */}
       <button
         type="button"
         onClick={start}
         disabled={calling || !hasPhone}
         title={hasPhone ? 'Максим позвонит клиенту и спросит, когда он заберёт заказ' : 'У клиента нет номера телефона'}
-        className="w-full flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[13px] font-extrabold text-white bg-gradient-to-r from-emerald-600 to-teal-500 shadow hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        className="w-full flex items-center justify-center gap-2 rounded-[12px] px-3 py-2.5 text-[13px] font-extrabold text-white bg-gradient-to-r from-emerald-500 to-lime-400 shadow-lg shadow-emerald-500/30 hover:brightness-110 transition disabled:cursor-not-allowed cursor-pointer"
       >
         {calling ? <Loader2 className="w-4 h-4 animate-spin" /> : hasPhone ? <Phone className="w-4 h-4" /> : <PhoneOff className="w-4 h-4" />}
         {calling ? 'Максим звонит…' : !hasPhone ? 'Нет номера телефона' : call ? 'Позвонить ещё раз' : 'Позвонить через Максима'}
