@@ -36,6 +36,15 @@ const AI_MODEL = 'openai/gpt-6-luna';
 const AI_TIMEOUT = 45;
 const AI_MAX_TITLE = 300;
 const AI_MAX_BODY = 4000;
+// Картинка для новости (action=image). Константы — здесь, наверху: const в PHP
+// появляется только когда до него дошло выполнение, а image вызывается раньше конца файла.
+const IMG_MODEL = 'google/gemini-3-pro-image-preview';
+const IMG_TIMEOUT = 150;
+/** Размер полосы новости в приложении (16:7, см. PromoCardPreview.tsx). */
+const IMG_W = 1600;
+const IMG_H = 700;
+/** Защита счёта polza: столько картинок в сутки на всю мастерскую. */
+const IMG_DAILY_LIMIT = 40;
 
 $user = require_user();
 // Только мастерская: ИИ стоит денег, и тратить их может лишь хозяин.
@@ -175,16 +184,11 @@ function ask_polza(string $key, string $system, string $userMsg): string
 
 // ─────────────────────────── Картинка для новости ───────────────────────────
 
-const IMG_MODEL = 'google/gemini-3-pro-image-preview';
-const IMG_TIMEOUT = 150;
-/** Размер полосы новости в приложении (16:7, см. PromoCardPreview.tsx). */
-const IMG_W = 1600;
-const IMG_H = 700;
-/** Защита счёта polza: столько картинок в сутки на всю мастерскую. */
-const IMG_DAILY_LIMIT = 40;
 
 function news_image()
 {
+    // Нейросеть рисует до пары минут — не даём хостингу оборвать запрос раньше.
+    @set_time_limit(IMG_TIMEOUT + 60);
     $title = trim(str_field('title', AI_MAX_TITLE));
     $body = trim(str_field('body', AI_MAX_BODY));
     $hint = trim(str_field('hint', 1000));
