@@ -4763,7 +4763,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     type="text"
                     value={imgHint}
                     onChange={e => setImgHint(e.target.value)}
-                    placeholder="Суть картинки своими словами — например «фото на паспорт за 5 минут, светлая студия»"
+                    placeholder="Надпись на картинке — например «Скидка 20% на фото на документы»"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30"
                   />
                   <button
@@ -4775,7 +4775,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     {imgBusy ? 'Рисует…' : promoForm.imageUrl ? '✨ Сгенерировать заново' : '✨ Сгенерировать картинку'}
                   </button>
                   <p className="text-[11px] text-white/35">
-                    Напишите только суть — дизайнер-ИИ сам продумает композицию, цвета и шрифт, заголовок крупно на картинке. 1600 × 700, ≈ 14–18 ₽ с баланса polza.
+                    Напишите надпись (или заголовок справа) — ИИ сделает яркий баннер: сочные цвета, крупная надпись, скидка на плашке. Если заполнены оба поля — надпись берётся из заголовка, а это поле подскажет, что нарисовать. 1600 × 700, ≈ 14–18 ₽.
                     Буквы вышли криво — нажмите «заново».
                   </p>
                   {imgError && <p className="text-xs text-rose-300">{imgError}</p>}
