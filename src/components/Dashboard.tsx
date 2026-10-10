@@ -8817,6 +8817,11 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                 <p className="text-xs text-indigo-650 dark:text-indigo-400 font-black">
                   Вам придет уведомление в чате и пуш-уведомление, как только оператор приступит к печати.
                 </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+                  Когда заказ будет готов, можем позвонить с номера{' '}
+                  <a href="tel:+74951285911" className="whitespace-nowrap font-black text-slate-700 dark:text-slate-200">+7 495 128-59-11</a>
+                  {' '}— сохраните его как «Фото-Север».
+                </p>
               </div>
 
               {/* Order Details Briefing */}
