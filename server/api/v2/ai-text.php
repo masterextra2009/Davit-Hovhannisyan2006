@@ -19,6 +19,10 @@ declare(strict_types=1);
  * случай, которого здесь избегаем.
  *
  *   POST improve  {title, body}  → {title, body}
+ *   POST image    {title, body, hint} → {url, width, height}
+ *        Картинка для новости 1600×700 (полоса 16:7 в приложении) с заголовком
+ *        крупно. Давид, 10.10: «чтобы по описанию под размер сгенерировал».
+ *        Лучшая модель (~14–18 ₽ за картинку) — выбор Давида.
  */
 
 require __DIR__ . '/_bootstrap.php';
@@ -32,12 +36,25 @@ const AI_MODEL = 'openai/gpt-6-luna';
 const AI_TIMEOUT = 45;
 const AI_MAX_TITLE = 300;
 const AI_MAX_BODY = 4000;
+// Картинка для новости (action=image). Константы — здесь, наверху: const в PHP
+// появляется только когда до него дошло выполнение, а image вызывается раньше конца файла.
+const IMG_MODEL = 'google/gemini-3-pro-image-preview';
+const IMG_TIMEOUT = 150;
+/** Размер полосы новости в приложении (16:7, см. PromoCardPreview.tsx). */
+const IMG_W = 1600;
+const IMG_H = 700;
+/** Защита счёта polza: столько картинок в сутки на всю мастерскую. */
+const IMG_DAILY_LIMIT = 40;
 
 $user = require_user();
 // Только мастерская: ИИ стоит денег, и тратить их может лишь хозяин.
 require_admin($user['role'] === 'admin');
 
 $action = $_GET['action'] ?? '';
+if ($action === 'image') {
+    require_method('POST');
+    news_image();
+}
 if ($action !== 'improve') {
     fail('Неизвестное действие', 404);
 }
@@ -163,4 +180,186 @@ function ask_polza(string $key, string $system, string $userMsg): string
         fail('Помощник вернул пустой ответ. Попробуйте ещё раз.', 502);
     }
     return $text;
+}
+
+// ─────────────────────────── Картинка для новости ───────────────────────────
+
+
+function news_image()
+{
+    // Нейросеть рисует до пары минут — не даём хостингу оборвать запрос раньше.
+    @set_time_limit(IMG_TIMEOUT + 60);
+    $title = trim(str_field('title', AI_MAX_TITLE));
+    $body = trim(str_field('body', AI_MAX_BODY));
+    $hint = trim(str_field('hint', 1000));
+    if ($title === '' && $hint === '') {
+        fail('Напишите заголовок или суть картинки — по ним и будет картинка');
+    }
+    // Давид пишет надпись прямо в поле «суть» (10.10: «Скидка 20% на фото на
+    // документы» — а заголовок пустой, и картинка вышла без надписи).
+    if ($title === '') {
+        $title = $hint;
+        $hint = '';
+    }
+    img_count_today();
+
+    $prompt = "Широкий рекламный баннер для новости фотосалона «Фото-Север» (печать фото и документов, "
+        . "фото на документы, сувениры; город Раменское). Формат очень широкий, горизонтальный.\n"
+        . ($title !== '' ? "Крупно и разборчиво напиши заголовок по-русски, ТОЧНО так, буква в букву, без ошибок: «{$title}». "
+            . "Других надписей, кроме этого заголовка, не делай. Текст держи ближе к центру, с отступами от краёв.\n"
+            : "Без надписей.\n")
+        . ($hint !== '' ? "Что изобразить: {$hint}\n" : '')
+        . ($body !== '' ? "Смысл новости (для настроения картинки, на картинку НЕ писать): {$body}\n" : '')
+        . "Стиль: яркий сочный рекламный баннер, насыщенные цвета, светлый фон, крупная жирная надпись; без чужих логотипов и брендов, без водяных знаков.";
+
+    // Давид даёт только суть — «арт-директор» (дешёвая текстовая модель, ~копейка)
+    // превращает её в подробное задание художнику: композиция, свет, цвета, шрифт.
+    // Не ответил — рисуем по простому заданию выше.
+    $prompt = art_director($title, $body, $hint) ?? $prompt;
+
+    $payload = json_encode([
+        'model' => IMG_MODEL,
+        'input' => ['prompt' => $prompt, 'aspect_ratio' => '21:9', 'image_resolution' => '2K'],
+        'async' => false,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $ch = curl_init('https://polza.ai/api/v1/media');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => IMG_TIMEOUT,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . polza_key()],
+    ]);
+    $raw = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+    if ($raw === false) {
+        error_log('api/v2 ai-text image: связь с polza.ai: ' . $err);
+        fail('Не получилось связаться с нейросетью. Попробуйте ещё раз.', 502);
+    }
+    $data = json_decode((string) $raw, true);
+    if ($code === 402 || stripos((string) ($data['error']['message'] ?? ''), 'balance') !== false) {
+        fail('На счету polza.ai закончились деньги.', 402);
+    }
+    $url = $data['data'][0]['url'] ?? ($data['data'][0] ?? null);
+    if ($code < 200 || $code >= 300 || ($data['status'] ?? '') === 'failed' || !is_string($url) || $url === '') {
+        error_log('api/v2 ai-text image: polza ответил ' . $code . ': ' . mb_substr((string) $raw, 0, 300));
+        fail('Нейросеть не нарисовала картинку. Попробуйте ещё раз или опишите иначе.', 502);
+    }
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_FOLLOWLOCATION => true]);
+    $bytes = curl_exec($ch);
+    curl_close($ch);
+    $src = $bytes ? @imagecreatefromstring((string) $bytes) : false;
+    if (!$src) {
+        fail('Не удалось получить картинку. Попробуйте ещё раз.', 502);
+    }
+
+    // Ровно под полосу 16:7: лишнее срезаем поровну с краёв (21:9 чуть шире).
+    $sw = imagesx($src);
+    $sh = imagesy($src);
+    $target = IMG_W / IMG_H;
+    if ($sw / $sh > $target) {
+        $cw = (int) round($sh * $target);
+        $cx = (int) round(($sw - $cw) / 2);
+        $cy = 0;
+        $ch2 = $sh;
+    } else {
+        $cw = $sw;
+        $cx = 0;
+        $ch2 = (int) round($sw / $target);
+        $cy = (int) round(($sh - $ch2) / 2);
+    }
+    $out = imagecreatetruecolor(IMG_W, IMG_H);
+    imagecopyresampled($out, $src, 0, 0, $cx, $cy, IMG_W, IMG_H, $cw, $ch2);
+
+    $dir = SITE_DIR . '/uploads/public';
+    if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+        fail('Не удалось сохранить картинку', 500);
+    }
+    $name = time() . '_' . random_int(1000, 9999) . '_novost-ii.jpg';
+    if (!imagejpeg($out, $dir . '/' . $name, 88)) {
+        fail('Не удалось сохранить картинку', 500);
+    }
+    respond(['ok' => true, 'url' => 'https://sever-18.ru/uploads/public/' . $name, 'width' => IMG_W, 'height' => IMG_H]);
+}
+
+/** Считает картинки за сутки (по Москве) и не пускает сверх лимита. */
+function img_count_today(): void
+{
+    $file = SITE_DIR . '/../.sever18-private/ai-image-count.json';
+    $fh = fopen($file, 'c+');
+    if ($fh === false) {
+        return;
+    }
+    flock($fh, LOCK_EX);
+    $c = json_decode((string) stream_get_contents($fh), true);
+    $today = (new DateTime('now', new DateTimeZone('Europe/Moscow')))->format('Y-m-d');
+    $n = (is_array($c) && ($c['date'] ?? '') === $today) ? (int) ($c['n'] ?? 0) : 0;
+    if ($n >= IMG_DAILY_LIMIT) {
+        flock($fh, LOCK_UN);
+        fclose($fh);
+        fail('На сегодня картинок уже много (' . IMG_DAILY_LIMIT . '). Завтра снова можно.', 429);
+    }
+    ftruncate($fh, 0);
+    rewind($fh);
+    fwrite($fh, json_encode(['date' => $today, 'n' => $n + 1]));
+    flock($fh, LOCK_UN);
+    fclose($fh);
+}
+
+/** Суть новости → подробное задание для нейросети-художника. null — если не вышло. */
+function art_director(string $title, string $body, string $hint): ?string
+{
+    $system = <<<TXT
+Ты арт-директор и дизайнер рекламы. Фотосалон «Фото-Север» в Раменском: печать фото и
+документов, фото на документы, сувениры. Клиенты — обычные люди всех возрастов.
+
+Тебе дают суть новости. Напиши ОДНО подробное задание (на английском) для нейросети,
+которая рисует широкий баннер 21:9 для ленты новостей в мобильном приложении.
+
+Нужен ЯРКИЙ, СОЧНЫЙ, ПРОДАЮЩИЙ рекламный баннер — как акции крупных магазинов и маркетплейсов.
+НЕ тёмный, НЕ мрачный, НЕ «премиально-сдержанный». Опиши:
+— фон: светлый и насыщенный — сочный градиент (например, тёплый жёлто-оранжевый, малиновый,
+  бирюзовый, сиреневый — подбери 2–3 ярких цвета под смысл), лёгкие блики, конфетти,
+  динамичные формы или полосы; много света;
+— главный объект, связанный с сутью (фото на документы, распечатанные фото, фотоаппарат,
+  рамки, сувениры и т.п.) — объёмный, глянцевый, 3D или фотореалистичный, крупно, с одной стороны;
+— надпись — ГЛАВНЫЙ элемент: очень крупный, жирный шрифт без засечек, белый или тёмный с
+  обводкой/тенью, идеально читается на телефоне, 1–2 строки, на свободной стороне;
+  если в надписи есть число или скидка (например «20%») — выдели его ещё крупнее на яркой
+  плашке, стикере или бейдже;
+— ничего важного у самых краёв (края слегка обрежутся).
+Надпись вставь в задание ДОСЛОВНО по-русски в кавычках и потребуй написать её кириллицей
+буква в букву, без ошибок; других слов на картинке нет. Если надписи нет — без текста.
+Запрещено: другие надписи, логотипы, чужие бренды, водяные знаки, искажённые лица и руки.
+Ничего не выдумывай про цены и сроки сверх данного. Ответ — только текст задания, без пояснений.
+TXT;
+    $msg = 'Заголовок: ' . ($title !== '' ? $title : '(нет)') . "\nСуть / что нарисовать: " . ($hint !== '' ? $hint : '(нет)')
+        . "\nТекст новости: " . ($body !== '' ? $body : '(нет)');
+    $ch = curl_init('https://polza.ai/api/v1/chat/completions');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode([
+            'model' => AI_MODEL,
+            'messages' => [['role' => 'system', 'content' => $system], ['role' => 'user', 'content' => $msg]],
+            'max_tokens' => 700,
+            'temperature' => 0.8,
+        ], JSON_UNESCAPED_UNICODE),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . polza_key()],
+    ]);
+    $raw = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+    $text = $raw !== false && $code === 200 ? (json_decode((string) $raw, true)['choices'][0]['message']['content'] ?? '') : '';
+    if (!is_string($text) || mb_strlen(trim($text)) < 80) {
+        error_log('api/v2 ai-text image: арт-директор не ответил (' . $code . ')');
+        return null;
+    }
+    // Заголовок модель могла перевести или исказить — подстрахуем дословно.
+    return trim($text) . ($title !== '' ? "\n\nThe ONLY text on the image, in Cyrillic, exactly letter by letter: «{$title}»." : '');
 }

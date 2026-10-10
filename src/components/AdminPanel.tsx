@@ -701,6 +701,27 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState('');
   const [aiDraft, setAiDraft] = useState<{ title: string; body: string } | null>(null);
+  // Картинка для новости от нейросети: «что нарисовать» + заголовок → 1600×700.
+  const [imgHint, setImgHint] = useState('');
+  const [imgBusy, setImgBusy] = useState(false);
+  const [imgError, setImgError] = useState('');
+
+  const generatePromoImage = async () => {
+    setImgError('');
+    if (!promoForm.title.trim() && !imgHint.trim()) {
+      setImgError('Напишите заголовок или суть картинки.');
+      return;
+    }
+    setImgBusy(true);
+    try {
+      const r = await v2.aiText.image(promoForm.title, promoForm.body, imgHint);
+      setPromoForm(f => ({ ...f, imageUrl: r.url, mediaType: 'image', mediaWidth: r.width, mediaHeight: r.height }));
+    } catch (e: any) {
+      setImgError(e?.message || 'Не получилось. Попробуйте ещё раз.');
+    } finally {
+      setImgBusy(false);
+    }
+  };
 
   const improvePromoText = async () => {
     setAiError('');
@@ -4714,8 +4735,53 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 </p>
               </div>
 
-              {/* Форма новой новости */}
-              <div className="glass-panel rounded-2xl p-4 space-y-3">
+              {/* Форма новой новости. Слева — картинка целиком (своя или от
+                  нейросети), справа — поля: Давид, 10.10: «фото показывает
+                  целиком с левой стороны, чтобы я мог увидеть, что сгенерировано». */}
+              <div className="glass-panel rounded-2xl p-4 grid lg:grid-cols-2 gap-4 items-start">
+                <div className="space-y-2.5 lg:sticky lg:top-4">
+                  <div className="relative w-full aspect-[16/7] rounded-xl overflow-hidden border border-white/10 bg-black/30 grid place-items-center">
+                    {promoForm.imageUrl && promoForm.mediaType === 'video' ? (
+                      <video src={promoForm.imageUrl} className="absolute inset-0 w-full h-full object-contain" muted autoPlay loop playsInline />
+                    ) : promoForm.imageUrl ? (
+                      <img src={promoForm.imageUrl} alt="Картинка новости" className="absolute inset-0 w-full h-full object-contain" />
+                    ) : (
+                      <span className="text-xs text-white/35 px-4 text-center">
+                        {imgBusy ? '' : 'Здесь будет картинка — выберите файл или сгенерируйте'}
+                      </span>
+                    )}
+                    {imgBusy && (
+                      <div className="absolute inset-0 grid place-items-center bg-black/50">
+                        <span className="flex items-center gap-2 text-sm font-bold text-white">
+                          <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          Рисует… до минуты
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={imgHint}
+                    onChange={e => setImgHint(e.target.value)}
+                    placeholder="Надпись на картинке — например «Скидка 20% на фото на документы»"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={generatePromoImage}
+                    disabled={imgBusy}
+                    className="w-full text-sm font-bold px-3 py-2.5 rounded-xl border border-white/15 bg-white/5 text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-wait"
+                  >
+                    {imgBusy ? 'Рисует…' : promoForm.imageUrl ? '✨ Сгенерировать заново' : '✨ Сгенерировать картинку'}
+                  </button>
+                  <p className="text-[11px] text-white/35">
+                    Напишите надпись (или заголовок справа) — ИИ сделает яркий баннер: сочные цвета, крупная надпись, скидка на плашке. Если заполнены оба поля — надпись берётся из заголовка, а это поле подскажет, что нарисовать. 1600 × 700, ≈ 14–18 ₽.
+                    Буквы вышли криво — нажмите «заново».
+                  </p>
+                  {imgError && <p className="text-xs text-rose-300">{imgError}</p>}
+                </div>
+
+                <div className="space-y-3">
                 <input
                   type="text"
                   value={promoForm.title}
@@ -4927,6 +4993,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                 >
                   Опубликовать
                 </button>
+                </div>
               </div>
 
               {/* Уже заведённые */}
