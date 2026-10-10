@@ -56,6 +56,7 @@ export function MaximAdmin() {
 
       <PayWarning />
       <UndoHint />
+      <AutocallToggle />
 
       {status && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -101,6 +102,50 @@ function PayWarning() {
           </a>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Авто-обзвон готовых заказов: через 2 дня после «Готов», Пн–Сб 11:00–18:00, не взял —
+ * ещё раз на следующий день. Заказы, по которым вы уже звонили кнопкой, не трогает.
+ * Решает и звонит сайт (maxim.php?action=autocall-tick), Максим лишь спрашивает раз в 10 минут.
+ */
+function AutocallToggle() {
+  const [on, setOn] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => { maxim.autocall().then((r) => setOn(r.enabled)).catch((e) => setError(e?.message || 'Не удалось узнать')); }, []);
+  const toggle = async () => {
+    if (on === null) return;
+    setBusy(true); setError('');
+    try { setOn((await maxim.setAutocall(!on)).enabled); }
+    catch (e: any) { setError(e?.message || 'Не получилось'); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div className="p-4 flex items-center gap-4 flex-wrap" style={{ borderRadius: 16, background: on ? 'rgba(16,185,129,.16)' : 'rgba(255,255,255,.06)', border: `1px solid ${on ? 'rgba(110,231,183,.5)' : 'rgba(255,255,255,.12)'}` }}>
+      <div className="glass-icon-capsule glass-icon-green w-10 h-10 shrink-0"><PhoneForwarded className="w-5 h-5 text-white" /></div>
+      <div className="flex-1 min-w-[200px]">
+        <p className="text-sm font-black text-white">Авто-обзвон готовых заказов {on === null ? '' : on ? '— включён' : '— выключен'}</p>
+        <p className="text-xs text-white/60 mt-0.5">
+          Если заказ лежит готовым 2 дня, Максим сам позвонит клиенту (Пн–Сб, 11:00–18:00). Не взял — ещё раз на
+          следующий день, и всё. Где вы уже нажимали «Позвонить» — не трогает. Не больше 15 звонков в день.
+        </p>
+        {error && <p className="text-xs mt-1" style={{ color: '#fda4af' }}>{error}</p>}
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={!!on}
+        onClick={toggle}
+        disabled={busy || on === null}
+        className="shrink-0 relative disabled:opacity-60"
+        style={{ width: 58, height: 32, borderRadius: 999, background: on ? '#10b981' : 'rgba(255,255,255,.2)', transition: 'background .2s' }}
+        title={on ? 'Выключить авто-обзвон' : 'Включить авто-обзвон'}
+      >
+        <span style={{ position: 'absolute', top: 4, left: on ? 30 : 4, width: 24, height: 24, borderRadius: 999, background: '#fff', transition: 'left .2s', boxShadow: '0 1px 4px rgba(0,0,0,.3)' }} />
+      </button>
     </div>
   );
 }

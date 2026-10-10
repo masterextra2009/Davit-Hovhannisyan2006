@@ -407,6 +407,8 @@ export interface MaximOrderCall {
   state: 'calling' | 'answered' | 'noanswer';
   result?: string;
   doneAt?: string;
+  /** Позвонил автомат (через 2 дня после «Готов»), а не кнопка. */
+  auto?: boolean;
 }
 
 export const maxim = {
@@ -419,6 +421,8 @@ export const maxim = {
   forget: (number: string) => request<{ ok: true }>('maxim.php?action=memory-forget', { body: { number } }),
   callClient: (orderId: string) => request<{ call: MaximOrderCall }>('maxim.php?action=call', { body: { orderId } }),
   orderCalls: () => request<{ calls: Record<string, MaximOrderCall> }>('maxim.php?action=order-calls'),
+  autocall: () => request<{ enabled: boolean }>('maxim.php?action=autocall'),
+  setAutocall: (enabled: boolean) => request<{ enabled: boolean }>('maxim.php?action=autocall', { body: { enabled } }),
 };
 
 export const telegram = {

@@ -63,7 +63,7 @@ export function MaximCallButton({ orderId, hasPhone, call, onCall }: {
             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
             : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
         }`}>
-          📞 {mskTime(call.doneAt || call.at)} — {call.state === 'answered' ? (call.result || 'поговорили') : 'не взял трубку'}
+          📞 {call.auto ? 'авто · ' : ''}{mskTime(call.doneAt || call.at)} — {call.state === 'answered' ? (call.result || 'поговорили') : 'не взял трубку'}
         </p>
       )}
     </div>
