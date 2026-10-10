@@ -708,7 +708,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const generatePromoImage = async () => {
     setImgError('');
     if (!promoForm.title.trim() && !imgHint.trim()) {
-      setImgError('Напишите заголовок или что нарисовать.');
+      setImgError('Напишите заголовок или суть картинки.');
       return;
     }
     setImgBusy(true);
@@ -4755,7 +4755,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     type="text"
                     value={imgHint}
                     onChange={e => setImgHint(e.target.value)}
-                    placeholder="Что нарисовать — например «стопка ярких фотографий на столе»"
+                    placeholder="Суть картинки своими словами — например «фото на паспорт за 5 минут, светлая студия»"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-white/30"
                   />
                   <button
@@ -4767,7 +4767,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                     {imgBusy ? 'Рисует…' : promoForm.imageUrl ? '✨ Сгенерировать заново' : '✨ Сгенерировать картинку'}
                   </button>
                   <p className="text-[11px] text-white/35">
-                    1600 × 700, заголовок крупно на картинке. Одна картинка ≈ 14–18 ₽ с баланса polza.
+                    Напишите только суть — дизайнер-ИИ сам продумает композицию, цвета и шрифт, заголовок крупно на картинке. 1600 × 700, ≈ 14–18 ₽ с баланса polza.
                     Буквы вышли криво — нажмите «заново».
                   </p>
                   {imgError && <p className="text-xs text-rose-300">{imgError}</p>}
