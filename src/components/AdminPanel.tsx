@@ -46,6 +46,7 @@ import VoiceGlass from './VoiceGlass';
 import AdminPushToggle from './AdminPushToggle';
 import { PromoCardPreview } from './PromoCardPreview';
 import { MaximAdmin } from './MaximAdmin';
+import { MaximCallButton } from './MaximCallButton';
 import { UserAvatar } from './UserAvatar';
 import { StickerView } from './StickerView';
 import { EmojiPicker } from './EmojiPicker';
@@ -1115,6 +1116,18 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   // Filtering orders
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'printing' | 'ready' | 'printed' | 'unpaid' | 'rejected'>('all');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  // Звонки Максима по готовым заказам (кнопка на карточке «К выдаче»). Пока
+  // кто-то дозванивается — переспрашиваем сервер, чтобы итог появился сам.
+  const [maximCalls, setMaximCalls] = useState<Record<string, v2.MaximOrderCall>>({});
+  const maximCalling = Object.values(maximCalls).some((c: v2.MaximOrderCall) => c.state === 'calling');
+  useEffect(() => {
+    if (activeTab !== 'orders' || statusFilter !== 'ready') return;
+    const load = () => v2.maxim.orderCalls().then(r => setMaximCalls(r.calls)).catch(() => {});
+    load();
+    if (!maximCalling) return;
+    const t = setInterval(load, 8000);
+    return () => clearInterval(t);
+  }, [activeTab, statusFilter, maximCalling]);
   // Номер заказа, только что пойманный сканером — показывается плашкой, чтобы
   // было видно, что сработало именно сканирование, а не случайный фильтр.
   const [scannedOrderId, setScannedOrderId] = useState<string | null>(null);
@@ -2403,6 +2416,15 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             </div>
                             <OrderBarcode value={order.id} />
                           </div>
+
+                          {order.status === 'ready' && !order.rejected && (
+                            <MaximCallButton
+                              orderId={order.id}
+                              hasPhone={!!(order.userPhone || database.users.find(u => u.id === order.userId)?.phone)}
+                              call={maximCalls[order.id]}
+                              onCall={call => setMaximCalls(prev => ({ ...prev, [order.id]: call }))}
+                            />
+                          )}
 
                           {/* Row 2: Stage buttons — always visible at top */}
                           <div className="flex flex-wrap gap-1.5 items-center">

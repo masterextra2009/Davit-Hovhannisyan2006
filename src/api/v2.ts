@@ -398,6 +398,14 @@ export interface MaximCosts {
   payments: MaximPayment[];
 }
 
+/** Звонок Максима клиенту по готовому заказу (кнопка на карточке «К выдаче»). */
+export interface MaximOrderCall {
+  at: string;
+  state: 'calling' | 'answered' | 'noanswer';
+  result?: string;
+  doneAt?: string;
+}
+
 export const maxim = {
   status: () => request<MaximStatus>('maxim.php?action=status'),
   calls: (month: string) => request<{ calls: MaximCall[]; months: string[] }>(`maxim.php?action=calls&month=${encodeURIComponent(month)}`),
@@ -406,6 +414,8 @@ export const maxim = {
   saveCharacter: (text: string) => request<{ ok: true }>('maxim.php?action=character', { body: { text } }),
   memory: () => request<{ memory: Record<string, MaximMemoryEntry[]> }>('maxim.php?action=memory'),
   forget: (number: string) => request<{ ok: true }>('maxim.php?action=memory-forget', { body: { number } }),
+  callClient: (orderId: string) => request<{ call: MaximOrderCall }>('maxim.php?action=call', { body: { orderId } }),
+  orderCalls: () => request<{ calls: Record<string, MaximOrderCall> }>('maxim.php?action=order-calls'),
 };
 
 export const telegram = {
