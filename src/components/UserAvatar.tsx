@@ -68,9 +68,14 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     );
   }
 
+  // Цветная заливка — отдельным внутренним слоем без rounded-*: в кабинетах
+  // (index.css, «.dark #admin-dashboard-root#admin-dashboard-root .rounded-xl»)
+  // любой .rounded-xl/2xl/3xl перекрашивается в стеклянный фон с !important,
+  // и градиент на самом кружке пропадал — аватарки без фото выходили серыми.
   return (
-    <div className={`${className} bg-gradient-to-tr ${gradientColors} flex items-center justify-center shadow-sm select-none border border-white/10 shrink-0 ${shapeClass}`}>
-      <UserRound className="w-[60%] h-[60%]" strokeWidth={2} />
+    <div className={`${className} relative overflow-hidden flex items-center justify-center shadow-sm select-none border border-white/10 shrink-0 ${shapeClass}`}>
+      <div className={`absolute inset-0 bg-gradient-to-tr ${gradientColors}`} />
+      <UserRound className="relative w-[60%] h-[60%] text-white" strokeWidth={2} />
     </div>
   );
 };
