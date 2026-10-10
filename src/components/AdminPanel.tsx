@@ -46,6 +46,7 @@ import VoiceGlass from './VoiceGlass';
 import AdminPushToggle from './AdminPushToggle';
 import { PromoCardPreview } from './PromoCardPreview';
 import { MaximAdmin } from './MaximAdmin';
+import { MaximCallButton } from './MaximCallButton';
 import { UserAvatar } from './UserAvatar';
 import { StickerView } from './StickerView';
 import { EmojiPicker } from './EmojiPicker';
@@ -1115,6 +1116,18 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   // Filtering orders
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'printing' | 'ready' | 'printed' | 'unpaid' | 'rejected'>('all');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  // Звонки Максима по готовым заказам (кнопка на карточке «К выдаче»). Пока
+  // кто-то дозванивается — переспрашиваем сервер, чтобы итог появился сам.
+  const [maximCalls, setMaximCalls] = useState<Record<string, v2.MaximOrderCall>>({});
+  const maximCalling = Object.values(maximCalls).some((c: v2.MaximOrderCall) => c.state === 'calling');
+  useEffect(() => {
+    if (activeTab !== 'orders' || statusFilter !== 'ready') return;
+    const load = () => v2.maxim.orderCalls().then(r => setMaximCalls(r.calls)).catch(() => {});
+    load();
+    if (!maximCalling) return;
+    const t = setInterval(load, 8000);
+    return () => clearInterval(t);
+  }, [activeTab, statusFilter, maximCalling]);
   // Номер заказа, только что пойманный сканером — показывается плашкой, чтобы
   // было видно, что сработало именно сканирование, а не случайный фильтр.
   const [scannedOrderId, setScannedOrderId] = useState<string | null>(null);
@@ -2259,7 +2272,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {sortedOrders.length === 0 ? (
                 <p className="text-xs text-white/50 text-center py-10 glass-panel rounded-3xl">Нет заказов в реестре.</p>
               ) : (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-5 items-start">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4 items-start">
                   {sortedOrders
                     .filter(o => {
                       // Выданные заказы живут только в Архиве — как только заказ
@@ -2311,7 +2324,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       >
                         {/* Превью: первое приложенное фото, иначе значок файла
                             (или картинка самой услуги, если файлов нет) */}
-                        <div className="relative aspect-[16/10] bg-slate-900/60 grid place-items-center overflow-hidden">
+                        <div className="relative aspect-[2/1] bg-slate-900/60 grid place-items-center overflow-hidden">
                           {firstFile ? (
                             <>
                               <span className={`font-mono font-bold text-xl text-white px-3 py-2 rounded-lg ${/pdf$/i.test(firstFile.name) ? 'bg-rose-600' : /docx?$/i.test(firstFile.name) ? 'bg-blue-600' : 'bg-slate-600'}`}>
@@ -2359,7 +2372,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           </div>
                         </div>
 
-                        <div className="p-4 flex flex-col gap-3 flex-1">
+                        <div className="p-3 flex flex-col gap-2.5 flex-1">
                           {/* Номер, дата и метки */}
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <span className="text-xs">
@@ -2404,47 +2417,41 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                             <OrderBarcode value={order.id} />
                           </div>
 
-                          {/* Row 2: Stage buttons — always visible at top */}
-                          <div className="flex flex-wrap gap-1.5 items-center">
-                            <span className="text-[11px] font-black uppercase text-slate-500 tracking-widest self-center mr-1">Стадия:</span>
-                            {[
-                              { id: 'pending',  label: 'Проверка' },
-                              { id: 'approved', label: 'Одобрен' },
-                              { id: 'printing', label: 'Печать' },
-                              { id: 'ready',    label: 'В Готовность' },
-                              { id: 'printed',  label: 'Выдать' }
-                            ].map((state) => {
-                              const stages = ['pending','approved','printing','ready','printed'];
-                              const currentIdx = stages.indexOf(order.status);
-                              const thisIdx = stages.indexOf(state.id);
-                              const isCurrent = order.status === state.id;
-                              const isPast = thisIdx < currentIdx;
-                              const isNext = thisIdx === currentIdx + 1;
-                              const isFuture = thisIdx > currentIdx + 1;
-                              return (
-                                <button
-                                  key={state.id}
-                                  onClick={() => !isPast && !isFuture && handleUpdateOrderStatus(order.id, state.id as any)}
-                                  disabled={isPast || isFuture}
-                                  title={isPast ? 'Уже пройдено' : isFuture ? 'Сначала завершите предыдущий шаг' : ''}
-                                  className={`stage-pill-btn transition-all ${
-                                    isCurrent   ? 'stage-pill-current'
-                                    : isPast    ? 'stage-pill-past'
-                                    : isNext    ? 'stage-pill-next'
-                                                : 'stage-pill-future'
-                                  }`}
-                                >
-                                  {isPast ? '✓ ' : ''}{state.label}
-                                </button>
-                              );
-                            })}
-                          </div>
+                          {order.status === 'ready' && !order.rejected && (
+                            <MaximCallButton
+                              orderId={order.id}
+                              hasPhone={!!(order.userPhone || database.users.find(u => u.id === order.userId)?.phone)}
+                              call={maximCalls[order.id]}
+                              onCall={call => setMaximCalls(prev => ({ ...prev, [order.id]: call }))}
+                            />
+                          )}
+
+                          {/* Следующий шаг заказа одной кнопкой — вместо ряда из пяти
+                              стадий (Давид, 10.10): текущая стадия и так видна меткой вверху. */}
+                          {(() => {
+                            const next = ({
+                              pending:  { to: 'approved', label: 'Одобрить' },
+                              approved: { to: 'printing', label: 'В печать' },
+                              printing: { to: 'ready',    label: 'Готов' },
+                              ready:    { to: 'printed',  label: 'Выдать' },
+                            } as Record<string, { to: OrderStatus; label: string }>)[order.status];
+                            return next && (
+                              <button
+                                onClick={() => handleUpdateOrderStatus(order.id, next.to)}
+                                className="stage-pill-next w-full flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[13px] font-extrabold transition-all"
+                              >
+                                {next.label} <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+                            );
+                          })()}
 
                           {/* Файлы */}
                           <div className="space-y-1.5">
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Файлы ({order.files.length})</span>
-                              {(order.files && order.files.length > 2) && (
+                              {/* Готовый заказ: файлы уже напечатаны — вместо списка всех фото
+                                  одна кнопка-архив (Давид, 10.10). */}
+                              {(order.files && order.files.length > (order.status === 'ready' ? 1 : 2)) && (
                                 <button
                                   onClick={() => handleDownloadAllAsZip(order)}
                                   disabled={zippingOrderId === order.id}
@@ -2468,7 +2475,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 </button>
                               )}
                             </div>
-                            {order.files.map(file => (
+                            {(order.status === 'ready' && order.files.length > 1 ? [] : order.files).map(file => (
                               <div
                                 key={file.id}
                                 className="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl flex items-center gap-2.5 text-xs border border-slate-100 dark:border-slate-850"
@@ -2624,7 +2631,8 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 </button>
                               </div>
                             </div>
-                          ) : (
+                          ) : order.status === 'ready' ? null : (
+                            // Готовый заказ уже ждёт выдачи — «брак» на нём не нужен (Давид, 10.10).
                             <button
                               onClick={() => { setRejectingOrderId(order.id); setRejectionReasonDraft(''); }}
                               className="self-start text-[11px] font-bold text-rose-500/70 hover:text-rose-600 flex items-center gap-1 cursor-pointer"
