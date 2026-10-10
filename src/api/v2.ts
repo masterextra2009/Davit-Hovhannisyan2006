@@ -263,6 +263,9 @@ export const notifications = {
 export const aiText = {
   improve: (title: string, body: string) =>
     request<{ title: string; body: string }>('ai-text.php?action=improve', { body: { title, body } }),
+  /** Картинка для новости 1600×700 с заголовком — рисует нейросеть, ~14–18 ₽. */
+  image: (title: string, body: string, hint: string) =>
+    request<{ url: string; width: number; height: number }>('ai-text.php?action=image', { body: { title, body, hint } }),
 };
 
 export const promos = {
