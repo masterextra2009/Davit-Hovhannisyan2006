@@ -18,6 +18,13 @@ const mskTime = (iso: string) => {
   });
 };
 
+// Цвет итога: придёт — зелёный, отказ/неверный номер — красный, не взял — жёлтый.
+const RESULT_TONE = {
+  good: { bg: '#16a34a', border: '#4ade80', text: '#ffffff', icon: '✅' },
+  bad: { bg: '#dc2626', border: '#f87171', text: '#ffffff', icon: '❌' },
+  missed: { bg: '#f59e0b', border: '#fcd34d', text: '#1c1917', icon: '⏳' },
+};
+
 export function MaximCallButton({ orderId, hasPhone, call, onCall }: {
   orderId: string;
   hasPhone: boolean;
@@ -57,15 +64,27 @@ export function MaximCallButton({ orderId, hasPhone, call, onCall }: {
         {calling ? 'Максим звонит…' : !hasPhone ? 'Нет номера телефона' : call ? 'Позвонить ещё раз' : 'Позвонить через Максима'}
       </button>
       {error && <p className="text-[12px] font-bold text-rose-500">{error}</p>}
-      {call && call.state !== 'calling' && (
-        <p className={`text-[12px] font-bold rounded-lg px-2.5 py-1.5 ${
-          call.state === 'answered'
-            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
-            : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
-        }`}>
-          📞 {call.auto ? 'авто · ' : ''}{mskTime(call.doneAt || call.at)} — {call.state === 'answered' ? (call.result || 'поговорили') : 'не взял трубку'}
-        </p>
-      )}
+      {/* Итог звонка — крупной цветной плашкой, чтобы было видно издалека (Давид, 11.10).
+          Цвета через style: в тёмной админке классы bg-emerald/rounded-xl перекрашиваются. */}
+      {call && call.state !== 'calling' && (() => {
+        const raw = call.state === 'answered' ? (call.result || 'поговорили') : 'не взял трубку';
+        // Голое «отменить» читается как кнопка — пишем, что это слова клиента.
+        const result = /^\s*отменить\.?\s*$/i.test(raw) ? 'отказался — отменить заказ' : raw;
+        const tone = call.state !== 'answered' ? RESULT_TONE.missed
+          : /отмен|не нуж|неверн/i.test(result) ? RESULT_TONE.bad
+          : /не понял|итога нет|разговора не было/i.test(result) ? RESULT_TONE.missed
+          : RESULT_TONE.good;
+        return (
+          <div className="rounded-[12px] px-3 py-2.5" style={{ background: tone.bg, border: `2px solid ${tone.border}`, color: tone.text }}>
+            <div className="text-[12px] font-bold" style={{ opacity: 0.85 }}>
+              📞 Максим{call.auto ? ' (авто)' : ''} · {mskTime(call.doneAt || call.at)}
+            </div>
+            <div className="text-[17px] leading-snug font-black mt-0.5">
+              {tone.icon} {result.charAt(0).toUpperCase() + result.slice(1)}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
