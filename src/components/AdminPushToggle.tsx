@@ -79,7 +79,7 @@ export default function AdminPushToggle() {
         : 'Включить уведомления на этом компьютере: о новых сообщениях и заказах, даже когда админка закрыта.'}
       className="block px-1 mb-5 text-[12px] font-semibold text-white/60 hover:text-white transition-colors disabled:opacity-60"
     >
-      {state === 'busy' ? 'Включаю…' : '🔔 Уведомления'}
+      {state === 'busy' ? 'Включаю…' : state === 'error' ? '⚠ Уведомления' : '🔔 Уведомления'}
     </button>
   );
 }
