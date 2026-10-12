@@ -106,6 +106,20 @@ function autocall_enabled(?bool $set = null): bool
     return is_array($c) && ($c['enabled'] ?? false) === true;
 }
 
+/**
+ * С какого момента заказы «новые» для авто-обзвона — время, когда его включили
+ * (Давид, 11.10: «эти заказы не трогай, только когда придут новые»). Включили
+ * заново — граница сдвигается. Нет отметки — «сейчас»: старым не звоним.
+ * Формат как у orders.ready_at (UTC).
+ */
+function autocall_since(): string
+{
+    $file = SITE_DIR . '/../.sever18-private/maxim-autocall.json';
+    $c = is_readable($file) ? json_decode((string) file_get_contents($file), true) : null;
+    $t = is_array($c) ? strtotime((string) ($c['changedAt'] ?? '')) : false;
+    return gmdate('Y-m-d H:i:s', $t ?: time());
+}
+
 /** Номер клиента: из заказа (приложение), иначе из профиля. '' — номера нет. */
 function order_phone(array $o): string
 {
@@ -260,8 +274,9 @@ if ($action === 'autocall-tick') {
         . ' WHERE o.status = \'ready\' AND o.rejected = 0 AND o.ready_at IS NOT NULL'
         . ' AND o.ready_at <= UTC_TIMESTAMP() - INTERVAL ' . AUTOCALL_AFTER_HOURS . ' HOUR'
         . ' AND o.ready_at >= UTC_TIMESTAMP() - INTERVAL ' . AUTOCALL_MAX_AGE_DAYS . ' DAY'
+        . ' AND o.ready_at >= ?'
         . ' ORDER BY o.ready_at ASC LIMIT 200');
-    $st->execute();
+    $st->execute([autocall_since()]);
     foreach ($st->fetchAll() as $o) {
         if (order_phone($o) === '') {
             continue;

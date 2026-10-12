@@ -57,30 +57,29 @@ export default function AdminPushToggle() {
     );
   }
 
+  // 12.10 Давид: в офисе (уведомления не включены) — коротко, как на ПК; пояснения — в подсказке при наведении.
   if (state === 'denied') {
     return (
-      <div className="px-1 mb-5 text-[12px] text-amber-300/90 leading-snug">
-        🔕 Уведомления запрещены в браузере. Нажмите на значок слева от адреса сайта → «Уведомления» → «Разрешить», затем обновите страницу.
+      <div
+        className="px-1 mb-5 text-[12px] font-semibold text-amber-300/90"
+        title="Уведомления запрещены в браузере. Нажмите на значок слева от адреса сайта → «Уведомления» → «Разрешить», затем обновите страницу."
+      >
+        🔕 Уведомления
       </div>
     );
   }
 
   return (
-    <div className="mb-5">
-      <button
-        type="button"
-        onClick={enable}
-        disabled={state === 'busy'}
-        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-2xl text-[13px] font-bold text-white bg-white/10 hover:bg-white/15 border border-white/15 transition-colors disabled:opacity-60"
-      >
-        <span aria-hidden>🔔</span>
-        {state === 'busy' ? 'Включаю…' : 'Включить уведомления на этом компьютере'}
-      </button>
-      <p className="px-1 mt-1.5 text-[11px] text-white/45 leading-snug">
-        {state === 'error'
-          ? 'Не получилось включить — обновите страницу и нажмите ещё раз.'
-          : 'О новых сообщениях и заказах, даже когда админка закрыта.'}
-      </p>
-    </div>
+    <button
+      type="button"
+      onClick={enable}
+      disabled={state === 'busy'}
+      title={state === 'error'
+        ? 'Не получилось включить — обновите страницу и нажмите ещё раз.'
+        : 'Включить уведомления на этом компьютере: о новых сообщениях и заказах, даже когда админка закрыта.'}
+      className="block px-1 mb-5 text-[12px] font-semibold text-white/60 hover:text-white transition-colors disabled:opacity-60"
+    >
+      {state === 'busy' ? 'Включаю…' : state === 'error' ? '⚠ Уведомления' : '🔔 Уведомления'}
+    </button>
   );
 }
