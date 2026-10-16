@@ -90,11 +90,13 @@ foreach ($st as $o) {
 }
 arsort($kinds);
 
-// «Ждут» — за всё время: не оплачены (и ещё не выданы) / готовы, но не забраны.
-$wait = $pdo->query("SELECT
+// «Ждут» — за те же 30 дней (старые брошенные заказы не в счёт): не оплачены (и ещё не выданы) / готовы, но не забраны.
+$wait = $pdo->prepare("SELECT
         SUM(payment_status <> 'paid' AND status <> 'printed') AS unpaid,
         SUM(status = 'ready') AS ready
-    FROM orders WHERE rejected = 0")->fetch();
+    FROM orders WHERE rejected = 0 AND order_date >= ?");
+$wait->execute([$from]);
+$wait = $wait->fetch();
 
 foreach (['revenueToday', 'revenueWeek', 'revenuePrevWeek'] as $k) {
     $out[$k] = round($out[$k], 2);
