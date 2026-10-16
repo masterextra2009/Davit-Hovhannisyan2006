@@ -5,9 +5,13 @@ declare(strict_types=1);
 // Только количества и суммы — ни имён, ни телефонов клиентов. Пускаем по секрету в
 // заголовке X-Nexus-Secret (лежит в .sever18-private/nexus.php, в репозиторий не попадает).
 //
-//   GET stats — заказы сегодня/7 дней (и неделей раньше), выручка, ждут оплаты/выдачи,
-//               заказы по дням за 14 дней, что заказывают за 30 дней.
-// Дни считаем по Москве (UTC+3, без перехода на летнее время); отклонённые заказы не считаем.
+//   GET stats — заказы и выручка сегодня/7 дней (и неделей раньше), посетители, ждут оплаты/выдачи,
+//               заказы/выручка/посетители по дням за 14 дней, что заказывают сейчас.
+// Заказы и выручку по дням берём из счётчиков stats (orders_daily, revenue_daily) — выданные
+// заказы удаляются из orders через 48 часов, по самой таблице выходило бы занижено.
+// Посетители — stats/visits (misc.php?action=visit, раз в сеанс браузера, без cookie).
+// «Что заказывают» и «Ждут» — по таблице orders, то есть заказы в работе и выданные за 2 дня.
+// Дни — московские; отклонённые заказы не считаем.
 
 require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_doc_photo_catalog.php';
@@ -58,33 +62,41 @@ $st = $pdo->prepare('SELECT order_date, status, payment_status, total_cost, serv
                      FROM orders WHERE rejected = 0 AND order_date >= ?');
 $st->execute([$from]);
 
+/** Счётчик из stats: {"ГГГГ-ММ-ДД": число} (у visits — внутри history). */
+function nexus_counter(PDO $pdo, string $name): array
+{
+    $st = $pdo->prepare('SELECT data FROM stats WHERE name = ?');
+    $st->execute([$name]);
+    $data = json_decode((string) ($st->fetchColumn() ?: '{}'), true) ?: [];
+    $days = $name === 'visits' ? ($data['history'] ?? []) : $data;
+    return is_array($days) ? $days : [];
+}
+
+$orders = nexus_counter($pdo, 'orders_daily');
+$revenue = nexus_counter($pdo, 'revenue_daily');
+$visits = nexus_counter($pdo, 'visits');
+$out = ['today' => 0, 'week' => 0, 'prevWeek' => 0, 'revenueToday' => 0.0, 'revenueWeek' => 0.0, 'revenuePrevWeek' => 0.0,
+        'visitsToday' => 0, 'visitsWeek' => 0, 'visitsPrevWeek' => 0];
 $days = [];
 for ($i = 13; $i >= 0; $i--) {
-    $days[$today->modify("-$i days")->format('Y-m-d')] = 0;
+    $day = $today->modify("-$i days")->format('Y-m-d');
+    $o = max(0, (int) round((float) ($orders[$day] ?? 0)));
+    $r = (float) ($revenue[$day] ?? 0);
+    $v = (int) ($visits[$day] ?? 0);
+    $days[] = ['day' => $day, 'orders' => $o, 'revenue' => round($r, 2), 'visits' => $v];
+    if ($i === 0) {
+        $out['today'] = $o;
+        $out['revenueToday'] = $r;
+        $out['visitsToday'] = $v;
+    }
+    $period = $i <= 6 ? 'Week' : 'PrevWeek';
+    $out[$i <= 6 ? 'week' : 'prevWeek'] += $o;
+    $out['revenue' . $period] += $r;
+    $out['visits' . $period] += $v;
 }
-$todayKey = $today->format('Y-m-d');
-$weekFrom = $today->modify('-6 days')->format('Y-m-d');
-$prevFrom = $today->modify('-13 days')->format('Y-m-d');
-$out = ['today' => 0, 'week' => 0, 'prevWeek' => 0, 'revenueToday' => 0.0, 'revenueWeek' => 0.0, 'revenuePrevWeek' => 0.0];
+
 $kinds = [];
 foreach ($st as $o) {
-    $day = (new DateTimeImmutable($o['order_date'], new DateTimeZone('UTC')))->setTimezone($msk)->format('Y-m-d');
-    $paid = $o['payment_status'] === 'paid' || $o['status'] === 'printed';
-    $sum = $paid ? (float) $o['total_cost'] : 0.0;
-    if (isset($days[$day])) {
-        $days[$day]++;
-    }
-    if ($day === $todayKey) {
-        $out['today']++;
-        $out['revenueToday'] += $sum;
-    }
-    if ($day >= $weekFrom) {
-        $out['week']++;
-        $out['revenueWeek'] += $sum;
-    } elseif ($day >= $prevFrom) {
-        $out['prevWeek']++;
-        $out['revenuePrevWeek'] += $sum;
-    }
     $kind = nexus_kind($o, $services);
     $kinds[$kind] = ($kinds[$kind] ?? 0) + 1;
 }
@@ -104,7 +116,7 @@ foreach (['revenueToday', 'revenueWeek', 'revenuePrevWeek'] as $k) {
 respond(['ok' => true] + $out + [
     'unpaid' => (int) ($wait['unpaid'] ?? 0),
     'ready' => (int) ($wait['ready'] ?? 0),
-    'days' => array_map(fn($d, $n) => ['day' => $d, 'orders' => $n], array_keys($days), $days),
+    'days' => $days,
     'kinds' => array_map(fn($k, $n) => ['name' => $k, 'orders' => $n], array_keys($kinds), $kinds),
     'at' => time(),
 ]);
