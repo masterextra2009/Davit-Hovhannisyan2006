@@ -317,6 +317,16 @@ export const services = {
   remove: (id: string) => request('misc.php?action=service-delete', { body: { id } }),
 };
 
+/** Цены печати (фото, А4, А3, отделка), ₽. Ключи — как в server/api/v2/_pricing.php. */
+export type PrintPrices = Record<string, number>;
+
+export const prices = {
+  /** Действующие цены — их же берут сайт, приложение и оплата. Без входа. */
+  get: () => request<{ prices: PrintPrices }>('misc.php?action=prices'),
+  /** Админ: сохранить цены. Не присланное поле не меняется. */
+  save: (p: PrintPrices) => request<{ prices: PrintPrices }>('misc.php?action=prices-save', { body: { prices: p } }),
+};
+
 export const feedback = {
   send: (message: string, extra?: { isBugReport?: boolean; screenshotUrl?: string }) =>
     request<{ id: string }>('misc.php?action=feedback', { body: { message, ...extra } }),
