@@ -35,10 +35,15 @@ const STEPS = [
 
 // Цены — из админки («Цены печати»), см. src/printPrices.ts.
 function pricesList(p: ReturnType<typeof usePrintPrices>) {
+  // Конкретные суммы, без «от» (Давид, 17.10.2026).
   return [
-    { label: 'А4, чёрно-белая', price: `от ${p.a4_bw} ₽`, unit: '/ стр.' },
-    { label: 'А4, цветная', price: `от ${p.a4_color_light} ₽`, unit: '/ стр.' },
-    { label: 'А3', price: `от ${Math.min(p.a3_bw_80, p.a3_bw_200, p.a3_color_80, p.a3_color_200, p.a3_photo)} ₽`, unit: '/ стр.' },
+    { label: 'А4, чёрно-белая', price: `${p.a4_bw} ₽`, unit: '/ стр.' },
+    { label: 'А4, немного цвета', price: `${p.a4_color_light} ₽`, unit: '/ стр.' },
+    { label: 'А4, много цвета', price: `${p.a4_color_full} ₽`, unit: '/ стр.' },
+    { label: 'Фото 10×15', price: `${p.photo_10x15} ₽`, unit: '/ шт.' },
+    { label: 'А3 чертёж, ч/б', price: `${p.a3_bw_80} ₽`, unit: '/ лист' },
+    { label: 'А3 чертёж, цветной', price: `${p.a3_color_80} ₽`, unit: '/ лист' },
+    { label: 'А3 фото', price: `${p.a3_photo} ₽`, unit: '/ лист' },
     { label: 'Срочная печать', price: '+50%', unit: 'к стоимости' },
   ];
 }
