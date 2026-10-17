@@ -277,7 +277,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showClientInfoPanel, setShowClientInfoPanel] = useState(false);
   const [adminChatInput, setAdminChatInput] = useState('');
-  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Тикер для индикатора "печатает…" — typingChatAt пишется клиентом раз в
   // 2.5с (см. handleChatInputChange в Dashboard.tsx), явного "перестал
@@ -1216,17 +1216,12 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
     }
   }, [activeChatUserId, activeTab, database.users.length, database.chatMessages.length]);
 
-  // Scroll chat operator window — instant (not smooth) so it opens already at
-  // the latest message instead of visibly scrolling down to find it. A delayed
-  // re-scroll catches sticker/photo messages that load asynchronously and grow
-  // the list's height right after the first scroll.
+  // Свежие сообщения в переписке стоят сверху (Давид, 17.10) — поэтому чат
+  // открывается с самого верха, сразу на последнем сообщении. Мгновенно, без
+  // плавной прокрутки, чтобы не было видно, как окно «ищет» нужное место.
   useLayoutEffect(() => {
-    if (activeTab !== 'chat' || !chatBottomRef.current) return;
-    chatBottomRef.current.scrollIntoView({ behavior: 'auto' });
-    const t = setTimeout(() => {
-      chatBottomRef.current?.scrollIntoView({ behavior: 'auto' });
-    }, 400);
-    return () => clearTimeout(t);
+    if (activeTab !== 'chat' || !chatScrollRef.current) return;
+    chatScrollRef.current.scrollTop = 0;
   }, [activeTab, activeChatUserId, database.chatMessages.length]);
 
   /**
@@ -1830,7 +1825,10 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
       )
     : chatSessions;
 
-  const activeTalkingChat = database.chatMessages.filter(c => c.userId === activeChatUserId);
+  // Свежие сверху: по времени от нового к старому.
+  const activeTalkingChat = database.chatMessages
+    .filter(c => c.userId === activeChatUserId)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   // Ищем среди всех участников переписки, а не только среди клиентов.
   // Вся панель диалога нарисована под условием activeChatUserId &&
   // activeChatClient: если собеседник не нашёлся, открытая переписка
@@ -2794,7 +2792,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                       </button>
                     </header>
 
-                    <div className="grok-messages">
+                    <div className="grok-messages" ref={chatScrollRef}>
                       {activeTalkingChat.length === 0 ? (
                         <p className="grok-empty-hint">Нет сообщений в этой ветке.</p>
                       ) : (
@@ -2858,7 +2856,6 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                           );
                         })
                       )}
-                      <div ref={chatBottomRef} />
                     </div>
 
                     <form onSubmit={handleAdminSendMessage} className="grok-composer grok-glass">
