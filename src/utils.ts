@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { price, photoPrice, bindingFeePerCopy } from './printPrices';
 import { DatabaseState, User, Order, ChatMessage, Notification as AppNotification, FileFormatGroup, OrderStatus, PaymentStatus, PrintFile } from './types';
 
 // ID счётчика Яндекс.Метрики — тот же, что вшит в index.html
@@ -404,22 +405,23 @@ export function calculateOrderCost(
     const isPhotoPaper = paperType === 'glossy' || paperType === 'matte';
     if (isPhotoPaper) {
       const sizeStr = photoSize || paperDensity;
+      // Цены фото — из админки (src/printPrices.ts).
       if (sizeStr === '13*18') {
-        singlePageCost = 50;
+        singlePageCost = photoPrice('13x18');
       } else if (sizeStr === '15*20') {
-        singlePageCost = 70;
+        singlePageCost = photoPrice('15x21');
       } else if (sizeStr === '20*30') {
-        singlePageCost = 100;
+        singlePageCost = photoPrice('20x30');
       } else {
-        singlePageCost = 20; // 10*15 is 20 rubs
+        singlePageCost = photoPrice('10x15');
       }
     } else {
       // Standard A4 paper structure
-      let baseRate = 20; // Default Ч/Б А4 = 20 ₽
+      let baseRate = price('a4_bw'); // Ч/Б А4
       if (printColor === 'color') {
-        baseRate = 25; // Цветная А4 (RGB) = 25 ₽
+        baseRate = price('a4_color_light'); // Цветная А4, немного цвета
       } else if (printColor === 'color_full') {
-        baseRate = 65; // Цветная 100% заливка А4 = 65 ₽
+        baseRate = price('a4_color_full'); // Цветная А4, много цвета
       }
 
       // Density additions (only for regular A4 paper)
@@ -432,18 +434,8 @@ export function calculateOrderCost(
 
   // Binding additives per copy
   if (binding && binding !== 'none') {
-    let bindingFee = 0;
-    if (binding === 'staple') bindingFee = 15;
-    else if (binding === 'file') bindingFee = isA3 ? 10 : 5; // А3 — большой файл
-    // Прайс из "Витрины услуг" (см. bindingFeePerCopy в Dashboard.tsx) —
-    // металл: до 50 стр. 350₽, 51-90 стр. 450₽; пластик: до 50 стр. 250₽,
-    // 51-90 стр. 350₽, свыше 90 стр. 450₽.
-    else if (binding === 'spring_metal') {
-      bindingFee = totalPages <= 50 ? 350 : 450;
-    }
-    else if (binding === 'spring_plastic') bindingFee = totalPages <= 50 ? 250 : totalPages <= 90 ? 350 : 450;
-    else if (binding === 'hard_cover') bindingFee = 450;
-    subtotal += (bindingFee * copies);
+    // Цены отделки — из админки (src/printPrices.ts); А3 — большой файлик.
+    subtotal += bindingFeePerCopy(binding, totalPages, isA3) * copies;
   }
 
   // Promo discount calculations

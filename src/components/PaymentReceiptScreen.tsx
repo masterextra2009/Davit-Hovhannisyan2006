@@ -9,6 +9,7 @@ import { motion } from 'motion/react';
 import * as v2 from '../api/v2';
 import { Order } from '../types';
 import { trackAnalyticsEvent } from '../utils';
+import { price, photoPrice, colorFillPrice, a3SheetPrice, bindingFeePerCopy, usePrintPrices } from '../printPrices';
 
 type DocCheckItem = { id: string; label: string; ok: boolean; issue: string };
 
@@ -17,10 +18,6 @@ interface Props {
   onClose: () => void;
 }
 
-const photoSizePrices: Record<string, number> = {
-  '10x15': 20, polaroid: 30, '13x18': 50, '15x21': 70, '20x30': 100, '30x40': 250,
-};
-const colorFillPrice = (pct: number) => (pct <= 20 ? 25 : pct <= 60 ? 40 : 65);
 
 function filePrice(f: Order['files'][number]): number {
   const isPhoto = f.paperType === 'photo';
@@ -28,22 +25,20 @@ function filePrice(f: Order['files'][number]): number {
   const isBinding = f.format === 'binding';
   const copies = f.fileCopies || 1;
   const pages = f.pageCount || 1;
-  if (isPhoto) return (photoSizePrices[f.photoSize || '10x15'] || 20) * copies;
+  // Цены — из админки (src/printPrices.ts), те же, что в форме заказа.
+  if (isPhoto) return photoPrice(f.photoSize) * copies;
   if (isBinding) {
     if (!f.bindingKind) return 0;
-    // Прайс из "Витрины услуг" — см. bindingFeePerCopy в Dashboard.tsx.
-    const bindingFee = f.bindingKind === 'spring_metal'
-      ? (pages <= 50 ? 350 : 450)
-      : (pages <= 50 ? 250 : pages <= 90 ? 350 : 450);
-    return bindingFee * copies;
+    return bindingFeePerCopy(f.bindingKind, pages) * copies;
   }
-  const pp = (f.printColor || 'bw') === 'bw'
-    ? (isA3 ? 100 : 20)
-    : (isA3 ? 150 : colorFillPrice(f.colorFillPercent ?? 50));
+  const pp = isA3
+    ? a3SheetPrice(f)
+    : (f.printColor || 'bw') === 'bw' ? price('a4_bw') : colorFillPrice(f.colorFillPercent ?? 50);
   return pp * pages * copies;
 }
 
 export const PaymentReceiptScreen: React.FC<Props> = ({ orderId, onClose }) => {
+  usePrintPrices(); // цены пришли с сервера — перерисовать
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
