@@ -92,6 +92,7 @@ import * as v2 from '../api/v2';
 import { LoyaltyGerb, levelEmblemUrl } from './LoyaltyGerb';
 import { saveOrderToFirebase, subscribeToPushNotifications, getNextOrderNumber, deleteOrderFromFirebase, deleteNotificationFromFirebase, sendFeedbackToFirebase, registerUserWithFirebase, updateChatMessageInFirebase } from '../firebaseUtils';
 import { motion, AnimatePresence } from 'motion/react';
+import { price, photoPrice, colorFillPrice, a3SheetPrice, bindingFeePerCopy as bindingFeeFromPrices, usePrintPrices } from '../printPrices';
 
 // Synthesized high-quality feedback sound chimes using Web Audio API
 function playPlaceOrderSound() {
@@ -256,7 +257,7 @@ async function inspectZipContents(file: Blob, depth = 0): Promise<{ count: numbe
     const group = getFileFormatGroup(entry.name);
     if (group === 'image') {
       count += 1;
-      total += 20;
+      total += photoPrice('10x15');
       continue;
     }
     if (lower.endsWith('.zip') && depth < 3) {
@@ -282,7 +283,7 @@ async function inspectZipContents(file: Blob, depth = 0): Promise<{ count: numbe
       pages = 1;
     }
     count += 1;
-    total += 20 * pages;
+    total += price('a4_bw') * pages;
   }
   return { count, total, allPhotos: allPhotos && count > 0 };
 }
@@ -332,18 +333,14 @@ async function analyzeColorFill(imageUrl: string): Promise<number> {
 // цветных тарифа два, и за один и тот же файл сайт и приложение должны
 // называть одну цену. Страницы с заливкой 20-60% теперь идут по 65 ₽ —
 // чернил на них уходит как на плотную заливку.
-function colorFillPrice(pct: number) { return pct <= 20 ? 25 : 65; }
+// Сами цены — в src/printPrices.ts (меняются в админке, «Цены печати»).
 function colorFillLabel(pct: number) { return pct <= 20 ? 'Немного цвета' : 'Много цвета'; }
 
-// А3-прайс (цены от 2026-07-19): "Чертёж" — Ч/Б или Цвет на офисной бумаге,
-// цена зависит от плотности (80/200 г/м²); "Фото" — фотобумага 200г,
-// глянец/матовая без разницы в цене, фиксированные 250₽ за лист.
+// А3: "Чертёж" — Ч/Б или Цвет на офисной бумаге, цена зависит от плотности
+// (80/200 г/м²); "Фото" — фотобумага 200г, глянец/матовая без разницы в цене.
+// Цены — из админки (src/printPrices.ts).
 function a3FilePrice(file: PrintFile): number {
-  if (file.a3Kind === 'photo') return 250;
-  const isColor = (file.printColor || 'bw') === 'color';
-  const is200g = file.a3PaperWeight === '200';
-  if (isColor) return is200g ? 150 : 100;
-  return is200g ? 100 : 70;
+  return a3SheetPrice(file);
 }
 
 // Наценка за отделку (за один комплект копий), см. calculateOrderCost в utils.ts —
@@ -357,12 +354,7 @@ function a3FilePrice(file: PrintFile): number {
 // Файлик: 5₽ за А4, 10₽ за А3 (большой файл) — решение Давида 24.09.2026,
 // то же на сервере (_pricing.php).
 function bindingFeePerCopy(binding: 'none' | 'staple' | 'file' | 'spring_plastic' | 'spring_metal' | 'hard_cover', totalPages: number, a3 = false): number {
-  if (binding === 'staple') return 15;
-  if (binding === 'file') return a3 ? 10 : 5;
-  if (binding === 'spring_metal') return totalPages <= 50 ? 350 : 450;
-  if (binding === 'spring_plastic') return totalPages <= 50 ? 250 : totalPages <= 90 ? 350 : 450;
-  if (binding === 'hard_cover') return 450;
-  return 0;
+  return bindingFeeFromPrices(binding, totalPages, a3);
 }
 
 // Цена одной копии для формата "binding" (плитка "Брошюровка" на Главной) —
@@ -777,6 +769,8 @@ function HomeBigClock({ size, resizable, onCycleSize }: { size: ClockSize; resiz
 }
 
 export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDeleteAccount, hasSyncedFromServer = true, initialTab }: DashboardProps) {
+  // Цены печати пришли с сервера (их меняют в админке) — перерисовать с ними.
+  usePrintPrices();
   // На iOS Web Share Target API не поддерживается Safari в принципе (ограничение
   // самой Apple) — "Поделиться" в другое приложение сюда файл не занесёт.
   // Показываем честную подсказку вместо того, чтобы человек ждал автоматики.
@@ -2982,14 +2976,14 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
               photoBorder: 'borderless',
               printColor: 'color',
               bundleFileCount: contents.count,
-              bundleFixedPrice: contents.count * 20,
+              bundleFixedPrice: contents.count * photoPrice('10x15'),
               pageCount: undefined,
             });
             return;
           }
 
           patchFileState(fileId, {
-            bundleFixedPrice: contents.total || 20,
+            bundleFixedPrice: contents.total || price('a4_bw'),
             bundleFileCount: contents.count || 1,
             pageCount: undefined,
           });
@@ -3062,12 +3056,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         for (let i = 0; i < newFiles.length; i++) {
           const meta = newFiles[i];
           if (meta.formatGroup === 'image') {
-            total += 20; // фото по умолчанию — 10×15, цвет
+            total += photoPrice('10x15'); // фото по умолчанию — 10×15, цвет
             fileCount += 1;
           } else if (meta.formatGroup === 'archive') {
             const contents = await inspectZipContents(rawFilesForZip[i])
-              .catch(() => ({ count: 1, total: 20, allPhotos: false }));
-            total += contents.total || 20;
+              .catch(() => ({ count: 1, total: price('a4_bw'), allPhotos: false }));
+            total += contents.total || price('a4_bw');
             fileCount += contents.count || 1;
             // 4 фото + архивы с одними фото — всё равно пачка фото, с выбором размера
             bundleAllPhotos = bundleAllPhotos && contents.allPhotos;
@@ -3080,7 +3074,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
             const pages = isPdf ? await countPdfPages(raw).catch(() => 1)
               : isDocx ? await countDocxPages(raw).catch(() => 1)
               : 1;
-            total += 20 * pages; // документ по умолчанию — Ч/Б А4
+            total += price('a4_bw') * pages; // документ по умолчанию — Ч/Б А4
           }
         }
         const zip = new JSZip();
@@ -3267,8 +3261,8 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
   // сеткой на лист(ы) А4 (пока не займут максимум COLLAGE_MAX_PER_SHEET —
   // дальше начинается следующий лист), рисуются на canvas и отправляются
   // на сервер как единый файл, как и обычная загрузка.
-  const COLLAGE_PRICE_PLAIN = 65;
-  const COLLAGE_PRICE_PHOTO = 100;
+  const COLLAGE_PRICE_PLAIN = price('collage_plain');
+  const COLLAGE_PRICE_PHOTO = price('collage_photo');
   const collagePriceFor = (paper?: 'plain' | 'photo') => paper === 'photo' ? COLLAGE_PRICE_PHOTO : COLLAGE_PRICE_PLAIN;
   const COLLAGE_MAX_PER_SHEET = 9;
   const [showCollageBuilder, setShowCollageBuilder] = useState(false);
@@ -3483,9 +3477,6 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
     const finalDiscount = byLoyalty ? loyaltyPct : (finalPromo ? promoPct : undefined);
 
     // Считаем итоговую стоимость из per-file настроек
-    const photoSizePrices: Record<string, number> = {
-      '10x15': 20, 'polaroid': 30, '13x18': 50, '15x21': 70, '20x30': 100, '30x40': 250
-    };
     const subtotal = uploadedFiles.reduce((acc, f) => {
       // Архив (авто-собранный из >2 файлов или загруженный клиентом .zip)
       // ценится по честно подсчитанному содержимому, а не по стандартной
@@ -3503,12 +3494,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
       const pp = isCollageFile
         ? collagePriceFor(f.collagePaper)
         : isPhotoFile
-        ? (photoSizePrices[f.photoSize || '10x15'] || 20)
+        ? photoPrice(f.photoSize)
         : isA3
         ? a3FilePrice(f)
         : isBindingFile
         ? bindingFilePrice(f)
-        : ((f.printColor || 'bw') === 'bw' ? 20 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65));
+        : ((f.printColor || 'bw') === 'bw' ? price('a4_bw') : colorFillPrice(fillPct));
       return acc + pp * (isPhotoFile || isCollageFile || isBindingFile ? 1 : pages) * fileCopies;
     }, 0);
     const totalPagesForBinding = uploadedFiles.reduce((acc, f) => acc + (f.pageCount || 1), 0);
@@ -5093,12 +5084,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           setUploadedFiles(prev => prev.map(f => f.id === file.id ? { ...f, ...updates } : f));
                         };
                         const photoSizes = [
-                          { key: '10x15', label: '10×15', sub: 'стандарт', price: 20 },
-                          { key: 'polaroid', label: 'Полароид', sub: 'квадрат', price: 30 },
-                          { key: '13x18', label: '13×18', sub: 'средний', price: 50 },
-                          { key: '15x21', label: '15×21', sub: 'большой', price: 70 },
-                          { key: '20x30', label: '20×30', sub: 'постер', price: 100 },
-                          { key: '30x40', label: '30×40', sub: 'большой постер', price: 250 },
+                          { key: '10x15', label: '10×15', sub: 'стандарт', price: photoPrice('10x15') },
+                          { key: 'polaroid', label: 'Полароид', sub: 'квадрат', price: photoPrice('polaroid') },
+                          { key: '13x18', label: '13×18', sub: 'средний', price: photoPrice('13x18') },
+                          { key: '15x21', label: '15×21', sub: 'большой', price: photoPrice('15x21') },
+                          { key: '20x30', label: '20×30', sub: 'постер', price: photoPrice('20x30') },
+                          { key: '30x40', label: '30×40', sub: 'большой постер', price: photoPrice('30x40') },
                         ] as const;
                         const selSize = photoSizes.find(s => s.key === (file.photoSize || '10x15')) || photoSizes[0];
                         const copies = file.fileCopies || 1;
@@ -5111,7 +5102,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           : isPhoto ? selSize.price
                           : isA3 ? a3FilePrice(file)
                           : isBindingFile ? bindingFilePrice(file)
-                          : ((file.printColor || 'bw') === 'bw' ? 20 : colorFillPrice(fillPct));
+                          : ((file.printColor || 'bw') === 'bw' ? price('a4_bw') : colorFillPrice(fillPct));
                         const fileCost = isBundle ? file.bundleFixedPrice! : filePP * (isPhoto || isCollage || isBindingFile ? 1 : pages) * copies;
 
                         return (
@@ -5275,7 +5266,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               {binding === 'file' && isLast && (
                                 <div className="absolute inset-0 bg-sky-200/20 dark:bg-sky-400/10 border-2 border-sky-400/40 rounded-xl z-20 pointer-events-none shadow-inner" style={{ backdropFilter: 'blur(1px)' }}>
                                   <div className="absolute top-2 right-2 w-3.5 h-3.5 rounded-full border border-sky-500/20 flex items-center justify-center bg-white/70 shadow-xs text-sky-650 font-bold text-[9px] animate-pulse">
-                                    {uploadedFiles.some(f => f.format === 'a3') ? 10 : 5}₽
+                                    {price(uploadedFiles.some(f => f.format === 'a3') ? 'file_a3' : 'file_a4')}₽
                                   </div>
                                 </div>
                               )}
@@ -5629,12 +5620,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                           const isPhotoFile = f.paperType === 'photo';
                           const isCollageFile = f.paperType === 'collage';
                           const photoSizes = [
-                            { key: '10x15', label: '10×15', price: 20 },
-                            { key: 'polaroid', label: 'Полароид', price: 30 },
-                            { key: '13x18', label: '13×18', price: 50 },
-                            { key: '15x21', label: '15×21', price: 70 },
-                            { key: '20x30', label: '20×30', price: 100 },
-                            { key: '30x40', label: '30×40', price: 250 },
+                            { key: '10x15', label: '10×15', price: photoPrice('10x15') },
+                            { key: 'polaroid', label: 'Полароид', price: photoPrice('polaroid') },
+                            { key: '13x18', label: '13×18', price: photoPrice('13x18') },
+                            { key: '15x21', label: '15×21', price: photoPrice('15x21') },
+                            { key: '20x30', label: '20×30', price: photoPrice('20x30') },
+                            { key: '30x40', label: '30×40', price: photoPrice('30x40') },
                           ] as const;
                           const selSize = photoSizes.find(s => s.key === (f.photoSize || '10x15')) || photoSizes[0];
                           const fileCopies = f.fileCopies || 1;
@@ -5646,7 +5637,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                             : isPhotoFile ? selSize.price
                             : isA3 ? a3FilePrice(f)
                             : isBindingFile ? bindingFilePrice(f)
-                            : ((f.printColor || 'bw') === 'bw' ? 20 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65));
+                            : ((f.printColor || 'bw') === 'bw' ? price('a4_bw') : colorFillPrice(fillPct));
                           const fileCost = f.bundleFixedPrice !== undefined ? f.bundleFixedPrice : pp * (isPhotoFile || isCollageFile || isBindingFile ? 1 : pages) * fileCopies;
                           return (
                             <div key={f.id} className="flex justify-between items-start gap-2 text-white/70">
@@ -5664,9 +5655,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               const isPhotoFile = f.paperType === 'photo';
                               const isCollageFile = f.paperType === 'collage';
                               const photoSizes = [
-                                { key: '10x15', price: 20 }, { key: 'polaroid', price: 30 },
-                                { key: '13x18', price: 50 }, { key: '15x21', price: 70 },
-                                { key: '20x30', price: 100 }, { key: '30x40', price: 250 },
+                                { key: '10x15', price: photoPrice('10x15') }, { key: 'polaroid', price: photoPrice('polaroid') },
+                                { key: '13x18', price: photoPrice('13x18') }, { key: '15x21', price: photoPrice('15x21') },
+                                { key: '20x30', price: photoPrice('20x30') }, { key: '30x40', price: photoPrice('30x40') },
                               ] as const;
                               const selSize = (photoSizes as readonly {key: string; price: number}[]).find(s => s.key === (f.photoSize || '10x15')) || photoSizes[0];
                               const fileCopies = f.fileCopies || 1;
@@ -5678,7 +5669,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 : isPhotoFile ? selSize.price
                                 : isA3 ? a3FilePrice(f)
                                 : isBindingFile ? bindingFilePrice(f)
-                                : ((f.printColor || 'bw') === 'bw' ? 20 : (fillPct <= 20 ? 25 : fillPct <= 60 ? 40 : 65));
+                                : ((f.printColor || 'bw') === 'bw' ? price('a4_bw') : colorFillPrice(fillPct));
                               return acc + (f.bundleFixedPrice !== undefined ? f.bundleFixedPrice : pp * (isPhotoFile || isCollageFile || isBindingFile ? 1 : pages) * fileCopies);
                             }, 0);
                             const totalPagesForBinding = uploadedFiles.reduce((acc, f) => acc + (f.pageCount || 1), 0);
@@ -7492,17 +7483,17 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
         // не может содержать ни цветных букв, ни картинок) — печать в цвете
         // тут ничем не отличается от Ч/Б, доплата за неё не имеет смысла.
         const isColorless = file.name.toLowerCase().endsWith('.txt');
-        const bwPrice = 20;
-        const colorPrice = isColorless ? 0 : (canAnalyzeFill ? (fillReady ? colorFillPrice(fillPct) : undefined) : 25);
+        const bwPrice = price('a4_bw');
+        const colorPrice = isColorless ? 0 : (canAnalyzeFill ? (fillReady ? colorFillPrice(fillPct) : undefined) : price('a4_color_light'));
         const colorlessBlocksConfirm = isColorless && !isPhoto && (file.printColor || 'bw') === 'color';
 
         const photoSizes = [
-          { key: '10x15', label: '10×15', price: 20 },
-          { key: 'polaroid', label: 'Полароид', price: 30 },
-          { key: '13x18', label: '13×18', price: 50 },
-          { key: '15x21', label: '15×21', price: 70 },
-          { key: '20x30', label: '20×30', price: 100 },
-          { key: '30x40', label: '30×40', price: 250 },
+          { key: '10x15', label: '10×15', price: photoPrice('10x15') },
+          { key: 'polaroid', label: 'Полароид', price: photoPrice('polaroid') },
+          { key: '13x18', label: '13×18', price: photoPrice('13x18') },
+          { key: '15x21', label: '15×21', price: photoPrice('15x21') },
+          { key: '20x30', label: '20×30', price: photoPrice('20x30') },
+          { key: '30x40', label: '30×40', price: photoPrice('30x40') },
         ] as const;
         const selSize = photoSizes.find(s => s.key === (file.photoSize || '10x15')) || photoSizes[0];
         // Полароид — временно без настроек в этой модалке (по просьбе клиента,
@@ -8463,7 +8454,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                         {binding === 'file' && isTopPage && (
                           <div className="absolute inset-0 bg-sky-200/15 dark:bg-sky-400/5 border-2 border-sky-400/30 rounded-xl z-20 pointer-events-none shadow-inner" style={{ backdropFilter: 'blur(0.5px)' }}>
                             <div className="absolute top-2 right-2 w-4 h-4 rounded-full border border-sky-500/15 flex items-center justify-center bg-white/90 shadow-md text-sky-600 font-extrabold text-[10px]">
-                              {uploadedFiles.some(f => f.format === 'a3') ? 10 : 5}₽
+                              {price(uploadedFiles.some(f => f.format === 'a3') ? 'file_a3' : 'file_a4')}₽
                             </div>
                           </div>
                         )}

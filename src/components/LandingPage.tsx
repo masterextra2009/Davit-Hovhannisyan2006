@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { Phone, MapPin, Clock, ArrowRight, Upload, Sliders, PackageCheck, FileText, Printer, Send, ShieldCheck, ExternalLink, LogIn } from 'lucide-react';
 import { WhatsAppIcon, WHATSAPP_URL } from './WhatsAppIcon';
+import { usePrintPrices } from '../printPrices';
 
 interface LandingPageProps {
   onEnter: () => void;
@@ -32,14 +33,18 @@ const STEPS = [
   },
 ];
 
-const PRICES = [
-  { label: 'А4, чёрно-белая', price: 'от 20 ₽', unit: '/ стр.' },
-  { label: 'А4, цветная', price: 'от 25 ₽', unit: '/ стр.' },
-  { label: 'А3', price: 'от 100 ₽', unit: '/ стр.' },
-  { label: 'Срочная печать', price: '+50%', unit: 'к стоимости' },
-];
+// Цены — из админки («Цены печати»), см. src/printPrices.ts.
+function pricesList(p: ReturnType<typeof usePrintPrices>) {
+  return [
+    { label: 'А4, чёрно-белая', price: `от ${p.a4_bw} ₽`, unit: '/ стр.' },
+    { label: 'А4, цветная', price: `от ${p.a4_color_light} ₽`, unit: '/ стр.' },
+    { label: 'А3', price: `от ${Math.min(p.a3_bw_80, p.a3_bw_200, p.a3_color_80, p.a3_color_200, p.a3_photo)} ₽`, unit: '/ стр.' },
+    { label: 'Срочная печать', price: '+50%', unit: 'к стоимости' },
+  ];
+}
 
 export function LandingPage({ onEnter, onUploadClick }: LandingPageProps) {
+  const PRICES = pricesList(usePrintPrices());
   // Карта Яндекса весит ~400 КБ и грузит собственные скрипты/куки — показываем
   // её только по нажатию, а не сразу при открытии лендинга, чтобы не тратить
   // трафик и время первой загрузки у тех, кто до карты не долистает.
