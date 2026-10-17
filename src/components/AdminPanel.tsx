@@ -16,7 +16,7 @@ import {
   FileText, Users, Clock, MessageSquare, Download, CheckCircle,
   Send, RefreshCw, BarChart3, Trash2, Edit3, Save, FileSpreadsheet,
   Printer, ArrowRight, TrendingUp, ShoppingBag, DollarSign, Files, Eye, HelpCircle,
-  BellRing, Bot, LogOut, FileCheck, Settings, Camera, Image as ImageIcon, Key, CreditCard, Check, ShieldAlert, X, ShieldCheck, Gift, Search, Archive, ChevronLeft, Mail, Phone, User as UserIconLucide, Upload, Lightbulb, GripVertical
+  BellRing, Bot, LogOut, FileCheck, Settings, Camera, Image as ImageIcon, Key, CreditCard, Check, ShieldAlert, X, ShieldCheck, Gift, Search, Archive, ChevronLeft, Mail, Phone, User as UserIconLucide, Upload, Lightbulb, GripVertical, Tag
 } from 'lucide-react';
 import {
   formatFileSize, formatDateTime, getStatusLabel,
@@ -46,6 +46,7 @@ import VoiceGlass from './VoiceGlass';
 import AdminPushToggle from './AdminPushToggle';
 import { PromoCardPreview } from './PromoCardPreview';
 import { MaximAdmin } from './MaximAdmin';
+import { PrintPricesAdmin } from './PrintPricesAdmin';
 import { MaximCallButton } from './MaximCallButton';
 import { UserAvatar } from './UserAvatar';
 import { StickerView } from './StickerView';
@@ -167,7 +168,7 @@ function formatChatStamp(timestamp: string | number): string {
 
 export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: AdminPanelProps) {
   // Navigation
-  const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services' | 'promos' | 'print-app' | 'maxim'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services' | 'prices' | 'promos' | 'print-app' | 'maxim'>('orders');
   // Вкладка "Обновления" видна только внутри программы "Фото-Сервер — Печать"
   // (там window.printerAPI прокинут через preload.js) — на обычном сайте в
   // браузере этого моста нет, поэтому вкладка там просто не показывается.
@@ -2007,6 +2008,20 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
           </button>
 
           <button
+            onClick={() => setActiveTab('prices')}
+            className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
+              activeTab === 'prices'
+                ? 'nav-holo-active bg-white/10 text-white font-black'
+                : 'text-white/55 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <div className={`glass-icon-capsule glass-icon-violet w-9 h-9 shrink-0 ${activeTab === 'prices' ? 'glass-icon-active' : ''}`}>
+              <Tag className="w-4.5 h-4.5 text-white" />
+            </div>
+            <span className="hidden sm:inline">Цены печати</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('promos')}
             className={`flex items-center gap-1.5 md:gap-3 px-3 py-2 md:py-2.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 justify-center md:justify-start shrink-0 md:flex-initial ${
               activeTab === 'promos'
@@ -2136,6 +2151,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
               {activeTab === 'settings' && 'Редактирование профиля и интеграция банка'}
               {activeTab === 'print-app' && 'Обновления и баланс'}
               {activeTab === 'maxim' && 'Максим — ИИ-администратор на звонках'}
+              {activeTab === 'prices' && 'Цены печати'}
             </h1>
             <p className="text-xs text-white/60 mt-1">
               {activeTab === 'feedback' && 'Сообщения из формы "Есть пожелание или замечание?" в кабинете клиента.'}
@@ -4727,6 +4743,9 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
 
           {/* ── МАКСИМ: ИИ-администратор на звонках салона ── */}
           {activeTab === 'maxim' && <MaximAdmin />}
+
+          {/* ── ЦЕНЫ ПЕЧАТИ: одни для сайта, приложения и оплаты ── */}
+          {activeTab === 'prices' && <PrintPricesAdmin />}
 
           {/* ── НОВОСТИ И АКЦИИ ── */}
           {/* Всё, что заведено здесь, видно клиентам в мобильном приложении на
