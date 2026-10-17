@@ -22,10 +22,15 @@ declare(strict_types=1);
 // Установки из Google Play (карточка в аналитике админки):
 //   GET  play-stats                    — админ: всего / сегодня / неделя / оценка
 //
+// Цены печати (фото, А4, А3, отделка) — одни для сайта, приложения и оплаты:
+//   GET  prices                        — без входа: действующие цены
+//   POST prices-save {prices}          — админ
+//
 // Права повторяют firestore.rules: услуги читают вошедшие, правит админ;
 // отзыв заводит клиент о себе, читает и удаляет только админ.
 
 require __DIR__ . '/_bootstrap.php';
+require __DIR__ . '/_pricing.php';
 
 const VISITS_HISTORY_DAYS = 400;
 
@@ -36,6 +41,12 @@ $action = $_GET['action'] ?? '';
 if ($action === 'visit') {
     require_method('POST');
     count_visit();
+}
+
+// Цены видит и гость: прайс в приложении открывается до входа.
+if ($action === 'prices') {
+    require_method('GET');
+    respond(['ok' => true, 'prices' => print_prices()]);
 }
 
 $user = require_user();
@@ -78,8 +89,41 @@ switch ($action) {
         require_method('GET');
         require_admin($isAdmin);
         show_play_stats();
+    case 'prices-save':
+        require_method('POST');
+        require_admin($isAdmin);
+        save_print_prices();
     default:
         fail('Неизвестное действие', 404);
+}
+
+// ─────────────────────────── Цены печати ───────────────────────────
+
+/**
+ * Сохраняет цены из админки. Пустое или испорченное поле не сохраняется —
+ * по нему остаётся цена по умолчанию из _pricing.php.
+ */
+function save_print_prices()
+{
+    $prices = clean_print_prices(body()['prices'] ?? null);
+    if (!$prices) {
+        fail('Нет цен для сохранения');
+    }
+    // Присланное — поверх действующих: поле, которое не прислали, не сбрасывается.
+    $prices = array_merge(print_prices(), $prices);
+    db()->exec(
+        'CREATE TABLE IF NOT EXISTS app_settings (
+           name       VARCHAR(64) NOT NULL,
+           value      MEDIUMTEXT  NOT NULL,
+           updated_at DATETIME(3) NOT NULL,
+           PRIMARY KEY (name)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+    db()->prepare(
+        'INSERT INTO app_settings (name, value, updated_at) VALUES (?, ?, ?) AS new
+         ON DUPLICATE KEY UPDATE value = new.value, updated_at = new.updated_at'
+    )->execute(['print_prices', json_encode($prices), now_utc()]);
+    respond(['ok' => true, 'prices' => $prices]);
 }
 
 // ─────────────────────────── Витрина услуг ───────────────────────────
