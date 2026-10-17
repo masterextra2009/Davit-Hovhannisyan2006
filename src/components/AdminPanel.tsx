@@ -153,6 +153,18 @@ function scannerCharFromCode(code: string): string | null {
   return null;
 }
 
+/** Дата и время сообщения чата по Москве: «17.10 в 15:03», прошлый год — «12.10.2025 в 15:03». */
+function formatChatStamp(timestamp: string | number): string {
+  const d = new Date(timestamp);
+  if (isNaN(d.getTime())) return '';
+  const tz = 'Europe/Moscow';
+  const year = d.toLocaleDateString('ru-RU', { timeZone: tz, year: 'numeric' });
+  const sameYear = year === new Date().toLocaleDateString('ru-RU', { timeZone: tz, year: 'numeric' });
+  const date = d.toLocaleDateString('ru-RU', { timeZone: tz, day: '2-digit', month: '2-digit', ...(sameYear ? {} : { year: 'numeric' }) });
+  const time = d.toLocaleTimeString('ru-RU', { timeZone: tz, hour: '2-digit', minute: '2-digit' });
+  return `${date} в ${time}`;
+}
+
 export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: AdminPanelProps) {
   // Navigation
   const [activeTab, setActiveTab] = useState<'orders' | 'chat' | 'feedback' | 'users' | 'analytics' | 'settings' | 'archive' | 'services' | 'promos' | 'print-app' | 'maxim'>('orders');
@@ -2828,7 +2840,7 @@ export function AdminPanel({ adminUser, onLogout, database, onUpdateDatabase }: 
                                 </div>
                                 )}
                                 <div className="grok-msg-time">
-                                  {msg.senderName} &bull; {new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                                  {msg.senderName} &bull; {formatChatStamp(msg.timestamp)}
                                   {isAdmin && (msg.readByClient ? ' ✓✓' : ' ✓')}
                                   {/* Клиент убрал у себя — у мастерской остаётся до удаления админом. */}
                                   {msg.clientDeleted ? <span className="text-rose-400 font-bold"> &bull; удалено клиентом</span> : null}
