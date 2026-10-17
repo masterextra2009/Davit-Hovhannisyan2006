@@ -5554,12 +5554,12 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       <label className="block text-[11px] font-black text-white/50 uppercase tracking-widest mb-2">
                         Отделка
                       </label>
-                      <div className="grid grid-cols-4 gap-1.5 mb-2">
+                      {/* Твёрдой обложки в мастерской нет — вариант убран (Давид, 17.10.2026). */}
+                      <div className="grid grid-cols-3 gap-1.5 mb-2">
                         {([
                           { key: 'none', label: 'Нет' },
                           { key: 'staple', label: 'Степлер' },
                           { key: 'file', label: 'Файлик' },
-                          { key: 'hard_cover', label: 'Твёрдый' },
                         ] as const).map(opt => (
                           <button
                             key={opt.key}

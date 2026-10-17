@@ -61,7 +61,7 @@ const GROUPS: { title: string; hint?: string; items: [key: string, label: string
       ['spring_plastic_50', 'Пружина пластик, до 50 листов'],
       ['spring_plastic_90', 'Пружина пластик, 51–90 листов'],
       ['spring_plastic_more', 'Пружина пластик, больше 90 листов'],
-      ['hard_cover', 'Твёрдая обложка'],
+      // Твёрдой обложки в мастерской нет (17.10.2026) — цену не показываем.
     ],
   },
 ];
