@@ -49,8 +49,9 @@ const PRINT_PRICES_DEFAULT = [
 const COLOR_FILL_THRESHOLD = 20;
 
 /**
- * Присланные цены → только известные ключи, целые рубли 0…100 000.
- * Неизвестное и испорченное отбрасываем — вместо него цена по умолчанию.
+ * Присланные цены → только известные ключи, целые рубли 1…100 000.
+ * Ноль не берём: заказ вышел бы бесплатным. Неизвестное и испорченное
+ * отбрасываем — вместо него цена по умолчанию.
  */
 function clean_print_prices($raw): array
 {
@@ -60,7 +61,7 @@ function clean_print_prices($raw): array
     }
     foreach (PRINT_PRICES_DEFAULT as $key => $_) {
         $v = $raw[$key] ?? null;
-        if (is_numeric($v) && (float) $v >= 0 && (float) $v <= 100000) {
+        if (is_numeric($v) && (float) $v >= 1 && (float) $v <= 100000) {
             $out[$key] = (int) round((float) $v);
         }
     }
