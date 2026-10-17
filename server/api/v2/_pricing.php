@@ -12,18 +12,88 @@ declare(strict_types=1);
 // Цветная страница А4 — 25 ₽ (заливка до 20%) или 65 ₽: среднего тарифа
 // 40 ₽ нет с 10.09.2026 (решение Давида, см. orders.ts в приложении).
 //
-// Файл без обращения к базе: его можно проверить отдельно.
+// Цены печати Давид меняет в админке (17.10.2026): они лежат в базе
+// (app_settings, запись print_prices) и отдаются сайту и приложению через
+// misc.php?action=prices. Здесь — цены по умолчанию: ими считаем, если в
+// базе ещё ничего не сохранено или база не ответила, — заказы не встают.
+// Без базы (db() не подключён) файл по-прежнему можно проверить отдельно.
 
-const PHOTO_SIZE_PRICES = ['10x15' => 20, 'polaroid' => 30, '13x18' => 50, '15x21' => 70, '20x30' => 100, '30x40' => 250];
-const COLLAGE_PRICE_PLAIN = 65;
-const COLLAGE_PRICE_PHOTO = 100;
-const A4_BW = 20;
-const A4_COLOR_LIGHT = 25;
-const A4_COLOR_FULL = 65;
+const PRINT_PRICES_DEFAULT = [
+    'photo_10x15' => 20,
+    'photo_polaroid' => 30,
+    'photo_13x18' => 50,
+    'photo_15x21' => 70,
+    'photo_20x30' => 100,
+    'photo_30x40' => 250,
+    'collage_plain' => 65,
+    'collage_photo' => 100,
+    'a4_bw' => 20,
+    'a4_color_light' => 25,
+    'a4_color_full' => 65,
+    'a3_photo' => 250,
+    'a3_bw_80' => 70,
+    'a3_bw_200' => 100,
+    'a3_color_80' => 100,
+    'a3_color_200' => 150,
+    'staple' => 15,
+    'file_a4' => 5,
+    'file_a3' => 10,
+    'spring_metal_50' => 350,
+    'spring_metal_more' => 450,
+    'spring_plastic_50' => 250,
+    'spring_plastic_90' => 350,
+    'spring_plastic_more' => 450,
+    'hard_cover' => 450,
+];
 /** Заливка цветом, %, до которой страница считается «немного цвета». */
 const COLOR_FILL_THRESHOLD = 20;
-const A3_PHOTO = 250;
-const A3_CHERTYOZH = ['bw' => ['80' => 70, '200' => 100], 'color' => ['80' => 100, '200' => 150]];
+
+/**
+ * Присланные цены → только известные ключи, целые рубли 0…100 000.
+ * Неизвестное и испорченное отбрасываем — вместо него цена по умолчанию.
+ */
+function clean_print_prices($raw): array
+{
+    $out = [];
+    if (!is_array($raw)) {
+        return $out;
+    }
+    foreach (PRINT_PRICES_DEFAULT as $key => $_) {
+        $v = $raw[$key] ?? null;
+        if (is_numeric($v) && (float) $v >= 0 && (float) $v <= 100000) {
+            $out[$key] = (int) round((float) $v);
+        }
+    }
+    return $out;
+}
+
+/** Действующие цены печати: из базы поверх цен по умолчанию. */
+function print_prices(): array
+{
+    static $prices = null;
+    if ($prices !== null) {
+        return $prices;
+    }
+    $saved = [];
+    if (function_exists('db')) {
+        try {
+            $st = db()->prepare("SELECT value FROM app_settings WHERE name = 'print_prices'");
+            $st->execute();
+            $json = $st->fetchColumn();
+            $saved = $json === false ? [] : clean_print_prices(json_decode((string) $json, true));
+        } catch (Throwable $e) {
+            // Таблицы ещё нет или база не ответила — считаем по умолчанию.
+            $saved = [];
+        }
+    }
+    $prices = array_merge(PRINT_PRICES_DEFAULT, $saved);
+    return $prices;
+}
+
+function print_price(string $key): int
+{
+    return print_prices()[$key];
+}
 /**
  * Архив из нескольких файлов: цену содержимого считает браузер клиента.
  * Проверить её сервер пока не может, но меньше 20 ₽ за файл внутри — самой
@@ -45,15 +115,15 @@ function binding_fee_per_copy(string $binding, int $pages, bool $a3 = false): in
 {
     switch ($binding) {
         case 'staple':
-            return 15;
+            return print_price('staple');
         case 'file':
-            return $a3 ? 10 : 5;
+            return print_price($a3 ? 'file_a3' : 'file_a4');
         case 'spring_metal':
-            return $pages <= 50 ? 350 : 450;
+            return print_price($pages <= 50 ? 'spring_metal_50' : 'spring_metal_more');
         case 'spring_plastic':
-            return $pages <= 50 ? 250 : ($pages <= 90 ? 350 : 450);
+            return print_price($pages <= 50 ? 'spring_plastic_50' : ($pages <= 90 ? 'spring_plastic_90' : 'spring_plastic_more'));
         case 'hard_cover':
-            return 450;
+            return print_price('hard_cover');
         default:
             return 0;
     }
@@ -72,21 +142,21 @@ function file_price(array $f): int
 
     $paper = $f['paperType'] ?? 'plain';
     if ($paper === 'collage') {
-        return (($f['collagePaper'] ?? 'plain') === 'photo' ? COLLAGE_PRICE_PHOTO : COLLAGE_PRICE_PLAIN) * $copies;
+        return print_price(($f['collagePaper'] ?? 'plain') === 'photo' ? 'collage_photo' : 'collage_plain') * $copies;
     }
     if ($paper === 'photo') {
         $size = (string) ($f['photoSize'] ?? '10x15');
-        return (PHOTO_SIZE_PRICES[$size] ?? PHOTO_SIZE_PRICES['10x15']) * $copies;
+        return (print_prices()['photo_' . $size] ?? print_price('photo_10x15')) * $copies;
     }
 
     $format = $f['format'] ?? 'a4';
     if ($format === 'a3') {
         if (($f['a3Kind'] ?? '') === 'photo') {
-            $perSheet = A3_PHOTO;
+            $perSheet = print_price('a3_photo');
         } else {
             $color = ($f['printColor'] ?? 'bw') === 'color' ? 'color' : 'bw';
             $weight = ($f['a3PaperWeight'] ?? '80') === '200' ? '200' : '80';
-            $perSheet = A3_CHERTYOZH[$color][$weight];
+            $perSheet = print_price("a3_{$color}_{$weight}");
         }
         return $perSheet * $pages * $copies;
     }
@@ -96,16 +166,16 @@ function file_price(array $f): int
 
     // Документ А4
     if (($f['printColor'] ?? 'bw') === 'bw') {
-        $perPage = A4_BW;
+        $perPage = print_price('a4_bw');
     } else {
         $tier = $f['colorTier'] ?? null; // приложение: клиент выбрал тариф словами
         if ($tier === 'color_light') {
-            $perPage = A4_COLOR_LIGHT;
+            $perPage = print_price('a4_color_light');
         } elseif ($tier === 'color_full') {
-            $perPage = A4_COLOR_FULL;
+            $perPage = print_price('a4_color_full');
         } else {
             $fill = is_numeric($f['colorFillPercent'] ?? null) ? (float) $f['colorFillPercent'] : 50;
-            $perPage = $fill <= COLOR_FILL_THRESHOLD ? A4_COLOR_LIGHT : A4_COLOR_FULL;
+            $perPage = print_price($fill <= COLOR_FILL_THRESHOLD ? 'a4_color_light' : 'a4_color_full');
         }
     }
     return $perPage * $pages * $copies;
