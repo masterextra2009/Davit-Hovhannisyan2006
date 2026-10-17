@@ -5577,8 +5577,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         {([
-                          { key: 'spring_metal', label: 'Металлическая пружина', video: bindingSpringMetalAnim },
-                          { key: 'spring_plastic', label: 'Пластиковая пружина', video: bindingSpringPlasticAnim },
+                          // Сколько листов влезает в пружину (Давид, 17.10.2026) — только подпись, выбрать можно любую.
+                          { key: 'spring_metal', label: 'Металлическая пружина', limit: 'до 110 листов', video: bindingSpringMetalAnim },
+                          { key: 'spring_plastic', label: 'Пластиковая пружина', limit: 'до 400 листов', video: bindingSpringPlasticAnim },
                         ] as const).map(opt => {
                           const selected = binding === opt.key;
                           return (
@@ -5602,6 +5603,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                                 className="w-full aspect-square rounded-lg object-cover pointer-events-none"
                               />
                               <div className={`text-[10.5px] font-black leading-tight ${selected ? 'text-indigo-200' : 'text-white/80'}`}>{opt.label}</div>
+                              <div className={`text-[10px] font-semibold leading-tight -mt-1 ${selected ? 'text-indigo-200/80' : 'text-white/50'}`}>{opt.limit}</div>
                             </button>
                           );
                         })}
@@ -7642,8 +7644,9 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                     <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Тип пружины</p>
                     <div className="grid grid-cols-2 gap-2.5">
                       {([
-                        { key: 'spring_metal', label: 'Металлическая', video: bindingSpringMetalAnim },
-                        { key: 'spring_plastic', label: 'Пластиковая', video: bindingSpringPlasticAnim },
+                        // Сколько листов влезает в пружину (Давид, 17.10.2026) — только подпись, выбрать можно любую.
+                        { key: 'spring_metal', label: 'Металлическая', limit: 'до 110 листов', video: bindingSpringMetalAnim },
+                        { key: 'spring_plastic', label: 'Пластиковая', limit: 'до 400 листов', video: bindingSpringPlasticAnim },
                       ] as const).map(opt => {
                         const selected = file.bindingKind === opt.key;
                         return (
@@ -7667,6 +7670,7 @@ export function Dashboard({ user, onLogout, database, onUpdateDatabase, onDelete
                               className="w-full aspect-square rounded-xl object-cover pointer-events-none"
                             />
                             <div className={`text-[12px] font-black ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-white'}`}>{opt.label}</div>
+                            <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 -mt-1">{opt.limit}</div>
                           </button>
                         );
                       })}
