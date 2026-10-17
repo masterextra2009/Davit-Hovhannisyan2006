@@ -4,7 +4,7 @@
  * (misc.php?action=prices / prices-save, _pricing.php).
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, RefreshCw, Save, Tag, Undo2 } from 'lucide-react';
+import { RefreshCw, Save, Tag, Undo2 } from 'lucide-react';
 import { prices as pricesApi, PrintPrices } from '../api/v2';
 
 /** Группы и подписи полей — порядок как в прайсе у клиента. */
@@ -134,15 +134,7 @@ export function PrintPricesAdmin() {
     <div className="p-5 space-y-5 max-w-4xl mx-auto">
       <div>
         <h2 className="text-lg font-black text-white flex items-center gap-2"><Tag className="w-5 h-5" /> Цены печати</h2>
-        <p className="text-sm text-white/50 mt-1">Меняете цену здесь — по ней считается сумма к оплате. Цены услуг из витрины меняются в разделе «Услуги».</p>
-      </div>
-
-      {/* Пока сайт и приложение показывают свои, вписанные цены (шаги 3–4). Убрать, когда они начнут брать цены отсюда. */}
-      <div className="p-4 flex items-start gap-3" style={{ borderRadius: 16, background: 'rgba(245,158,11,.18)', border: '1px solid rgba(252,211,77,.55)' }}>
-        <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#fcd34d' }} />
-        <p className="text-sm text-white">
-          <b style={{ color: '#fcd34d' }}>Пока не меняйте цены.</b> Сайт и приложение ещё показывают клиентам старые цены — их подключим следующими шагами. Если поменять сейчас, клиент увидит одну цену, а заплатит другую.
-        </p>
+        <p className="text-sm text-white/50 mt-1">Меняете цену здесь — она сразу действует на сайте, в приложении (при следующем открытии) и в сумме к оплате. Цены услуг из витрины меняются в разделе «Услуги».</p>
       </div>
 
       {loadError && (
